@@ -110,18 +110,22 @@ python main.py --data-dir data --loop --global-only
 
 [mee1080](https://github.com/mee1080) and its repository [Umaishow](https://github.com/mee1080/umaishow)
 for easy access to the raw data on character id and relative weights to compute affinity.
+
 [Gametora](https://gametora.com/umamusume) and its Discord for general knowledge, 
 affinity computation clarification, and downloadable illustrations.
+
 Each line of Python code has been written by an AI, supervised and micromanaged by IvoryTower48.
 
 ## Additional notes
 This is my most serious attempt at learning how to work with AI and its limits and capabilities.
 I tested each function and the tool works to a satisfactory degree, but I'm not a seasoned programmer:
 this tool will have bugs and is surely badly written from a programmer's PoV.
+
 While I'm not a fan of contributing to GitHub and the community with AI code, I have to recognize that
 this tool would not exist in its present form without it. I have a data science background, so
 tasks like preparing the UI and automatically updating the data would've been hard tasks for me;
-since the Umamusume community is quite active, speed and presentation were qualities I wanted to give back a bit.
+since the Umamusume community is quite active, speed and presentation were qualities I wanted.
+
 Feel free to improve this tool, or to tell me which issues it has so I can also try my hand at
 maintaining code with AI (and, for maintenance, the occasional 'manual' touch).
 
