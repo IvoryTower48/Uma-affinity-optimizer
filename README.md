@@ -1,114 +1,135 @@
-# Uma Legacy Loop Optimizer
+# IvoryTower48's Uma Legacy Loop Optimizer
 
-Tool per pianificare "legacy loop" (gruppi chiusi di 5 umamusume che si
-allenano a vicenda come genitori/nonni) in Umamusume Pretty Derby: top-4
-compatibili con un personaggio, miglior loop a 5, pianificazione delle
-pink spark, timeline delle carriere, esportazione PDF illustrata. UI
-disponibile in italiano e inglese (si cambia dal pannello Impostazioni).
+The purpose of this tool is to help planning for "legacy loops" (closed 
+sets of 5 characters that become each others' parents and grandparents) 
+in Umamusume Pretty Derby.
+There are two main modes: 
+- top-4 compatibles with a chosen character (max affinity in first loop
+  without degrading the other four steps);
+- best 5-loop for affinity (with the possibility of choosing multiple
+  characters that must be in the loop).
 
-## Per chi vuole solo usarlo (Windows, nessuna installazione)
+This tool also features a simple pink spark planning (e.g. requiring 
+long or dirt sparks so that a character can run more races) and a
+table that summarizes the career timeline of the 5 umamusume in the loop.
 
-Scarica l'ultimo pacchetto dalla pagina [Releases](../../releases) di
-questo repository, estrai lo zip in una cartella e fai doppio clic su
-`UmaLegacyLoopOptimizer.exe`. Si apre da solo nel browser — non serve
-Python, non serve il terminale. Dettagli nel `LEGGIMI.txt` (italiano) o
-`README.txt` (inglese) dentro lo zip.
+At the moment this tool supports English and Italian, and the .exe can
+be ran only in Windows without requiring any installation.
 
-## Per sviluppo (da sorgente)
+## The Simple Way to Use this Tool
 
+Download the latest package from the [Releases page](../../releases) 
+of this repository, extract the .zip file in a folder and run
+`UmaLegacyLoopOptimizer.exe`. Soon after the app will open a browser page,
+and it can be used as-is; by closing the tab, you'll stop the program. 
+
+
+If you prefer to run it in a terminal, you'll
+find more details in `LEGGIMI.txt` (Italian) and `README.txt` (English)
+inside the .zip you just downloaded.
+
+## From the source code (Python required)
+
+Run these two commands:
 ```bash
 pip install -r requirements.txt
 python app.py
 ```
+then open the browser and go to **http://localhost:5000**. This program 
+starts a local server on the PC that runs it; this is equivalent to
+running the .exe file provided. As for the .exe, closing the browser tab 
+will automatically stop the local server in the background.
 
-Poi apri **http://localhost:5000**. Il server gira solo sul tuo PC:
-nessun hosting, nessun costo, nessuna dipendenza da servizi esterni — è
-l'equivalente di lanciare un programma. Chiudendo la scheda del browser
-(o il terminale), si ferma da solo.
+If, for any reason, you'd like to modify this tool, you can compile the .exe
+using`build_exe.bat`(requires`pip install pyinstaller`only for this step).
 
-Per ricompilare l'eseguibile standalone dopo una modifica: `build_exe.bat`
-(richiede `pip install pyinstaller`, solo per questo passaggio).
-
-## Struttura
+## Structure
 
 ```
-config.py              costanti (suffissi varianti, soglie aptitude, pesi, dimensione loop)
-naming.py               risoluzione nome variante -> nome base
-display_names.py        formattazione nomi per l'interfaccia
-data_loader.py           caricamento e normalizzazione di tutti i dataset
-data_updater.py          aggiornamento dati da gametora.com (opzionale, disattivato di default)
-affinity.py              affinità di base, compatibilità di gara, soglie di vincibilità
-loop_search.py           ricerca top-4 per personaggio e miglior loop a 5
-cycle_analysis.py        esplorazione a un salto, cicli, breakdown dei punteggi
-aptitude_inheritance.py  pianificazione pink spark ("Aptitude Inheritance")
-timeline.py              calendario/timeline del gruppo
-pdf_export.py            esportazione PDF illustrata del loop
+config.py                constants (suffixes related to uma variants, aptitude thresholds,
+                         weights to compute base affinity, loop size)
+naming.py                mapping from uma variant name -> uma base name
+display_names.py         Name format for the UI
+data_loader.py           loading and normalization of all datasets
+data_updater.py          data update from gametora.com (optional, turned off by default)
+affinity.py              base affinity, race compatibility, regular aptitude requirements for a win
+loop_search.py           searches the top-4 compatible characters or searches the best 5-loop
+cycle_analysis.py        full description of a parent cycle, affinity score breakdown
+aptitude_inheritance.py  pink spark planning
+timeline.py              race caledndar/timeline for the looping characters
+pdf_export.py            rudimentary PDF export complete with illustrations for easy reference
 main.py                  CLI
-app.py                   server Flask locale (UI), riusa gli stessi moduli di calcolo
-templates/               pagina HTML della UI
-static/                  CSS e JS della UI
-data/                    dataset (vedi sotto)
+app.py                   local Flask server (UI)
+templates/               HTML page for the UI
+static/                  CSS and JS for the UI
+data/                    dataset (see below)
 ```
 
-## Dataset in data/
+## Datasets in data/
 
-- `character_ids.csv`, `id_weights.csv` — affinità di base
-- `aptitudes.xlsx` — voti A-G per personaggio
-- `races.xlsx`, `race_gametora_ids.json` — metadati gara
-- `mandatory_races.xlsx` — calendario obbligato per personaggio
-- `character_info.csv` — mapping nome-variante → nome giapponese + data di uscita Global
+- `character_ids.csv`, `id_weights.csv` — to compute base affinity
+- `aptitudes.xlsx` — base aptitudes for a character (and variants, if at least one aptude differs)
+- `races.xlsx`, `race_gametora_ids.json` — race metadata
+- `mandatory_races.xlsx` — mandatory career races for each character
+- `character_info.csv` — mapping variant → japanese name + Global server release date
 
-`data/image_cache/` (ritratti personaggi e targhe gara) non è inclusa nel
-repository per motivi di copyright: si popola da sola al primo utilizzo
-(richiede rete) o resta assente, con segnaposto automatico al suo posto.
+`data/image_cache/` (character portraits and race plaques) are not included
+in the repository: this folder will fill itself the first time it's requested
+(requires allowing internet connection at least once) or it will stay empty.
+In their place, there are placeholders to represent the umas and races.
 
-## Uso da riga di comando (CLI)
+## Further command examples to use this tool (CLI)
 
 ```bash
-# Top-4 personaggi più compatibili con uno specifico, in modalità career
-python main.py --data-dir data --character mejiro_mcqueen
+# Top-4 characters most compatible with a chosen character, normal career mode
+python main.py --data-dir data --character <character_id>
 
-# Stesso, ma ignorando i vincoli di calendario (tutte le parent run in MANT)
-python main.py --data-dir data --character mejiro_mcqueen --mode mant
+# Same as above, but ignoring race calendar constraints (MANT parent runs)
+python main.py --data-dir data --character <character_id> --mode mant
 
-# Ricerca del miglior loop chiuso a 5 (esaustiva su un pool ristretto)
-python main.py --data-dir data --loop --pool-size 20
+# Search for best closed 5-loop
+python main.py --data-dir data --loop
 
-# Solo personaggi già usciti su Global
+# Same as above, but using only characteres that have already been released in Global
 python main.py --data-dir data --loop --global-only
 ```
 
 ## Note di design (per riferimento futuro)
 
-- **Punteggio combinato** = affinità di base + (gare condivise vincibili × 3 punti),
-  senza normalizzazione: la race-compatibility ha naturalmente un tetto più alto,
-  come richiesto.
-- **`career` vs `mant`**: in `career`, una gara è vincibile in comune solo se lo slot
-  non è occupato da un'altra obbligatoria (gara diversa o `blocked:`); in `mant`
-  non c'è alcun vincolo di calendario, solo soglie di aptitude.
-- **Varianti**: risolte tramite suffissi noti (rimozione iterativa, gestisce anche
-  suffissi concatenati tipo `_og_xmas`). Due varianti della stessa umamusume hanno
-  sempre affinità di base 0 tra loro (self-affinity), quindi non vengono escluse a
-  priori dal loop ma il loro contributo reciproco è nullo; lo script le segnala
-  comunque come nota informativa se compaiono insieme in un loop.
-- **`best_loop`** è una ricerca esaustiva (tutte le combinazioni da 5) ristretta a un
-  pool ridotto (`--pool-size`, default 20) scelto per punteggio medio più alto —
-  non è garantito l'ottimo globale su tutto il roster, ma è trattabile
-  computazionalmente. Con roster molto più grandi, valutare un pool più ampio o
-  un euristico di ricerca locale.
-- **Soglie di aptitude minime** (`MIN_APTITUDE` in `config.py`) e **punti per gara
-  condivisa** (`RACE_SHARED_WIN_POINTS`) sono costanti, modificabili senza toccare
-  la logica.
+- **`career` vs `mant`**: in `career`, a race is 'winnable' and 'shared' between 2 umas
+  only if the time slot is not occupied with a different mandatory race; in `mant`
+  there are no calendar constraints to account for, just aptitude thresholds.
+- **`best_loop`** works as a research that considers ALL possible sets of 5 unique umas,
+  and computes inidividual and overall affninity for each. It's more useful if
+  1+ characters are selected, since the program restricts the pool size to avoid
+  unnecessary computations (`--pool-size`, default 20).
+- The **minimum threshold for each aptitude** (`MIN_APTITUDE` in `config.py`) is defined
+  as a constant, so it's easy to change them without touching the underlying logic.
 
-## Crediti
+## Credits
 
-Tutto lo sviluppo (scrittura del codice) è stato realizzato interamente da
-un'intelligenza artificiale (Claude, Anthropic). Idea, direzione del
-progetto, ogni scelta di design e di funzionalità: IvoryTower.
+[mee1080](https://github.com/mee1080) and its repository [Umaishow](https://github.com/mee1080/umaishow)
+for easy access to the raw data on character id and relative weights to compute affinity.
+[Gametora](https://gametora.com/umamusume) and its Discord for general knowledge, 
+affinity computation clarification, and downloadable illustrations.
+Each line of Python code has been written by an AI, supervised and micromanaged by IvoryTower48.
 
-## Licenza
+## Additional notes
+This is my most serious attempt at learning how to work with AI and its limits and capabilities.
+I tested each function and the tool works to a satisfactory degree, but I'm not a seasoned programmer:
+this tool will have bugs and is surely badly written from a programmer's PoV.
+While I'm not a fan of contributing to GitHub and the community with AI code, I have to recognize that
+this tool would not exist in its present form without it. I have a data science background, so
+tasks like preparing the UI and automatically updating the data would've been hard tasks for me;
+since the Umamusume community is quite active, speed and presentation were qualities I wanted to give back a bit.
+Feel free to improve this tool, or to tell me which issues it has so I can also try my hand at
+maintaining code with AI (and, for maintenance, the occasional 'manual' touch).
 
-Codice rilasciato con licenza [MIT](LICENSE). I dati di gioco (nomi,
-statistiche, aptitude, calendario gare ecc.) appartengono a Cygames —
-questo è un tool amatoriale non ufficiale, senza alcuna affiliazione con
-Cygames/Cygames Umamusume Pretty Derby.
+I hope it'll be useful for preparing future parents and to enjoy Umamusume more!
+
+## License
+
+AGPL v3
+
+This tool is unofficial, and neither the tool nor the author are affiliated to 
+Cygames or Umamusume Pretty Derby.
