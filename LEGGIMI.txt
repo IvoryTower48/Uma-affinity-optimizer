@@ -1,0 +1,49 @@
+====================================================
+ Uma Legacy Loop Optimizer
+====================================================
+
+Tool per trovare e pianificare "legacy loop" (gruppi chiusi di 5 umamusume
+che si allenano a vicenda come genitori/nonni) in Umamusume Pretty Derby:
+top-4 compatibili con un personaggio, miglior loop a 5, pianificazione
+delle pink spark, timeline delle carriere, esportazione PDF illustrata.
+
+La UI e' disponibile sia in italiano che in inglese: cambia lingua
+dall'icona ingranaggio (Impostazioni) dentro il programma.
+
+COME SI AVVIA
+--------------
+1. Estrai TUTTO il contenuto di questo zip in una cartella qualsiasi
+   (mantieni "UmaLegacyLoopOptimizer.exe", la cartella "_internal" e la
+   cartella "data" insieme, nella stessa cartella).
+2. Fai doppio clic su "UmaLegacyLoopOptimizer.exe".
+3. Si apre una finestra nera (la console del programma) e, dopo un istante,
+   il browser si apre da solo sulla pagina del programma: non serve
+   installare Python né altro, non serve usare il terminale.
+4. Per chiuderlo, chiudi semplicemente la scheda del browser: il programma
+   si chiude da solo (anche la finestra nera). In alternativa puoi chiudere
+   la finestra nera direttamente.
+
+Solo Windows. Il programma gira interamente sul tuo PC: nessun dato viene
+mandato in giro, nessun account, nessun costo.
+
+RETE INTERNET
+--------------
+Non obbligatoria per usare il programma. I ritratti dei personaggi e le
+targhe delle gare (usati nella UI e nel PDF esportato) sono gia' inclusi
+in questo pacchetto: la rete serve solo per due cose opzionali:
+- scaricare le immagini di eventuali personaggi/gare nuovi non ancora
+  presenti nel pacchetto — se manca la rete, il programma li sostituisce
+  automaticamente con un segnaposto, senza errori;
+- l'aggiornamento automatico dei dati (nuovi personaggi/gare) è
+  DISATTIVATO di default: si attiva a mano dal pannello Impostazioni
+  (icona ingranaggio) dentro il programma, se lo desideri.
+
+====================================================
+ Crediti
+====================================================
+
+Tutto lo sviluppo (scrittura del codice, in ogni sua parte) è stato
+realizzato interamente da un'intelligenza artificiale (Claude, Anthropic).
+
+Idea, direzione del progetto, ogni scelta di design e di funzionalità:
+IvoryTower (in game: Arnit, Trainer ID 600 621 108 642).

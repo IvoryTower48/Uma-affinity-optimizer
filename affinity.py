@@ -1,0 +1,231 @@
+# -*- coding: utf-8 -*-
+"""
+Funzioni di calcolo dell'affinita' tra due personaggi (varianti incluse):
+  - base_affinity: dalla matrice di ID/pesi (richiede name_map slug -> nome giapponese)
+  - race_compatibility: dal calendario gare obbligate + soglie di aptitude
+"""
+from config import GRADE_RANK, MIN_APTITUDE, RACE_SHARED_WIN_POINTS
+
+
+def meets_threshold(grade: str, min_grade: str) -> bool:
+    """True se 'grade' e' pari o migliore di 'min_grade' (scala A..G, A = migliore)."""
+    return GRADE_RANK.get(grade, len(GRADE_RANK)) <= GRADE_RANK[min_grade]
+
+
+def race_is_winnable(character: str, race_id: str, races: dict, aptitudes: dict) -> bool:
+    """
+    True se il personaggio soddisfa le soglie minime di aptitude (superficie E distanza)
+    per poter considerare quella gara "vinta" ai fini dell'affinita'.
+    """
+    if character not in aptitudes:
+        return False
+    race_info = races[race_id]
+    surface = race_info["surface"]
+    distance = race_info["distance"]
+    apt = aptitudes[character]
+    return (
+        meets_threshold(apt[surface], MIN_APTITUDE[surface])
+        and meets_threshold(apt[distance], MIN_APTITUDE[distance])
+    )
+
+
+def slot_occupation_map(character: str, calendar: dict) -> dict:
+    """
+    Ritorna dict[slot] -> race_id occupante quello slot nel calendario obbligato del
+    personaggio ('blocked:<slot>' incluso, marcato come '__blocked__' perche' non
+    corrisponde a nessuna riga in races.xlsx). Un personaggio ha al massimo una
+    entry per slot (non puo' correre due gare nello stesso turno).
+    """
+    occ = {}
+    for e in calendar.get(character, []):
+        race_id = "__blocked__" if e["is_blocked"] else e["race"]
+        occ[e["slot"]] = race_id
+    return occ
+
+
+def race_is_achievable(character: str, race_id: str, races: dict, aptitudes: dict,
+                        occupation: dict, mode: str) -> bool:
+    """
+    True se il personaggio PUO' vincere questa gara (ai fini dell'affinita'):
+      - deve sempre soddisfare le soglie di aptitude (superficie + distanza)
+      - in mode='mant' non c'e' altro vincolo (nessuna carriera obbligata: si sceglie
+        liberamente cosa correre in ogni turno)
+      - in mode='career', basta che ALMENO UNA delle occorrenze della gara (una
+        gara ricorrente come arima_kinen ha piu' occorrenze, una per anno) non
+        sia occupata da UN'ALTRA entry obbligata (gara diversa o 'blocked:').
+        Un vincolo obbligatorio in un anno non blocca quindi automaticamente
+        questa gara se e' raggiungibile in un anno diverso.
+    """
+    if not race_is_winnable(character, race_id, races, aptitudes):
+        return False
+    if mode == "mant":
+        return True
+    for occurrence in races[race_id]["occurrences"]:
+        occupant = occupation.get(occurrence["slot"])
+        if occupant is None or occupant == race_id:
+            return True
+    return False
+
+
+def achievable_races_for(character: str, races: dict, aptitudes: dict,
+                          calendar: dict, mode: str) -> set:
+    """Precalcola l'insieme di gare (di races.xlsx) raggiungibili da un personaggio."""
+    occupation = slot_occupation_map(character, calendar)
+    return {
+        race_id for race_id in races
+        if race_is_achievable(character, race_id, races, aptitudes, occupation, mode)
+    }
+
+
+def _character_used_slots(character: str, calendar: dict, mode: str) -> dict:
+    """
+    Slot gia' fissi (occupati da un'obbligatoria reale o 'blocked:') nel
+    calendario del personaggio. In mode='mant' non c'e' alcun vincolo di
+    calendario: nessuno slot e' pre-occupato (scelta libera ovunque).
+    """
+    if mode == "mant":
+        return {}
+    return slot_occupation_map(character, calendar)
+
+
+def resolve_achievable(character: str, candidate_race_ids, races: dict, aptitudes: dict,
+                        calendar: dict, mode: str, priority_key=None) -> set:
+    """
+    Dato un insieme di gare CANDIDATE per un singolo personaggio (gia' filtrate
+    altrove per raggiungibilita' di base, es. l'intersezione con un altro
+    personaggio in shared_wins, o l'intero achievable_races_for per la
+    timeline), risolve i conflitti di TURNO FISICO (slot): un personaggio puo'
+    vincere al massimo UNA gara per slot, quindi se piu' gare candidate
+    competono per lo stesso slot (o insieme di slot, per le ricorrenti) solo
+    alcune possono davvero contare come raggiungibili.
+
+    Le gare che sono l'obbligatoria del personaggio in una delle loro
+    occorrenze sono sempre GARANTITE (non competono, il gioco le forza
+    comunque). Le restanti (flessibili) vengono assegnate con un vero
+    ALGORITMO DI MATCHING BIPARTITO (Kuhn / augmenting path), NON con un
+    semplice greedy "assegna al primo slot libero trovato": un greedy
+    semplice puo' essere SUBOTTIMALE quando una gara ricorrente (piu'
+    occorrenze/slot possibili) viene processata prima di una a occorrenza
+    singola e le "ruba" l'unico slot disponibile, anche se la ricorrente
+    avrebbe potuto usare tranquillamente un suo slot alternativo -- risultato:
+    si perde una gara che sarebbe stata raggiungibile per davvero (bug
+    segnalato dall'utente su un caso concreto: autumn_tenno_sho, con slot sia
+    a turno 44 che a turno 68, occupava greedily il turno 44 anche quando
+    libero era pure il 68, lasciando poi sia kikuka_sho che shuka_sho -- che
+    hanno SOLO il turno 44 -- entrambe "impossibile", quando in realta' una
+    delle due avrebbe potuto tranquillamente correre a 44 e autumn_tenno_sho
+    a 68, per un totale di 2 gare raggiungibili invece di 1).
+    Il matching con augmenting path GARANTISCE sempre il numero MASSIMO di
+    gare assegnabili in totale (dimostrabile, indipendente dall'ordine di
+    elaborazione); priority_key (default alfabetico su race_id, o group-aware
+    nel contesto di un gruppo fisso) decide solo QUALI gare specifiche
+    vengono scelte quando esistono piu' matching massimi equivalenti, non
+    quante in totale.
+
+    Ritorna il sottoinsieme di candidate_race_ids davvero raggiungibile.
+    """
+    priority_key = priority_key or (lambda r: r)
+    occupation = _character_used_slots(character, calendar, mode)
+    used_slots_base = set(occupation.keys())
+
+    guaranteed = set()
+    free_slots_by_race = {}
+    for race_id in candidate_race_ids:
+        occ_slots = [o["slot"] for o in races[race_id]["occurrences"]]
+        if mode != "mant" and any(occupation.get(s) == race_id for s in occ_slots):
+            guaranteed.add(race_id)
+            continue
+        free_slots = [s for s in occ_slots if s not in used_slots_base]
+        if free_slots:
+            free_slots_by_race[race_id] = free_slots
+
+    slot_owner = {}  # slot -> race_id assegnato in questo passo
+
+    def try_augment(race_id, visited_slots):
+        """DFS con augmenting path: prova ad assegnare race_id a uno dei suoi
+        slot liberi, anche "spostando" chi lo occupa gia' su un suo slot
+        alternativo, se esiste. Ritorna True se ci riesce."""
+        for slot in free_slots_by_race[race_id]:
+            if slot in visited_slots:
+                continue
+            visited_slots.add(slot)
+            current_owner = slot_owner.get(slot)
+            if current_owner is None or try_augment(current_owner, visited_slots):
+                slot_owner[slot] = race_id
+                return True
+        return False
+
+    for race_id in sorted(free_slots_by_race, key=priority_key):
+        try_augment(race_id, set())
+
+    return guaranteed | set(slot_owner.values())
+
+
+def shared_wins(char_a: str, char_b: str, calendar: dict, races: dict,
+                 aptitudes: dict, mode: str) -> list:
+    """
+    Gare che ENTRAMBI i personaggi possono vincere DAVVERO in comune. Prima si
+    calcola achievable_a/achievable_b (raggiungibilita' individuale grezza,
+    senza risolvere ancora eventuali conflitti tra gare candidate), poi la loro
+    intersezione (common). Il conflitto di turno viene risolto SEPARATAMENTE
+    per ciascun personaggio (resolve_achievable), ma limitato all'insieme
+    common: questo garantisce che, quando un personaggio ha gia' un'obbligatoria
+    che esclude altre gare del gruppo comune, la risoluzione lo rispetti (non
+    si limita a un dedup "alla cieca" sull'insieme intersecato).
+    """
+    achievable_a = achievable_races_for(char_a, races, aptitudes, calendar, mode)
+    achievable_b = achievable_races_for(char_b, races, aptitudes, calendar, mode)
+    common = achievable_a & achievable_b
+    resolved_a = resolve_achievable(char_a, common, races, aptitudes, calendar, mode)
+    resolved_b = resolve_achievable(char_b, common, races, aptitudes, calendar, mode)
+    return sorted(resolved_a & resolved_b)
+
+
+def race_compatibility(char_a: str, char_b: str, calendar: dict, races: dict,
+                        aptitudes: dict, mode: str = "career") -> int:
+    """Punteggio di race-compatibility = numero di gare condivise vincibili * punti per gara."""
+    wins = shared_wins(char_a, char_b, calendar, races, aptitudes, mode)
+    return len(wins) * RACE_SHARED_WIN_POINTS
+
+
+def base_affinity(char_a: str, char_b: str, name_map: dict,
+                   character_ids: dict, id_weights: dict) -> int:
+    """
+    Affinita' di base tra due varianti: cerca il nome giapponese di ENTRAMBE tramite
+    name_map (indicizzato per nome-variante completo, non per nome base -- due
+    varianti della stessa umamusume avranno semplicemente lo stesso jp_name su righe
+    diverse di character_info.csv), poi somma i pesi degli ID in comune.
+    Ritorna 0 se sono la stessa umamusume di base (self-affinity, jp_a == jp_b), o
+    se manca un mapping per una delle due (la componente di base viene ignorata =
+    0, lo script segnala i mapping mancanti a parte, vedi main.py).
+    """
+    jp_a = name_map.get(char_a)
+    jp_b = name_map.get(char_b)
+    if jp_a is None or jp_b is None:
+        return 0
+    if jp_a == jp_b:
+        return 0  # self-affinity (stesso personaggio base, varianti diverse)
+    ids_a = character_ids.get(jp_a, set())
+    ids_b = character_ids.get(jp_b, set())
+    common = ids_a & ids_b
+    return sum(id_weights.get(i, 1) for i in common)
+
+
+def base_affinity_three(char_a: str, char_b: str, char_c: str, name_map: dict,
+                         character_ids: dict, id_weights: dict) -> int:
+    """
+    Affinita' di base "a tre" (figlio-genitore-nonno): somma dei pesi degli ID
+    presenti in TUTTI E TRE i personaggi (intersezione a tre insiemi), non solo
+    a coppie. Usata per la componente 'nonni' dell'Individual Affinity, secondo
+    il meccanismo reale del gioco (vedi uma-compat.md).
+    Ritorna 0 se due dei tre risultano la stessa umamusume di base (self-affinity
+    coinvolta), o se manca un mapping per uno dei tre.
+    """
+    jps = [name_map.get(c) for c in (char_a, char_b, char_c)]
+    if None in jps:
+        return 0
+    if len(set(jps)) < 3:
+        return 0  # almeno due dei tre sono la stessa umamusume di base
+    ids = [character_ids.get(jp, set()) for jp in jps]
+    common = ids[0] & ids[1] & ids[2]
+    return sum(id_weights.get(i, 1) for i in common)

@@ -1,0 +1,2085 @@
+const modeSelect = document.getElementById("mode-select");
+const characterField = document.getElementById("character-field");
+const characterSelect = document.getElementById("character-select");
+const calendarSelect = document.getElementById("calendar-select");
+const globalOnlyCheckbox = document.getElementById("global-only-checkbox");
+const autoUpdateCheckbox = document.getElementById("auto-update-checkbox");
+const debugCheckbox = document.getElementById("debug-checkbox");
+const ownedList = document.getElementById("owned-list");
+const ownedSortSelect = document.getElementById("owned-sort-select");
+const ownedSortDirectionButton = document.getElementById("owned-sort-direction-button");
+const selectAllButton = document.getElementById("select-all-button");
+const selectNoneButton = document.getElementById("select-none-button");
+const loopField = document.getElementById("loop-field");
+const mustIncludeSelects = Array.from(document.querySelectorAll(".must-include-select"));
+const runButton = document.getElementById("run-button");
+const saveButton = document.getElementById("save-button");
+const loadButton = document.getElementById("load-button");
+const loadFileInput = document.getElementById("load-file-input");
+const pdfButton = document.getElementById("pdf-button");
+const pdfStatus = document.getElementById("pdf-status");
+const settingsToggle = document.getElementById("settings-toggle");
+const settingsPanel = document.getElementById("settings-panel");
+const themeSwitch = document.getElementById("theme-switch");
+const layoutSwitch = document.getElementById("layout-switch");
+const results = document.getElementById("results");
+const timelinePanel = document.getElementById("timeline-panel");
+const langSwitch = document.getElementById("lang-switch");
+
+// Tiene aperta una connessione verso il server per tutta la vita di QUESTA
+// scheda (vedi app.py, /api/heartbeat): quando la scheda si chiude il
+// browser interrompe la connessione, e il server -- se l'ha aperta lui
+// stesso all'avvio -- chiude il programma da solo dopo un breve periodo di
+// grazia. Nessuna azione da fare qui: EventSource si riconnette da solo su
+// problemi di rete transitori, e non fa nulla se il browser non la supporta
+// (il programma resta semplicemente aperto finche' non lo si chiude a mano).
+if (window.EventSource) new EventSource("/api/heartbeat");
+
+let pdfContext = null;  // { oneHop, target, resultBox } dell'ultimo pannello spark renderizzato (mode top4 only)
+let allCharactersData = [];   // [{character, global_release_date}], caricato una volta
+let ownedSelection = new Set();  // stato persistente: sopravvive a filtri/ordinamenti
+let ownedSortDescending = false;  // false = ascendente (default, "come e' adesso")
+
+// --- i18n (IT/EN) -----------------------------------------------------------
+// Ogni stringa visibile nella UI passa da qui: le etichette statiche in
+// index.html hanno un attributo data-i18n (chiave in questo dizionario) e
+// vengono applicate da applyStaticTranslations(); il testo generato in JS usa
+// t(key, vars) allo stesso modo. I messaggi di errore/avviso che arrivano dal
+// server (app.py e i moduli di calcolo) restano in italiano lato backend --
+// tradurli davvero richiederebbe passare la lingua a tutta la catena di
+// validazione Python, fuori scopo per questa feature -- percio' vengono
+// tradotti qui via translateServerMessage() con un elenco esplicito dei
+// messaggi noti (fallback: mostrati in italiano se un messaggio nuovo non e'
+// ancora stato aggiunto all'elenco).
+const I18N = {
+  it: {
+    label_auto_update: "Aggiorna automaticamente i dati da internet (nuovi personaggi/gare, una volta al giorno)",
+    note_auto_update: "Disattivato di default: attivalo solo se vuoi che il programma si connetta a internet da solo. La modifica ha effetto dal prossimo avvio.",
+    label_mode: "Modalità di utilizzo",
+    opt_mode_top4: "Top-4 compatibili con un personaggio",
+    opt_mode_loop: "Miglior loop a 5",
+    label_calendar: "Vincolo di calendario",
+    opt_calendar_career: "Con vincoli di carriera normale",
+    opt_calendar_mant: "Nessun vincolo (Make A New Track)",
+    label_global_only: "Solo personaggi già usciti su Global",
+    label_debug: "Modalità debug",
+    label_owned: "Personaggi posseduti (vuoto = considera tutti)",
+    btn_select_all: "Seleziona tutti",
+    btn_select_none: "Deseleziona tutti",
+    label_owned_sort: "Ordina per",
+    opt_sort_alpha: "Ordine alfabetico",
+    opt_sort_release: "Data di rilascio",
+    btn_sort_direction_title: "Inverti ordine",
+    sort_ascending: "↑ Ascendente",
+    sort_descending: "↓ Discendente",
+    label_character: "Personaggio",
+    label_loop_include: "Personaggi da includere nel loop (fino a 5, opzionale)",
+    opt_none: "-- nessuno --",
+    btn_run: "Esegui",
+    btn_save: "Salva",
+    btn_load: "Carica",
+    save_filename_prompt: "Nome del file di salvataggio (lascia vuoto per il nome predefinito):",
+    load_error: "Impossibile caricare il file: {message}",
+    placeholder_results: "I risultati compariranno qui.",
+    heading_timeline: "Timeline delle carriere",
+    placeholder_timeline: "Esegui una ricerca per vedere il calendario del gruppo.",
+    info_aptitude_title: "Quando una gara è vincibile?",
+    info_aptitude_text: "Vincibile solo se l'aptitude soddisfa ENTRAMBE le soglie minime (superficie e distanza):",
+    info_aptitude_note: "Voto minimo o migliore (scala S migliore di A, ..., G peggiore).",
+
+    table_header_character: "Personaggio",
+    table_header_value: "Valore",
+    table_header_term: "Termine",
+    overall_formula_title: "Formula Overall Affinity (per ciclo)",
+    overall_formula_text: "Overall Affinity = bAff(figlio,genitore1) + bAff(figlio,genitore2) + bAff(genitore1,genitore2) + bAff(figlio,genitore,nonno) [x4] + Bonus(genitore1,genitore2) + Bonus(genitore,nonno) [x4] — ogni termine contato una sola volta.",
+    overall_formula_cycle_heading: "Ciclo {n}: {name}",
+    overall_formula_total_label: "Totale (Overall Affinity)",
+    first_cycle_races_title: "Gare vinte in comune — solo primo ciclo",
+    table_header_pair: "Coppia",
+    table_header_shared_races: "Gare in comune",
+    races_none: "(nessuna)",
+
+    spark_a_intro: "<strong>Modalità A</strong> — stelle totali per categoria, per ciclo " +
+      "(max 4 categorie e 18★ per ciclo). Un ciclo lasciato vuoto equivale a nessuna spark.",
+    spark_cycle_title: "Ciclo {cycle} — Figlio: {name}",
+    spark_summary: "{stars}★ su {categories} categorie",
+    spark_b_intro: "<strong>Modalità B</strong> — assegna la spark che un personaggio ottiene " +
+      "a fine carriera: si propaga da sola agli altri cicli in cui quel personaggio compare come " +
+      "genitore o nonno (contata una volta per ogni slot che occupa). Aiuta a capire quali spark " +
+      "conviene avere su una carta, invece di pianificare a tavolino un fabbisogno per un punto del loop.",
+    btn_add: "Aggiungi",
+    btn_remove: "Rimuovi",
+    substitution_none: "Nessuna sostituzione nel pool disponibile migliora il punteggio con questo piano spark.",
+    substitution_found: "Sostituire <strong>{oldName}</strong> con <strong>{newName}</strong> porterebbe " +
+      "la Total Loop Affinity da {baseline} a <strong>{total}</strong> (+{delta}).",
+    calc_in_progress: "Calcolo in corso...",
+    error_unknown: "Errore sconosciuto",
+    total_loop_affinity: "Total Loop Affinity: {value}",
+    spark_panel_title: "Piano spark (Aptitude Inheritance, v3)",
+    btn_calc_spark: "Calcola con queste spark",
+    btn_generate_pdf: "Genera PDF",
+    pdf_generating: "Generazione PDF in corso...",
+    pdf_error: "Errore nella generazione del PDF: {message}",
+
+    th_child: "Figlio",
+    th_parent1: "Genitore 1",
+    th_parent2: "Genitore 2",
+    th_gp1a: "Nonno 1 di G1",
+    th_gp1b: "Nonno 2 di G1",
+    th_gp2a: "Nonno 1 di G2",
+    th_gp2b: "Nonno 2 di G2",
+    th_overall_affinity: "Overall Affinity",
+
+    one_hop_heading: "Esplorazione a un salto — rotazione a 5 cicli",
+    timeline_no_calendar: "Nessun calendario disponibile per questo risultato.",
+    timeline_race_col: "Gara (turno)",
+
+    status_obbligatoria: "Obbligatoria",
+    status_obbligatoria_non_vincibile: "Obbligatoria (aptitude insufficiente, non vincibile)",
+    status_impossibile: "Impossibile (slot occupato da un'altra obbligatoria)",
+    status_raggiungibile_condivisa: "Raggiungibile e condivisa con altri",
+    status_raggiungibile: "Raggiungibile (nessun altro la raggiunge)",
+    status_aptitude: "Raggiungibile solo migliorando l'aptitude",
+
+    legend_obbligatoria: "● Obbligatoria",
+    legend_obbligatoria_non_vincibile: "○ Obbligatoria, non vincibile (aptitude)",
+    legend_impossibile: "– Impossibile (slot occupato)",
+    legend_condivisa: "★ Raggiungibile e condivisa",
+    legend_raggiungibile: "✓ Raggiungibile (non condivisa)",
+    legend_aptitude: "△ Solo migliorando l'aptitude",
+
+    tab_original: "Originale",
+    tab_with_spark: "Con spark",
+
+    top4_heading: "Top-4 compatibili con {name}",
+    th_total: "Totale",
+    th_base: "Base",
+    th_race: "Gara",
+    meta_tag: "META",
+    debug_details_title: "Dettagli modalità debug",
+    top10_base_title: "Top-10 affinità di base con {name}",
+    top10_race_title: "Top-10 affinità di calendario con {name}",
+    top10_total_title: "Top-10 affinità totale (base + calendario) con {name}",
+
+    loop_heading: "Miglior loop trovato (punteggio totale: {value})",
+    meta_suffix: " (META)",
+
+    error_prefix: "Errore: {message}",
+
+    settings_title: "Impostazioni",
+    settings_language: "Lingua",
+    settings_theme: "Tema",
+    settings_theme_light: "Chiaro",
+    settings_theme_dark: "Scuro",
+    settings_layout: "Aspetto",
+    settings_layout_modern: "Nuovo",
+    settings_layout_classic: "Classico",
+    genealogy_label_grandparents: "Nonni",
+    genealogy_label_parents: "Genitori",
+    genealogy_label_child: "Figlio",
+    credits_footer: "Codice: Claude (Anthropic). Idea e design: IvoryTower.",
+  },
+  en: {
+    label_auto_update: "Automatically update data from the internet (new characters/races, once a day)",
+    note_auto_update: "Off by default: turn it on only if you want the program to connect to the internet on its own. The change takes effect from the next launch.",
+    label_mode: "Usage mode",
+    opt_mode_top4: "Top-4 compatible with a character",
+    opt_mode_loop: "Best 5-loop",
+    label_calendar: "Calendar constraint",
+    opt_calendar_career: "With normal career constraints",
+    opt_calendar_mant: "No constraints (Make A New Track)",
+    label_global_only: "Only characters already released on Global",
+    label_debug: "Debug mode",
+    label_owned: "Owned characters (empty = consider all)",
+    btn_select_all: "Select all",
+    btn_select_none: "Deselect all",
+    label_owned_sort: "Sort by",
+    opt_sort_alpha: "Alphabetical order",
+    opt_sort_release: "Release date",
+    btn_sort_direction_title: "Reverse order",
+    sort_ascending: "↑ Ascending",
+    sort_descending: "↓ Descending",
+    label_character: "Character",
+    label_loop_include: "Characters to include in the loop (up to 5, optional)",
+    opt_none: "-- none --",
+    btn_run: "Run",
+    btn_save: "Save",
+    btn_load: "Load",
+    save_filename_prompt: "Save file name (leave empty for the default name):",
+    load_error: "Could not load the file: {message}",
+    placeholder_results: "Results will appear here.",
+    heading_timeline: "Career timeline",
+    placeholder_timeline: "Run a search to see the group's calendar.",
+    info_aptitude_title: "When is a race winnable?",
+    info_aptitude_text: "Winnable only if aptitude meets BOTH minimum thresholds (surface and distance):",
+    info_aptitude_note: "Minimum grade or better (scale: S best, ..., G worst).",
+
+    table_header_character: "Character",
+    table_header_value: "Value",
+    table_header_term: "Term",
+    overall_formula_title: "Overall Affinity formula (per cycle)",
+    overall_formula_text: "Overall Affinity = bAff(child,parent1) + bAff(child,parent2) + bAff(parent1,parent2) + bAff(child,parent,grandparent) [x4] + Bonus(parent1,parent2) + Bonus(parent,grandparent) [x4] — each term counted once.",
+    overall_formula_cycle_heading: "Cycle {n}: {name}",
+    overall_formula_total_label: "Total (Overall Affinity)",
+    first_cycle_races_title: "Races won in common — first cycle only",
+    table_header_pair: "Pair",
+    table_header_shared_races: "Shared races",
+    races_none: "(none)",
+
+    spark_a_intro: "<strong>Mode A</strong> — total stars per category, per cycle " +
+      "(max 4 categories and 18★ per cycle). A cycle left empty means no spark.",
+    spark_cycle_title: "Cycle {cycle} — Child: {name}",
+    spark_summary: "{stars}★ across {categories} categories",
+    spark_b_intro: "<strong>Mode B</strong> — assign the spark a character gets " +
+      "at the end of its career: it propagates on its own to every other cycle where that " +
+      "character appears as a parent or grandparent (counted once per slot it occupies). Helps " +
+      "figure out which sparks are worth having on a card, instead of planning a need for one " +
+      "spot in the loop from scratch.",
+    btn_add: "Add",
+    btn_remove: "Remove",
+    substitution_none: "No substitution in the available pool improves the score with this spark plan.",
+    substitution_found: "Replacing <strong>{oldName}</strong> with <strong>{newName}</strong> would raise " +
+      "the Total Loop Affinity from {baseline} to <strong>{total}</strong> (+{delta}).",
+    calc_in_progress: "Calculating...",
+    error_unknown: "Unknown error",
+    total_loop_affinity: "Total Loop Affinity: {value}",
+    spark_panel_title: "Spark plan (Aptitude Inheritance, v3)",
+    btn_calc_spark: "Calculate with these sparks",
+    btn_generate_pdf: "Generate PDF",
+    pdf_generating: "Generating PDF...",
+    pdf_error: "Error generating PDF: {message}",
+
+    th_child: "Child",
+    th_parent1: "Parent 1",
+    th_parent2: "Parent 2",
+    th_gp1a: "Grandparent 1 of P1",
+    th_gp1b: "Grandparent 2 of P1",
+    th_gp2a: "Grandparent 1 of P2",
+    th_gp2b: "Grandparent 2 of P2",
+    th_overall_affinity: "Overall Affinity",
+
+    one_hop_heading: "One-hop exploration — 5-cycle rotation",
+    timeline_no_calendar: "No calendar available for this result.",
+    timeline_race_col: "Race (turn)",
+
+    status_obbligatoria: "Mandatory",
+    status_obbligatoria_non_vincibile: "Mandatory (aptitude too low, not winnable)",
+    status_impossibile: "Impossible (slot taken by another mandatory race)",
+    status_raggiungibile_condivisa: "Reachable and shared with others",
+    status_raggiungibile: "Reachable (no one else reaches it)",
+    status_aptitude: "Reachable only by improving aptitude",
+
+    legend_obbligatoria: "● Mandatory",
+    legend_obbligatoria_non_vincibile: "○ Mandatory, not winnable (aptitude)",
+    legend_impossibile: "– Impossible (slot taken)",
+    legend_condivisa: "★ Reachable and shared",
+    legend_raggiungibile: "✓ Reachable (not shared)",
+    legend_aptitude: "△ Only by improving aptitude",
+
+    tab_original: "Original",
+    tab_with_spark: "With sparks",
+
+    top4_heading: "Top-4 compatible with {name}",
+    th_total: "Total",
+    th_base: "Base",
+    th_race: "Race",
+    meta_tag: "META",
+    debug_details_title: "Debug mode details",
+    top10_base_title: "Top-10 base affinity with {name}",
+    top10_race_title: "Top-10 calendar affinity with {name}",
+    top10_total_title: "Top-10 total affinity (base + calendar) with {name}",
+
+    loop_heading: "Best loop found (total score: {value})",
+    meta_suffix: " (META)",
+
+    error_prefix: "Error: {message}",
+
+    settings_title: "Settings",
+    settings_language: "Language",
+    settings_theme: "Theme",
+    settings_theme_light: "Light",
+    settings_theme_dark: "Dark",
+    settings_layout: "Look",
+    settings_layout_modern: "New",
+    settings_layout_classic: "Classic",
+    genealogy_label_grandparents: "Grandparents",
+    genealogy_label_parents: "Parents",
+    genealogy_label_child: "Child",
+    credits_footer: "Code: Claude (Anthropic). Idea and design: IvoryTower.",
+  },
+};
+
+const LANG_STORAGE_KEY = "uma_tool_lang";
+const THEME_STORAGE_KEY = "uma_tool_theme";
+const LAYOUT_STORAGE_KEY = "uma_tool_layout";
+let currentLang = "it";
+let currentTheme = "light";
+let layoutMode = "modern";  // "modern" (default, card/ritratti) | "classic" (tabelle di sempre)
+
+function t(key, vars) {
+  const dict = I18N[currentLang] || I18N.it;
+  let text = dict[key] !== undefined ? dict[key] : (I18N.it[key] !== undefined ? I18N.it[key] : key);
+  if (vars) {
+    for (const [name, value] of Object.entries(vars)) {
+      text = text.replace(new RegExp(`\\{${name}\\}`, "g"), value);
+    }
+  }
+  return text;
+}
+
+// Elenco esplicito dei messaggi noti che arrivano dal server (in italiano):
+// ogni voce e' [regex, (match) => testo inglese]. Se un messaggio nuovo non e'
+// ancora in elenco, viene mostrato in italiano anche con lingua EN attiva
+// (fallback sicuro, non un errore silente: il testo resta sempre leggibile).
+const SERVER_MESSAGE_TRANSLATIONS = [
+  [/^Personaggio '(.+?)' non trovato( \(con il filtro Global attivo\))?\.$/,
+    m => `Character '${m[1]}' not found${m[2] ? " (with the Global filter active)" : ""}.`],
+  [/^'(.+?)' e' ambiguo tra le varianti: (.+?)\. Specifica quale con il nome completo\.$/,
+    m => `'${m[1]}' is ambiguous between variants: ${m[2]}. Specify which one using the full name.`],
+  [/^Servono esattamente 4 personaggi trovati per l'esplorazione a un salto \(trovati: (\d+)\)\.$/,
+    m => `Exactly 4 characters must be found for the one-hop exploration (found: ${m[1]}).`],
+  [/^Servono esattamente 4 personaggi trovati per il piano spark \(trovati: (\d+)\)\. Controlla i filtri posseduti\/Global attivi\.$/,
+    m => `Exactly 4 characters must be found for the spark plan (found: ${m[1]}). Check the owned/Global filters.`],
+  [/^Le chiavi di 'spark_plan' devono essere numeri di ciclo \(1-5\)\.$/,
+    () => `'spark_plan' keys must be cycle numbers (1-5).`],
+  [/^'character_spark_plan' contiene personaggi non presenti nel gruppo attuale: (.+?)\.$/,
+    m => `'character_spark_plan' contains characters not present in the current group: ${m[1]}.`],
+  [/^Servono almeno 5 personaggi posseduti \(dopo i filtri attivi\) per cercare un loop\.$/,
+    () => `At least 5 owned characters (after active filters) are required to search for a loop.`],
+  [/^Puoi includere al massimo 5 personaggi\.$/,
+    () => `You can include at most 5 characters.`],
+  [/^'(.+?)' non trovato tra i personaggi disponibili \(dopo i filtri Global\/posseduti attivi\)\.$/,
+    m => `'${m[1]}' not found among the available characters (after the active Global/owned filters).`],
+  [/^Non e' stato possibile trovare un loop completo con questi vincoli \(pool troppo ristretto dopo aver escluso basi duplicate\)\.$/,
+    () => `It was not possible to find a complete loop with these constraints (pool too small after excluding duplicate bases).`],
+  [/^Massimo (\d+) tipi di aptitude diversi per ciclo \(un ciclo coinvolge solo \d+ personaggi distinti\), ricevuti (\d+)\.$/,
+    m => `Maximum ${m[1]} different aptitude types per cycle (a cycle only involves ${m[1]} distinct characters), received ${m[2]}.`],
+  [/^Massimo (\d+) stelle totali per ciclo \(6 slot antenato x 3 stelle\), ricevute (\d+)\.$/,
+    m => `Maximum ${m[1]} total stars per cycle (6 ancestor slots x 3 stars), received ${m[2]}.`],
+  [/^Stelle negative non valide per '(.+?)': (-?\d+)\.$/,
+    m => `Invalid negative stars for '${m[1]}': ${m[2]}.`],
+  [/^La spark 'firma' di un personaggio riguarda una sola categoria di aptitude \(ricevute (\d+)\)\.$/,
+    m => `A character's 'signature' spark covers only one aptitude category (received ${m[1]}).`],
+  [/^Le stelle di una spark 'firma' devono essere tra 1 e (\d+) \(ricevute (\d+) per '(.+?)'\)\.$/,
+    m => `A signature spark's stars must be between 1 and ${m[1]} (received ${m[2]} for '${m[3]}').`],
+  [/^Piano difficilmente sostenibile nella pratica \((\d+) stelle totali su (\d+) aptitude diverse\): probabilmente irrealistico da ottenere facendo grinding con le carte a disposizione\.$/,
+    m => `Plan hard to sustain in practice (${m[1]} total stars across ${m[2]} different aptitudes): probably unrealistic to achieve by grinding with the available cards.`],
+  [/^Servono esattamente 4 personaggi \(i top-4 trovati\)\.$/,
+    () => `Exactly 4 characters are required (the top-4 found).`],
+  [/^Numero di ciclo non valido: (\d+) \(atteso 1-5\)\.$/,
+    m => `Invalid cycle number: ${m[1]} (expected 1-5).`],
+  [/^Troppi personaggi fissi \((\d+)\): il loop ha spazio per al massimo (\d+)\.$/,
+    m => `Too many fixed characters (${m[1]}): the loop has room for at most ${m[2]}.`],
+  [/^I personaggi fissi includono due varianti dello stesso nome base \(stessa identita' genealogica\) -- non possono coesistere nello stesso loop\.$/,
+    () => `The fixed characters include two variants of the same base name (same genealogical identity) — they can't coexist in the same loop.`],
+  [/^character_info\.csv assente: filtro Global ignorato\.$/,
+    () => `character_info.csv missing: Global filter ignored.`],
+];
+
+function translateServerMessage(msg) {
+  if (!msg || currentLang === "it") return msg;
+  for (const [regex, build] of SERVER_MESSAGE_TRANSLATIONS) {
+    const m = msg.match(regex);
+    if (m) return build(m);
+  }
+  return msg;  // messaggio non ancora mappato: fallback in italiano, sempre leggibile
+}
+
+function applyStaticTranslations() {
+  document.documentElement.lang = currentLang;
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.dataset.i18n;
+    if (key === "sort_ascending") return;  // gestito a parte, dipende dallo stato corrente
+    el.textContent = t(key);
+  });
+  document.querySelectorAll("[data-i18n-title]").forEach(el => {
+    el.title = t(el.dataset.i18nTitle);
+  });
+  ownedSortDirectionButton.textContent = t(ownedSortDescending ? "sort_descending" : "sort_ascending");
+  langToggle.applyButtons(currentLang);
+}
+
+let lastRun = null;  // { type: "top4"|"loop", data } -- per ri-renderizzare al cambio lingua/aspetto
+
+function rerenderLastRun() {
+  if (!lastRun) return;
+  if (lastRun.type === "top4") renderTop4(lastRun.data);
+  else if (lastRun.type === "loop") renderLoop(lastRun.data);
+}
+
+// I tre toggle delle Impostazioni (lingua/tema/aspetto) condividono lo stesso
+// schema: valida il valore, applica l'effetto, salva in localStorage (se non
+// disponibile non e' bloccante, la scelta semplicemente non sopravvive al
+// reload), aggiorna lo stato attivo dei bottoni.
+function makeToggleControl(switchEl, buttonSelector, choiceAttr, activeClass, storageKey, validValues, onSet) {
+  function applyButtons(current) {
+    switchEl.querySelectorAll(buttonSelector).forEach(btn => {
+      btn.classList.toggle(activeClass, btn.dataset[choiceAttr] === current);
+    });
+  }
+  function set(value) {
+    if (!validValues.includes(value)) return;
+    onSet(value);
+    try {
+      localStorage.setItem(storageKey, value);
+    } catch (err) {
+      // localStorage non disponibile: non bloccante, la scelta non sopravvive al reload.
+    }
+    applyButtons(value);
+  }
+  switchEl.querySelectorAll(buttonSelector).forEach(btn => {
+    btn.addEventListener("click", () => set(btn.dataset[choiceAttr]));
+  });
+  return { set, applyButtons };
+}
+
+const langToggle = makeToggleControl(
+  langSwitch, ".lang-button", "lang", "lang-button-active", LANG_STORAGE_KEY, ["it", "en"],
+  (lang) => {
+    currentLang = lang;
+    applyStaticTranslations();
+    populateMustIncludeSelects();
+    rerenderLastRun();
+  },
+);
+const setLang = langToggle.set;
+
+const themeToggle = makeToggleControl(
+  themeSwitch, ".theme-button", "themeChoice", "theme-button-active", THEME_STORAGE_KEY, ["light", "dark"],
+  (theme) => {
+    currentTheme = theme;
+    document.documentElement.dataset.theme = theme;
+  },
+);
+const setTheme = themeToggle.set;
+const applyThemeButtons = () => themeToggle.applyButtons(currentTheme);
+
+const layoutToggle = makeToggleControl(
+  layoutSwitch, ".layout-button", "layoutChoice", "layout-button-active", LAYOUT_STORAGE_KEY, ["modern", "classic"],
+  (mode) => {
+    layoutMode = mode;
+    document.documentElement.dataset.layout = mode;
+    // Top-4/genealogia hanno markup DIVERSO tra i due layout (card vs tabella):
+    // ri-renderizza l'ultimo risultato per riflettere subito il cambio.
+    rerenderLastRun();
+  },
+);
+const setLayoutMode = layoutToggle.set;
+const applyLayoutButtons = () => layoutToggle.applyButtons(layoutMode);
+
+// --- Pannello Impostazioni (icona ingranaggio nell'header) -----------------
+function openSettingsPanel() {
+  settingsPanel.hidden = false;
+  settingsToggle.setAttribute("aria-expanded", "true");
+}
+function closeSettingsPanel() {
+  settingsPanel.hidden = true;
+  settingsToggle.setAttribute("aria-expanded", "false");
+}
+settingsToggle.addEventListener("click", () => {
+  if (settingsPanel.hidden) openSettingsPanel();
+  else closeSettingsPanel();
+});
+document.addEventListener("click", (event) => {
+  if (settingsPanel.hidden) return;
+  if (event.target === settingsToggle || settingsToggle.contains(event.target)) return;
+  if (settingsPanel.contains(event.target)) return;
+  closeSettingsPanel();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !settingsPanel.hidden) closeSettingsPanel();
+});
+
+// --- Persistenza tra sessioni (2026-07-30) ---------------------------------
+// Filtro Global, modalita' debug, ordinamento/direzione dei posseduti, e la
+// selezione dei posseduti stessa: salvati in localStorage (locale al
+// browser dell'utente, non un artifact Claude.ai -- questo e' un progetto
+// Flask standalone, localStorage funziona normalmente) cosi' da restare
+// invariati tra un avvio e l'altro del programma. Un problema con
+// localStorage (privacy mode restrittiva, quota, ecc.) non deve MAI
+// bloccare l'uso del programma: fallisce in silenzio, si usano i default.
+const SETTINGS_STORAGE_KEY = "uma_tool_settings_v1";
+
+function loadPersistedSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (err) {
+    return null;
+  }
+}
+
+function savePersistedSettings() {
+  try {
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify({
+      global_only: globalOnlyCheckbox.checked,
+      debug: debugCheckbox.checked,
+      owned_sort: ownedSortSelect.value,
+      owned_sort_descending: ownedSortDescending,
+      owned: Array.from(ownedSelection),
+    }));
+  } catch (err) {
+    // localStorage non disponibile: non bloccante, si continua senza persistenza.
+  }
+}
+
+// Legge una scelta validata da localStorage, o il fallback se assente/non
+// disponibile (privacy mode restrittiva, quota, ecc. -- mai bloccante).
+function restoreChoice(storageKey, validValues, fallback) {
+  try {
+    const stored = localStorage.getItem(storageKey);
+    if (validValues.includes(stored)) return stored;
+  } catch (err) {
+    // localStorage non disponibile: si resta sul default.
+  }
+  return typeof fallback === "function" ? fallback() : fallback;
+}
+
+currentLang = restoreChoice(LANG_STORAGE_KEY, ["it", "en"], currentLang);
+
+currentTheme = restoreChoice(THEME_STORAGE_KEY, ["light", "dark"], () =>
+  // primo avvio, nessuna preferenza salvata: segue il tema di sistema
+  (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light"
+);
+document.documentElement.dataset.theme = currentTheme;
+
+layoutMode = restoreChoice(LAYOUT_STORAGE_KEY, ["modern", "classic"], layoutMode);
+document.documentElement.dataset.layout = layoutMode;
+applyThemeButtons();
+applyLayoutButtons();
+
+const persistedSettings = loadPersistedSettings();
+if (persistedSettings) {
+  if (typeof persistedSettings.global_only === "boolean") {
+    globalOnlyCheckbox.checked = persistedSettings.global_only;
+  }
+  if (typeof persistedSettings.debug === "boolean") {
+    debugCheckbox.checked = persistedSettings.debug;
+  }
+  if (persistedSettings.owned_sort) {
+    ownedSortSelect.value = persistedSettings.owned_sort;
+  }
+  if (typeof persistedSettings.owned_sort_descending === "boolean") {
+    ownedSortDescending = persistedSettings.owned_sort_descending;
+  }
+  if (Array.isArray(persistedSettings.owned)) {
+    ownedSelection = new Set(persistedSettings.owned);
+  }
+}
+
+applyStaticTranslations();
+
+// --- Formattazione nomi per la visualizzazione (gemella di display_names.py) ---
+// Usata SOLO per il testo mostrato; ID grezzi (valori, chiavi) restano invariati.
+// I nomi dei personaggi/gare NON sono tradotti (sono nomi propri/termini di
+// gioco identici in entrambe le lingue nel client Global di Umamusume).
+const KNOWN_SUFFIXES = [
+  "_og", "_xmas", "_cheer", "_island", "_ny", "_wedding",
+  "_valen", "_ballroom", "_anime", "_alt", "_tl", "_summer", "_onsen",
+];
+const SPECIAL_VARIANT_LABELS = { valen: "Valentine" };
+const SPECIAL_CHARACTER_WORD_LABELS = { tm: "T.M.", mr: "Mr.", cb: "CB" };
+
+function baseCharacter(variantName) {
+  let name = variantName;
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const suf of KNOWN_SUFFIXES) {
+      if (name.endsWith(suf) && name.length > suf.length) {
+        name = name.slice(0, -suf.length);
+        changed = true;
+        break;
+      }
+    }
+  }
+  return name;
+}
+
+function capitalizeWord(word) {
+  if (!word) return word;
+  return word[0].toUpperCase() + word.slice(1).toLowerCase();
+}
+
+function formatCharacterName(characterId) {
+  const base = baseCharacter(characterId);
+  const baseDisplay = base.split("_")
+    .map(w => SPECIAL_CHARACTER_WORD_LABELS[w.toLowerCase()] || capitalizeWord(w))
+    .join(" ");
+  const remainder = characterId.slice(base.length);
+  const tags = remainder.split("_").filter(t => t.length > 0);
+  if (tags.length === 0) return baseDisplay;
+  const tagLabels = tags.map(tag => SPECIAL_VARIANT_LABELS[tag] || capitalizeWord(tag));
+  return baseDisplay + " " + tagLabels.map(l => `(${l})`).join(" ");
+}
+
+// --- Ritratti personaggio (layout moderno, vedi /api/portrait in app.py) ---
+// Riusati da card Top-4 e alberi genealogici. Fallback sempre presente sotto
+// l'<img> (cerchio con iniziali): se il ritratto non e' disponibile (rete
+// assente, personaggio non trovato su Gametora -> 404) si nasconde solo
+// l'<img>, il fallback resta visibile -- mai un'icona di immagine rotta.
+function characterInitials(character) {
+  const words = formatCharacterName(character).replace(/[()]/g, "").split(" ").filter(Boolean);
+  return words.slice(0, 2).map(w => w[0].toUpperCase()).join("");
+}
+
+function buildPortraitWrap(character) {
+  const wrap = document.createElement("div");
+  wrap.className = "portrait-wrap";
+  const fallback = document.createElement("span");
+  fallback.className = "portrait-fallback";
+  fallback.setAttribute("aria-hidden", "true");
+  fallback.textContent = characterInitials(character);
+  wrap.appendChild(fallback);
+  const img = document.createElement("img");
+  img.className = "portrait-img";
+  img.src = `/api/portrait/${encodeURIComponent(character)}`;
+  img.alt = "";
+  img.loading = "lazy";
+  img.addEventListener("error", () => { img.style.display = "none"; });
+  wrap.appendChild(img);
+  return wrap;
+}
+
+function updateFieldVisibility() {
+  const isTop4 = modeSelect.value === "top4";
+  characterField.style.display = isTop4 ? "block" : "none";
+  loopField.style.display = isTop4 ? "none" : "block";
+}
+modeSelect.addEventListener("change", updateFieldVisibility);
+updateFieldVisibility();
+
+function populateMustIncludeSelects() {
+  const globalOnly = globalOnlyCheckbox.checked;
+  const sortedNames = allCharactersData
+    .filter(c => !globalOnly || !!c.global_release_date)
+    .map(c => c.character)
+    .sort((a, b) => a.localeCompare(b));
+  mustIncludeSelects.forEach(select => {
+    const current = select.value;
+    select.innerHTML = `<option value="">${t("opt_none")}</option>`;
+    sortedNames.forEach(name => {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = formatCharacterName(name);
+      select.appendChild(opt);
+    });
+    select.value = current;  // se 'current' non e' piu' tra le opzioni, resta vuoto
+  });
+}
+
+function renderCharacterSelect() {
+  const globalOnly = globalOnlyCheckbox.checked;
+  const current = characterSelect.value;
+  const baseNames = [...new Set(
+    allCharactersData
+      .filter(c => !globalOnly || !!c.global_release_date)
+      .map(c => c.base)
+  )].sort((a, b) => a.localeCompare(b));
+
+  characterSelect.innerHTML = "";
+  baseNames.forEach(name => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = formatCharacterName(name);
+    characterSelect.appendChild(opt);
+  });
+  characterSelect.value = current;  // se 'current' non e' piu' disponibile, si sceglie il primo
+}
+
+function getMustInclude() {
+  return mustIncludeSelects.map(s => s.value).filter(v => v);
+}
+
+function visibleItems() {
+  const globalOnly = globalOnlyCheckbox.checked;
+  const sortMode = ownedSortSelect.value;
+
+  let items = allCharactersData;
+  if (globalOnly) {
+    items = items.filter(c => !!c.global_release_date);
+  }
+
+  if (sortMode === "alpha") {
+    items = [...items].sort((a, b) => a.character.localeCompare(b.character));
+  } else {
+    // ordine di rilascio: chi ha una data va per data crescente, chi non
+    // ce l'ha va dopo, in ordine alfabetico tra loro (rilevante solo quando
+    // global-only e' spento, perche' altrimenti tutti hanno una data).
+    const withDate = items.filter(c => !!c.global_release_date)
+      .sort((a, b) => a.global_release_date.localeCompare(b.global_release_date));
+    const withoutDate = items.filter(c => !c.global_release_date)
+      .sort((a, b) => a.character.localeCompare(b.character));
+    items = [...withDate, ...withoutDate];
+  }
+
+  if (ownedSortDescending) {
+    items = [...items].reverse();
+  }
+  return items;
+}
+
+function renderOwnedList() {
+  const items = visibleItems();
+  ownedList.innerHTML = "";
+  items.forEach(c => {
+    const id = `owned-cb-${c.character}`;
+    const wrapper = document.createElement("label");
+    wrapper.setAttribute("for", id);
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.id = id;
+    checkbox.value = c.character;
+    checkbox.checked = ownedSelection.has(c.character);
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) ownedSelection.add(c.character);
+      else ownedSelection.delete(c.character);
+      savePersistedSettings();
+    });
+
+    wrapper.appendChild(checkbox);
+    wrapper.appendChild(document.createTextNode(
+      c.global_release_date
+        ? `${formatCharacterName(c.character)} (${c.global_release_date})`
+        : formatCharacterName(c.character)
+    ));
+    ownedList.appendChild(wrapper);
+  });
+}
+
+function selectAllOwned() {
+  // come se l'utente spuntasse ogni checkbox attualmente visibile
+  visibleItems().forEach(c => ownedSelection.add(c.character));
+  renderOwnedList();
+  savePersistedSettings();
+}
+
+function selectNoneOwned() {
+  // come se l'utente togliesse la spunta da ogni checkbox attualmente visibile
+  visibleItems().forEach(c => ownedSelection.delete(c.character));
+  renderOwnedList();
+  savePersistedSettings();
+}
+
+selectAllButton.addEventListener("click", selectAllOwned);
+selectNoneButton.addEventListener("click", selectNoneOwned);
+
+globalOnlyCheckbox.addEventListener("change", () => {
+  renderOwnedList();
+  populateMustIncludeSelects();
+  renderCharacterSelect();
+  savePersistedSettings();
+});
+debugCheckbox.addEventListener("change", savePersistedSettings);
+ownedSortSelect.addEventListener("change", () => {
+  renderOwnedList();
+  savePersistedSettings();
+});
+ownedSortDirectionButton.addEventListener("click", () => {
+  ownedSortDescending = !ownedSortDescending;
+  ownedSortDirectionButton.textContent = t(ownedSortDescending ? "sort_descending" : "sort_ascending");
+  renderOwnedList();
+  savePersistedSettings();
+});
+
+async function loadCharacters() {
+  const resp = await fetch("/api/characters");
+  const data = await resp.json();
+  allCharactersData = data.characters;
+  renderOwnedList();
+  populateMustIncludeSelects();
+  renderCharacterSelect();
+}
+const charactersLoadedPromise = loadCharacters();  // await-abile dal ripristino di un salvataggio (vedi restoreFromSave)
+
+function getOwnedSelection() {
+  return Array.from(ownedSelection);
+}
+
+function renderWarning(warning) {
+  if (!warning) return "";
+  return `<p class="warning">⚠ ${translateServerMessage(warning)}</p>`;
+}
+
+// Scaffold condiviso dalle liste nascondibili (<details><summary>+tabella):
+// top-10, top-10 col dettaglio, formule Overall Affinity, gare del primo
+// ciclo -- stessa struttura, cambiano solo intestazioni/righe.
+function makeCollapsibleSection(title, container = results) {
+  const details = document.createElement("details");
+  details.className = "collapsible-list";
+  const summary = document.createElement("summary");
+  summary.textContent = title;
+  details.appendChild(summary);
+  container.appendChild(details);
+  return details;
+}
+
+function appendTable(details, headers, rows, className) {
+  const table = document.createElement("table");
+  if (className) table.className = className;
+  table.innerHTML = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join("")}</tr></thead><tbody></tbody>`;
+  const tbody = table.querySelector("tbody");
+  rows.forEach(cells => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = cells.map(c => `<td>${c}</td>`).join("");
+    tbody.appendChild(tr);
+  });
+  details.appendChild(table);
+  return table;
+}
+
+function renderTop10List(title, items, container = results) {
+  const details = makeCollapsibleSection(title, container);
+  appendTable(
+    details, [t("table_header_character"), t("table_header_value")],
+    items.map(row => [formatCharacterName(row.character), `<strong>${row.value.toFixed(1)}</strong>`]),
+  );
+}
+
+// Modalita' debug: formula dell'Overall Affinity (vedi cycle_analysis.py,
+// docstring del modulo) + valori EFFETTIVI di ogni termine per ciascuno dei
+// 5 cicli, in tabella -- una sola sezione nascondibile con un click (come
+// le altre liste debug), con una sotto-tabella per ciclo. Riusa
+// cycle.overall_breakdown (server-side, cycle_analysis.build_cycle_details):
+// stessi termini che sommati danno cycle.overall_affinity, ciascuno UNA
+// sola volta (a differenza di cycle.breakdown, usato per i tooltip
+// dell'Individual Affinity, dove alcuni termini compaiono due volte).
+function renderOverallAffinityFormulas(cycles, container = results) {
+  const details = makeCollapsibleSection(t("overall_formula_title"), container);
+
+  const formula = document.createElement("p");
+  formula.className = "spark-intro";
+  formula.textContent = t("overall_formula_text");
+  details.appendChild(formula);
+
+  cycles.forEach((c, i) => {
+    const heading = document.createElement("div");
+    heading.className = "spark-cycle-title";
+    heading.textContent = t("overall_formula_cycle_heading", { n: i + 1, name: formatCharacterName(c.child) });
+    details.appendChild(heading);
+
+    const rows = c.overall_breakdown.map(([label, value]) => [label, value.toFixed(1)]);
+    rows.push([`<strong>${t("overall_formula_total_label")}</strong>`, `<strong>${c.overall_affinity.toFixed(1)}</strong>`]);
+    appendTable(details, [t("table_header_term"), t("table_header_value")], rows);
+  });
+}
+
+function renderTop10TotalList(title, items, container = results) {
+  const details = makeCollapsibleSection(title, container);
+  appendTable(
+    details, [t("table_header_character"), t("th_base"), t("th_race"), t("table_header_value")],
+    items.map(row => [formatCharacterName(row.character), row.base, row.race, `<strong>${row.value.toFixed(1)}</strong>`]),
+  );
+}
+
+function formatBreakdownTooltip(terms) {
+  // "label: valore" uno per riga, per il title (tooltip nativo al hover)
+  return terms.map(([label, value]) => `${label} = ${value}`).join("\n");
+}
+
+function characterWithAffinity(name, value, breakdownTerms) {
+  const tooltip = formatBreakdownTooltip(breakdownTerms);
+  return `${formatCharacterName(name)} (<span class="affinity-value" title="${tooltip}">${value.toFixed(1)}</span>)`;
+}
+
+function renderFirstCycleRaces(firstCycleRaces, container = results) {
+  const details = makeCollapsibleSection(t("first_cycle_races_title"), container);
+  appendTable(
+    details, [t("table_header_pair"), t("table_header_shared_races")],
+    firstCycleRaces.map(row => [row.label, row.races.length ? row.races.join(", ") : t("races_none")]),
+    "shared-races-table",
+  );
+}
+
+// --- v3: Piano spark (Aptitude Inheritance / "pink spark") ----------------
+// Disponibile SOLO dentro il pannello "Esplorazione a un salto" (serve gia'
+// il gruppo di 5 trovato). Modalita' A: stelle totali per categoria, per
+// ciclo -- max 4 categorie e 18 stelle per ciclo (vedi
+// aptitude_inheritance.py). Il server valida i limiti hard; qui si mostra
+// solo un riepilogo informativo (non bloccante) mentre si compila.
+
+// Le categorie di aptitude (Turf/Dirt/Sprint/...) sono termini di gioco
+// identici in IT ed EN nel client Global -- non tradotte.
+const SPARK_CATEGORY_OPTIONS = [
+  { value: "turf", label: "Turf" }, { value: "dirt", label: "Dirt" },
+  { value: "sprint", label: "Sprint" }, { value: "mile", label: "Mile" },
+  { value: "medium", label: "Medium" }, { value: "long", label: "Long" },
+  { value: "front", label: "Front" }, { value: "pace", label: "Pace" },
+  { value: "late", label: "Late" }, { value: "end", label: "End" },
+];
+const SPARK_MAX_CATEGORIES_PER_CYCLE = 4;
+const SPARK_MAX_STARS_PER_CYCLE = 18;
+const SPARK_WARNING_STARS = 11;
+const SPARK_WARNING_CATEGORIES = 3;
+
+// Porting puro di aptitude_inheritance.py (stessa tabella soglie, stesso
+// cap ad "A"), usato SOLO per l'anteprima live lato client -- il calcolo
+// autoritativo resta sempre quello del server in /api/pink_spark.
+const GRADE_ORDER = ["S", "A", "B", "C", "D", "E", "F", "G"];
+const GRADE_RANK = Object.fromEntries(GRADE_ORDER.map((g, i) => [g, i]));
+
+function starsToLevelsJs(totalStars) {
+  if (totalStars >= 10) return 4;
+  if (totalStars >= 7) return 3;
+  if (totalStars >= 4) return 2;
+  if (totalStars >= 1) return 1;
+  return 0;
+}
+
+function applyPinkSparksJs(baseAptitudes, starsByCategory) {
+  const result = { ...baseAptitudes };
+  const capRank = GRADE_RANK["A"];
+  for (const [category, stars] of Object.entries(starsByCategory)) {
+    if (!(category in result) || !stars) continue;
+    const levels = starsToLevelsJs(stars);
+    if (levels <= 0) continue;
+    const currentRank = GRADE_RANK[result[category]];
+    const newRank = Math.max(capRank, currentRank - levels);
+    result[category] = GRADE_ORDER[newRank];
+  }
+  return result;
+}
+
+function buildSparkCategorySelect() {
+  const select = document.createElement("select");
+  select.className = "spark-category-select";
+  const empty = document.createElement("option");
+  empty.value = "";
+  empty.textContent = t("opt_none");
+  select.appendChild(empty);
+  SPARK_CATEGORY_OPTIONS.forEach(({ value, label }) => {
+    const opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = label;
+    select.appendChild(opt);
+  });
+  return select;
+}
+
+function collectCycleSparkStars(cycleBox) {
+  const categories = {};
+  cycleBox.querySelectorAll(".spark-row").forEach(row => {
+    const select = row.querySelector(".spark-category-select");
+    const input = row.querySelector(".spark-star-input");
+    const stars = Number(input.value);
+    if (select.value && stars > 0) {
+      categories[select.value] = (categories[select.value] || 0) + stars;
+    }
+  });
+  return categories;
+}
+
+function renderAptitudePreviewLine(baseAptitudes, starsByCategory) {
+  const modified = applyPinkSparksJs(baseAptitudes, starsByCategory);
+  return SPARK_CATEGORY_OPTIONS.map(({ value, label }) => {
+    const before = baseAptitudes[value];
+    const after = modified[value];
+    const text = before === after ? before : `${before} → <strong>${after}</strong>`;
+    return `<span class="spark-aptitude-item">${label}: ${text}</span>`;
+  }).join(" ");
+}
+
+function mergeStarDicts(a, b) {
+  const merged = { ...a };
+  for (const [category, stars] of Object.entries(b)) {
+    merged[category] = (merged[category] || 0) + stars;
+  }
+  return merged;
+}
+
+function updateSparkCycleSummary(cycleBox, baseAptitudes, extraStars = {}) {
+  const combined = mergeStarDicts(collectCycleSparkStars(cycleBox), extraStars);
+  let totalStars = 0;
+  let categoriesUsed = 0;
+  Object.values(combined).forEach(stars => {
+    if (stars > 0) {
+      totalStars += stars;
+      categoriesUsed += 1;
+    }
+  });
+  const summary = cycleBox.querySelector(".spark-cycle-summary");
+  const overLimit = totalStars > SPARK_MAX_STARS_PER_CYCLE || categoriesUsed > SPARK_MAX_CATEGORIES_PER_CYCLE;
+  const overWarning = totalStars > SPARK_WARNING_STARS || categoriesUsed > SPARK_WARNING_CATEGORIES;
+  summary.textContent = t("spark_summary", { stars: totalStars, categories: categoriesUsed });
+  summary.classList.toggle("spark-summary-error", overLimit);
+  summary.classList.toggle("spark-summary-warning", !overLimit && overWarning);
+
+  const preview = cycleBox.querySelector(".spark-aptitude-preview");
+  if (preview && baseAptitudes) {
+    preview.innerHTML = renderAptitudePreviewLine(baseAptitudes, combined);
+  }
+}
+
+function buildSparkCycleBox(cycleNumber, childName, baseAptitudes, getExtraStars) {
+  const box = document.createElement("div");
+  box.className = "spark-cycle";
+  box.dataset.cycle = String(cycleNumber);
+  const extra = getExtraStars || (() => ({}));
+
+  const title = document.createElement("div");
+  title.className = "spark-cycle-title";
+  title.textContent = t("spark_cycle_title", { cycle: cycleNumber, name: formatCharacterName(childName) });
+  box.appendChild(title);
+
+  const preview = document.createElement("div");
+  preview.className = "spark-aptitude-preview";
+  preview.innerHTML = renderAptitudePreviewLine(baseAptitudes, {});
+  box.appendChild(preview);
+
+  const rowsContainer = document.createElement("div");
+  rowsContainer.className = "spark-rows";
+  for (let i = 0; i < SPARK_MAX_CATEGORIES_PER_CYCLE; i++) {
+    const row = document.createElement("div");
+    row.className = "spark-row";
+
+    const select = buildSparkCategorySelect();
+    const input = document.createElement("input");
+    input.type = "number";
+    input.className = "spark-star-input";
+    input.min = "0";
+    input.max = String(SPARK_MAX_STARS_PER_CYCLE);
+    input.value = "0";
+    input.disabled = true;
+
+    select.addEventListener("change", () => {
+      input.disabled = !select.value;
+      if (!select.value) input.value = "0";
+      updateSparkCycleSummary(box, baseAptitudes, extra());
+    });
+    input.addEventListener("input", () => updateSparkCycleSummary(box, baseAptitudes, extra()));
+
+    row.appendChild(select);
+    row.appendChild(input);
+    const star = document.createElement("span");
+    star.className = "spark-star-suffix";
+    star.textContent = "★";
+    row.appendChild(star);
+    rowsContainer.appendChild(row);
+  }
+  box.appendChild(rowsContainer);
+
+  const summary = document.createElement("div");
+  summary.className = "spark-cycle-summary";
+  summary.textContent = t("spark_summary", { stars: 0, categories: 0 });
+  box.appendChild(summary);
+
+  return box;
+}
+
+function collectSparkPlan(panel) {
+  const plan = {};
+  panel.querySelectorAll(".spark-cycle[data-cycle]").forEach(cycleBox => {
+    const categories = collectCycleSparkStars(cycleBox);
+    if (Object.keys(categories).length > 0) {
+      plan[cycleBox.dataset.cycle] = categories;
+    }
+  });
+  return plan;
+}
+
+// --- Modalita' B (corretta, 2026-07-30): ogni personaggio del gruppo puo'
+// avere UNA SOLA "spark firma" (quella che ottiene a fine carriera). Quando
+// viene riusato come genitore/nonno in cicli successivi, la spark si
+// eredita AL VALORE PIENO per ciascuno slot antenato che occupa in quel
+// ciclo (se occupa 2 slot, conta 2 volte -- schema confermato dall'utente
+// con l'esempio X=2★ Dirt: 2★ nel Ciclo2 (1 slot), 4★ nei Cicli 3/4 (2
+// slot ciascuno)). Le assegnazioni si ACCUMULANO per personaggi diversi
+// (assegnarne una nuova non cancella le altre); riassegnare lo STESSO
+// personaggio sovrascrive solo la SUA spark (ne ha una sola per volta).
+// Qui serve solo aggiornare le anteprime aptitude dei box Modalita' A
+// (mai i loro input) -- il conteggio slot usa i dati gia' presenti in
+// oneHop.cycles (parent1/parent2/gp_parent1/gp_parent2), nessuna chiamata
+// al server per l'anteprima.
+
+function countAncestorSlotOccurrences(cycle, character) {
+  const slots = [
+    cycle.parent1, cycle.parent2,
+    cycle.gp_parent1[0], cycle.gp_parent1[1],
+    cycle.gp_parent2[0], cycle.gp_parent2[1],
+  ];
+  return slots.filter(s => s === character).length;
+}
+
+function deriveCycleSparkFromSignatures(cycle, signatureSparks) {
+  const aggregated = {};
+  for (const [character, plan] of Object.entries(signatureSparks)) {
+    const count = countAncestorSlotOccurrences(cycle, character);
+    if (count === 0) continue;
+    for (const [category, stars] of Object.entries(plan)) {
+      aggregated[category] = (aggregated[category] || 0) + stars * count;
+    }
+  }
+  return aggregated;
+}
+
+function buildSignatureSparkSection(oneHop, groupMembers, groupAptitudes, panel, signatureSparks) {
+  const section = document.createElement("div");
+  section.className = "spark-mode-b";
+
+  const divider = document.createElement("hr");
+  section.appendChild(divider);
+
+  const intro = document.createElement("p");
+  intro.className = "spark-intro";
+  intro.innerHTML = t("spark_b_intro");
+  section.appendChild(intro);
+
+  const picker = document.createElement("div");
+  picker.className = "spark-b-picker";
+
+  const characterSelect = document.createElement("select");
+  characterSelect.className = "spark-b-character-select";
+  groupMembers.forEach(name => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = formatCharacterName(name);
+    characterSelect.appendChild(opt);
+  });
+  picker.appendChild(characterSelect);
+
+  const categorySelect = document.createElement("select");
+  categorySelect.className = "spark-b-category-select";
+  SPARK_CATEGORY_OPTIONS.forEach(({ value, label }) => {
+    const opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = label;
+    categorySelect.appendChild(opt);
+  });
+  picker.appendChild(categorySelect);
+
+  const starInput = document.createElement("input");
+  starInput.type = "number";
+  starInput.className = "spark-b-star-input";
+  starInput.min = "1";
+  starInput.max = "3";
+  starInput.value = "1";
+  picker.appendChild(starInput);
+
+  const starSuffix = document.createElement("span");
+  starSuffix.className = "spark-star-suffix";
+  starSuffix.textContent = "★";
+  picker.appendChild(starSuffix);
+
+  const addButton = document.createElement("button");
+  addButton.type = "button";
+  addButton.className = "spark-b-add-button";
+  addButton.textContent = t("btn_add");
+  picker.appendChild(addButton);
+
+  section.appendChild(picker);
+
+  const list = document.createElement("ul");
+  list.className = "spark-b-assignment-list";
+  section.appendChild(list);
+
+  function refreshAllCyclePreviews() {
+    panel.querySelectorAll(".spark-cycle[data-cycle]").forEach(cycleBox => {
+      const cycleIndex = Number(cycleBox.dataset.cycle) - 1;
+      const cycle = oneHop.cycles[cycleIndex];
+      const extra = deriveCycleSparkFromSignatures(cycle, signatureSparks);
+      updateSparkCycleSummary(cycleBox, groupAptitudes[cycle.child], extra);
+    });
+  }
+
+  function renderList() {
+    list.innerHTML = "";
+    Object.entries(signatureSparks).forEach(([character, plan]) => {
+      const [category, stars] = Object.entries(plan)[0];
+      const label = SPARK_CATEGORY_OPTIONS.find(o => o.value === category)?.label || category;
+      const li = document.createElement("li");
+      // dataset = fonte di verita' per il salvataggio JSON (evita di esporre
+      // lo stato interno signatureSparks fuori dalla closure, vedi
+      // collectSparkPanelState in fondo al file).
+      li.dataset.character = character;
+      li.dataset.category = category;
+      li.dataset.stars = String(stars);
+      li.innerHTML = `${formatCharacterName(character)}: ${label} ${stars}★ `;
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.textContent = t("btn_remove");
+      removeButton.className = "spark-b-remove-button";
+      removeButton.addEventListener("click", () => {
+        delete signatureSparks[character];
+        renderList();
+        refreshAllCyclePreviews();
+      });
+      li.appendChild(removeButton);
+      list.appendChild(li);
+    });
+  }
+
+  addButton.addEventListener("click", () => {
+    const character = characterSelect.value;
+    const category = categorySelect.value;
+    const stars = Number(starInput.value);
+    if (!stars || stars < 1 || stars > 3) return;
+    signatureSparks[character] = { [category]: stars };  // una sola spark per personaggio: sovrascrive solo la sua
+    renderList();
+    refreshAllCyclePreviews();
+  });
+
+  return section;
+}
+
+function renderSubstitutionBox(substitution, container) {
+  const box = document.createElement("div");
+  const best = substitution.best_substitution;
+  if (!best) {
+    box.className = "substitution-box substitution-none";
+    box.textContent = t("substitution_none");
+  } else {
+    box.className = "substitution-box substitution-found";
+    box.innerHTML = t("substitution_found", {
+      oldName: formatCharacterName(best.old_character),
+      newName: formatCharacterName(best.new_character),
+      baseline: substitution.baseline_total_loop_affinity.toFixed(1),
+      total: best.total_loop_affinity.toFixed(1),
+      delta: best.delta.toFixed(1),
+    });
+  }
+  container.appendChild(box);
+}
+
+// Disegna il risultato di /api/pink_spark dentro resultBox. Estratta da
+// runSparkPlan cosi' da poter essere riusata TALE E QUALE dal ripristino di
+// un salvataggio JSON (stessi identici dati "congelati", nessuna nuova
+// chiamata al server -- vedi restoreSparkPanels). activateTimeline=false
+// aggiunge la scheda "Con spark" alla timeline senza attivarla subito (il
+// ripristino decide alla fine quale scheda era attiva al momento del
+// salvataggio, vedi restoreFromSave).
+function renderSparkResultData(resultBox, data, { activateTimeline = true } = {}) {
+  resultBox._sparkResultData = data;  // stashato sul nodo DOM: fonte di verita' per il salvataggio JSON
+  resultBox.innerHTML = "";
+  if (data.warning) resultBox.innerHTML += renderWarning(data.warning);
+
+  Object.values(data.spark_warnings || {}).forEach(msg => {
+    const p = document.createElement("p");
+    p.className = "warning";
+    p.textContent = `⚠ ${translateServerMessage(msg)}`;
+    resultBox.appendChild(p);
+  });
+
+  const totalLine = document.createElement("p");
+  totalLine.className = "total-loop-affinity";
+  totalLine.innerHTML = t("total_loop_affinity", { value: `<strong>${data.total_loop_affinity.toFixed(1)}</strong>` });
+  resultBox.appendChild(totalLine);
+
+  resultBox.appendChild(
+    layoutMode === "classic" ? buildCycleTable(data.cycles) : buildGenealogyCards(data.cycles),
+  );
+  if (data.first_cycle_races) renderFirstCycleRaces(data.first_cycle_races, resultBox);
+  if (data.substitution) renderSubstitutionBox(data.substitution, resultBox);
+  if (data.calendar_matrix) {
+    setTimelineTab("spark", t("tab_with_spark"), data.calendar_matrix, [data.target, ...data.top4], activateTimeline);
+  }
+}
+
+async function runSparkPlan(panel, target, signatureSparks) {
+  const resultBox = panel.querySelector(".spark-result");
+  resultBox.innerHTML = `<p class="placeholder">${t("calc_in_progress")}</p>`;
+
+  const sparkPlan = collectSparkPlan(panel);
+  try {
+    const resp = await fetch("/api/pink_spark", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        character: target,
+        mode: calendarSelect.value,
+        global_only: globalOnlyCheckbox.checked,
+        owned: getOwnedSelection(),
+        spark_plan: sparkPlan,
+        character_spark_plan: signatureSparks,
+      }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(translateServerMessage(data.error) || t("error_unknown"));
+    // per il PDF (vedi handlePdfClick): il piano EFFETTIVAMENTE inviato al
+    // server, non ricostruibile a posteriori dalla sola risposta.
+    data.spark_plan = sparkPlan;
+    data.character_spark_plan = signatureSparks;
+    renderSparkResultData(resultBox, data, { activateTimeline: true });
+  } catch (err) {
+    resultBox.innerHTML = `<p class="placeholder">${t("error_prefix", { message: err.message })}</p>`;
+  }
+}
+
+// Genera il documento PDF illustrato del loop (ultima feature del modulo v3
+// -- vedi HANDOFF.md). Bottone SEPARATO da Salva/Carica (genera un file a
+// parte, non lo stato dell'intera schermata): usa il piano spark GIA'
+// calcolato (resultBox._sparkResultData) se presente, altrimenti il
+// risultato "puro" di /api/top4 (oneHop, nessuna spark applicata) -- stessa
+// distinzione concettuale del salvataggio JSON.
+async function handleGeneratePdf(oneHop, target, resultBox, statusEl) {
+  const sparkResult = resultBox._sparkResultData;
+  const payload = sparkResult
+    ? {
+        target: sparkResult.target,
+        mode: calendarSelect.value,
+        cycles: sparkResult.cycles,
+        all_cycle_races: sparkResult.all_cycle_races,
+        total_loop_affinity: sparkResult.total_loop_affinity,
+        spark_plan: sparkResult.spark_plan,
+        character_spark_plan: sparkResult.character_spark_plan,
+        spark_warnings: sparkResult.spark_warnings,
+        substitution: sparkResult.substitution,
+      }
+    : {
+        target,
+        mode: calendarSelect.value,
+        cycles: oneHop.cycles,
+        all_cycle_races: oneHop.all_cycle_races,
+        total_loop_affinity: oneHop.total_loop_affinity,
+      };
+  payload.calendar_matrix = resultBox._originalCalendarMatrix;  // timeline "senza spark", sempre disponibile
+  if (sparkResult && sparkResult.calendar_matrix) {
+    payload.calendar_matrix_spark = sparkResult.calendar_matrix;  // timeline "con spark", solo se gia' calcolata
+  }
+  payload.generated_at = new Date().toISOString();
+  payload.lang = currentLang;
+
+  statusEl.textContent = t("pdf_generating");
+  try {
+    const resp = await fetch("/api/export_pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!resp.ok) {
+      const data = await resp.json().catch(() => ({}));
+      throw new Error(translateServerMessage(data.error) || t("error_unknown"));
+    }
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Loop_${target}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    statusEl.textContent = "";
+  } catch (err) {
+    statusEl.textContent = t("pdf_error", { message: err.message });
+  }
+}
+
+function renderPinkSparkPanel(oneHop, target, groupAptitudes, calendarMatrix, container) {
+  const panel = document.createElement("details");
+  panel.className = "debug-box spark-panel";
+  panel.dataset.target = target;  // usato dal salvataggio/ripristino JSON per ritrovare il pannello
+  panel.open = true;
+  const summary = document.createElement("summary");
+  summary.textContent = t("spark_panel_title");
+  panel.appendChild(summary);
+
+  const intro = document.createElement("p");
+  intro.className = "spark-intro";
+  intro.innerHTML = t("spark_a_intro");
+  panel.appendChild(intro);
+
+  // stato condiviso con la sezione Modalita' B sotto: dict[personaggio] ->
+  // {categoria: stelle}, referenziato per closure dai box Modalita' A cosi'
+  // che la loro anteprima aptitude rifletta SEMPRE anche il contributo B
+  // corrente per il proprio ciclo, senza bisogno di ricostruire i box.
+  const signatureSparks = {};
+
+  oneHop.cycles.forEach((c, i) => {
+    panel.appendChild(buildSparkCycleBox(
+      i + 1, c.child, groupAptitudes[c.child],
+      () => deriveCycleSparkFromSignatures(oneHop.cycles[i], signatureSparks),
+    ));
+  });
+
+  const groupMembers = oneHop.cycles.map(c => c.child);
+  panel.appendChild(buildSignatureSparkSection(oneHop, groupMembers, groupAptitudes, panel, signatureSparks));
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = t("btn_calc_spark");
+  button.addEventListener("click", () => runSparkPlan(panel, target, signatureSparks));
+  panel.appendChild(button);
+
+  const resultBox = document.createElement("div");
+  resultBox.className = "spark-result";
+  resultBox._originalCalendarMatrix = calendarMatrix;  // per il PDF (vedi handleGeneratePdf): timeline "senza spark"
+  panel.appendChild(resultBox);
+
+  container.appendChild(panel);
+
+  // Bottone PDF spostato accanto a Salva/Carica (statico in index.html):
+  // qui aggiorniamo solo a quale risultato deve puntare il prossimo click.
+  pdfContext = { oneHop, target, resultBox };
+  pdfButton.disabled = false;
+  pdfStatus.textContent = "";
+}
+
+function buildCycleTable(cycles) {
+  const table = document.createElement("table");
+  table.className = "cycle-table";
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th>${t("th_child")}</th><th>${t("th_parent1")}</th><th>${t("th_parent2")}</th>
+        <th>${t("th_gp1a")}</th><th>${t("th_gp1b")}</th>
+        <th>${t("th_gp2a")}</th><th>${t("th_gp2b")}</th>
+        <th>${t("th_overall_affinity")}</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  `;
+  const tbody = table.querySelector("tbody");
+  cycles.forEach(c => {
+    const ia = c.individual_affinity;
+    const bd = c.breakdown;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${formatCharacterName(c.child)}</td>
+      <td>${characterWithAffinity(c.parent1, ia.parent1, bd.parent1)}</td>
+      <td>${characterWithAffinity(c.parent2, ia.parent2, bd.parent2)}</td>
+      <td>${characterWithAffinity(c.gp_parent1[0], ia.gp1a, bd.gp1a)}</td>
+      <td>${characterWithAffinity(c.gp_parent1[1], ia.gp1b, bd.gp1b)}</td>
+      <td>${characterWithAffinity(c.gp_parent2[0], ia.gp2a, bd.gp2a)}</td>
+      <td>${characterWithAffinity(c.gp_parent2[1], ia.gp2b, bd.gp2b)}</td>
+      <td><strong>${c.overall_affinity.toFixed(1)}</strong></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  return table;
+}
+
+// Nodo di un albero genealogico (layout moderno): ritratto + nome, con
+// l'Individual Affinity sotto e lo stesso tooltip di dettaglio (breakdown)
+// gia' usato da characterWithAffinity nella tabella classica. 'ia'/'terms'
+// omessi per il figlio (non ha una sua Individual Affinity, e' il centro
+// dell'albero -- stesso motivo per cui la tabella classica non gliene
+// mostra una).
+function buildGenealogyNode(character, ia, breakdownTerms) {
+  const node = document.createElement("div");
+  node.className = "genealogy-node";
+  node.title = breakdownTerms ? formatBreakdownTooltip(breakdownTerms) : formatCharacterName(character);
+  node.appendChild(buildPortraitWrap(character));
+  const name = document.createElement("div");
+  name.className = "genealogy-node-name";
+  name.textContent = formatCharacterName(character);
+  node.appendChild(name);
+  if (ia !== undefined) {
+    const iaEl = document.createElement("div");
+    iaEl.className = "genealogy-node-ia";
+    iaEl.textContent = ia.toFixed(1);
+    node.appendChild(iaEl);
+  }
+  return node;
+}
+
+function buildGenealogyTier(labelKey, className, entries) {
+  const wrap = document.createElement("div");
+  const label = document.createElement("div");
+  label.className = "genealogy-tier-label";
+  label.textContent = t(labelKey);
+  wrap.appendChild(label);
+  const tier = document.createElement("div");
+  tier.className = `genealogy-tier ${className}`;
+  entries.forEach(([character, ia, terms]) => tier.appendChild(buildGenealogyNode(character, ia, terms)));
+  wrap.appendChild(tier);
+  return wrap;
+}
+
+// Albero genealogico dei 5 cicli (layout moderno) -- alternativa alla
+// tabella classica di buildCycleTable: stessa gerarchia gia' disegnata per
+// il PDF (vedi pdf_export._draw_cycle_tree), qui in HTML/CSS invece che
+// canvas. Nonni in alto, genitori al centro, figlio in basso.
+function buildGenealogyCards(cycles) {
+  const row = document.createElement("div");
+  row.className = "genealogy-row";
+  cycles.forEach(c => {
+    const ia = c.individual_affinity;
+    const bd = c.breakdown;
+    const card = document.createElement("div");
+    card.className = "genealogy-card";
+
+    const title = document.createElement("div");
+    title.className = "genealogy-card-title";
+    title.textContent = formatCharacterName(c.child);
+    card.appendChild(title);
+
+    card.appendChild(buildGenealogyTier("genealogy_label_grandparents", "genealogy-tier-gp", [
+      [c.gp_parent1[0], ia.gp1a, bd.gp1a],
+      [c.gp_parent1[1], ia.gp1b, bd.gp1b],
+      [c.gp_parent2[0], ia.gp2a, bd.gp2a],
+      [c.gp_parent2[1], ia.gp2b, bd.gp2b],
+    ]));
+    card.appendChild(buildGenealogyTier("genealogy_label_parents", "genealogy-tier-parents", [
+      [c.parent1, ia.parent1, bd.parent1],
+      [c.parent2, ia.parent2, bd.parent2],
+    ]));
+    card.appendChild(buildGenealogyTier("genealogy_label_child", "genealogy-tier-child", [
+      [c.child],
+    ]));
+
+    const overall = document.createElement("div");
+    overall.className = "genealogy-overall";
+    overall.innerHTML = `${t("th_overall_affinity")}: <strong>${c.overall_affinity.toFixed(1)}</strong>`;
+    card.appendChild(overall);
+
+    row.appendChild(card);
+  });
+  return row;
+}
+
+function renderOneHop(oneHop, container) {
+  const h3 = document.createElement("h3");
+  h3.textContent = t("one_hop_heading");
+  container.appendChild(h3);
+  container.appendChild(
+    layoutMode === "classic" ? buildCycleTable(oneHop.cycles) : buildGenealogyCards(oneHop.cycles),
+  );
+}
+
+// --- Timeline delle carriere: gestione a schede (2026-07-30) -------------
+// Una scheda "Originale" (aptitude base, sempre presente quando c'e' un
+// calendario) e una scheda "Con spark" che appare SOLO dopo aver calcolato
+// un piano spark (Modalita' A o B) — non sovrascrive mai la prima, e si
+// attiva automaticamente quando viene (ri)calcolata. Ricalcolare le spark
+// piu' volte SOSTITUISCE la stessa scheda "Con spark" (non ne crea altre).
+
+let timelineTabs = [];  // [{id, label, calendarMatrix, groupMembers}]
+let activeTimelineTabId = null;
+
+function resetTimelineTabs() {
+  timelineTabs = [];
+  activeTimelineTabId = null;
+  renderTimelinePanel();
+}
+
+function setTimelineTab(id, label, calendarMatrix, groupMembers, activate = false) {
+  const tab = { id, label, calendarMatrix, groupMembers };
+  const existingIndex = timelineTabs.findIndex(t => t.id === id);
+  if (existingIndex >= 0) timelineTabs[existingIndex] = tab;
+  else timelineTabs.push(tab);
+  if (activate || activeTimelineTabId === null) activeTimelineTabId = id;
+  renderTimelinePanel();
+}
+
+function buildTimelineContent(calendarMatrix, groupMembers) {
+  const fragment = document.createDocumentFragment();
+  if (!calendarMatrix) {
+    const p = document.createElement("p");
+    p.className = "placeholder";
+    p.textContent = t("timeline_no_calendar");
+    fragment.appendChild(p);
+    return fragment;
+  }
+
+  const table = document.createElement("table");
+  table.className = "timeline-table";
+
+  const theadRow = document.createElement("tr");
+  theadRow.innerHTML = `<th class="race-col">${t("timeline_race_col")}</th>` +
+    groupMembers.map(c => `<th class="char-col">${formatCharacterName(c)}</th>`).join("");
+  const thead = document.createElement("thead");
+  thead.appendChild(theadRow);
+  table.appendChild(thead);
+
+  const symbolFor = (cell) => {
+    if (cell.status === "obbligatoria") return cell.winnable ? "●" : "○";
+    if (cell.status === "impossibile") return "–";
+    if (cell.status === "raggiungibile") return cell.shared ? "★" : "✓";
+    return "△";  // aptitude
+  };
+  const classFor = (cell) => {
+    if (cell.status === "obbligatoria") return cell.winnable ? "cal-obbligatoria" : "cal-obbligatoria-non-vincibile";
+    if (cell.status === "impossibile") return "cal-impossibile";
+    if (cell.status === "raggiungibile") return cell.shared ? "cal-condivisa" : "cal-raggiungibile";
+    return "cal-aptitude";
+  };
+  const titleFor = (char, cell) => {
+    const labels = {
+      obbligatoria: cell.winnable ? t("status_obbligatoria") : t("status_obbligatoria_non_vincibile"),
+      impossibile: t("status_impossibile"),
+      raggiungibile: cell.shared ? t("status_raggiungibile_condivisa") : t("status_raggiungibile"),
+      aptitude: t("status_aptitude"),
+    };
+    return `${formatCharacterName(char)}: ${labels[cell.status]}`;
+  };
+
+  const tbody = document.createElement("tbody");
+  calendarMatrix.forEach(row => {
+    const tr = document.createElement("tr");
+    const raceCell = document.createElement("td");
+    raceCell.className = "race-col";
+    raceCell.textContent = row.label;
+    raceCell.title = row.label;
+    tr.appendChild(raceCell);
+
+    groupMembers.forEach(char => {
+      const cell = row.cells[char];
+      const td = document.createElement("td");
+      td.className = `cell ${classFor(cell)}`;
+      td.textContent = symbolFor(cell);
+      td.title = titleFor(char, cell);
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  fragment.appendChild(table);
+
+  const legend = document.createElement("div");
+  legend.className = "timeline-legend";
+  legend.innerHTML = `
+    <div><span class="swatch cal-obbligatoria"></span>${t("legend_obbligatoria")}</div>
+    <div><span class="swatch cal-obbligatoria-non-vincibile"></span>${t("legend_obbligatoria_non_vincibile")}</div>
+    <div><span class="swatch cal-impossibile"></span>${t("legend_impossibile")}</div>
+    <div><span class="swatch cal-condivisa"></span>${t("legend_condivisa")}</div>
+    <div><span class="swatch cal-raggiungibile"></span>${t("legend_raggiungibile")}</div>
+    <div><span class="swatch cal-aptitude"></span>${t("legend_aptitude")}</div>
+  `;
+  fragment.appendChild(legend);
+  return fragment;
+}
+
+function renderTimelinePanel() {
+  timelinePanel.innerHTML = "";
+  if (timelineTabs.length === 0) {
+    timelinePanel.innerHTML = `<p class="placeholder">${t("placeholder_timeline")}</p>`;
+    return;
+  }
+  if (timelineTabs.length > 1) {
+    const tabBar = document.createElement("div");
+    tabBar.className = "timeline-tab-bar";
+    timelineTabs.forEach(tab => {
+      const tabButton = document.createElement("button");
+      tabButton.type = "button";
+      tabButton.className = "timeline-tab" + (tab.id === activeTimelineTabId ? " timeline-tab-active" : "");
+      tabButton.textContent = tab.label;
+      tabButton.addEventListener("click", () => {
+        activeTimelineTabId = tab.id;
+        renderTimelinePanel();
+      });
+      tabBar.appendChild(tabButton);
+    });
+    timelinePanel.appendChild(tabBar);
+  }
+  const activeTab = timelineTabs.find(t => t.id === activeTimelineTabId) || timelineTabs[0];
+  timelinePanel.appendChild(buildTimelineContent(activeTab.calendarMatrix, activeTab.groupMembers));
+}
+
+function disablePdfButton() {
+  pdfContext = null;
+  pdfButton.disabled = true;
+  pdfStatus.textContent = "";
+}
+
+// Card candidato Top-4 (layout moderno) -- alternativa alla tabella classica
+// costruita in renderTop4 in modalita' "classic": stessi dati, ritratto +
+// nome + punteggi invece di righe di tabella.
+function buildCandidateCards(top4) {
+  const row = document.createElement("div");
+  row.className = "candidate-row";
+  top4.forEach(entry => {
+    const card = document.createElement("div");
+    card.className = "candidate-card";
+    card.appendChild(buildPortraitWrap(entry.character));
+
+    const info = document.createElement("div");
+    info.className = "candidate-info";
+
+    const name = document.createElement("div");
+    name.className = "candidate-name";
+    name.appendChild(document.createTextNode(formatCharacterName(entry.character)));
+    if (entry.is_meta_parent) {
+      const badge = document.createElement("span");
+      badge.className = "meta-tag";
+      badge.textContent = t("meta_tag");
+      name.appendChild(badge);
+    }
+    info.appendChild(name);
+
+    const scores = document.createElement("div");
+    scores.className = "candidate-scores";
+    scores.innerHTML = `
+      <span class="candidate-score-total">${t("th_total")}: <strong>${entry.total.toFixed(1)}</strong></span>
+      <span>${t("th_base")}: <strong>${entry.base}</strong></span>
+      <span>${t("th_race")}: <strong>${entry.race}</strong></span>
+    `;
+    info.appendChild(scores);
+
+    card.appendChild(info);
+    row.appendChild(card);
+  });
+  return row;
+}
+
+function renderTop4(data) {
+  lastRun = { type: "top4", data };
+  disablePdfButton();  // riabilitato da renderPinkSparkPanel se un one_hop produce un pannello
+  results.innerHTML = renderWarning(data.warning);
+  resetTimelineTabs();
+  let timelineRendered = false;
+  data.results.forEach(({
+    target, top4, top10_base, top10_race, top10_total, one_hop, one_hop_error,
+    calendar_matrix, group_aptitudes,
+  }) => {
+    const h2 = document.createElement("h2");
+    h2.textContent = t("top4_heading", { name: formatCharacterName(target) });
+    results.appendChild(h2);
+
+    if (layoutMode === "classic") {
+      const table = document.createElement("table");
+      table.innerHTML = `
+        <thead>
+          <tr><th>${t("table_header_character")}</th><th>${t("th_total")}</th><th>${t("th_base")}</th><th>${t("th_race")}</th><th></th></tr>
+        </thead>
+        <tbody></tbody>
+      `;
+      const tbody = table.querySelector("tbody");
+      top4.forEach(row => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${formatCharacterName(row.character)}</td>
+          <td><strong>${row.total.toFixed(1)}</strong></td>
+          <td><strong>${row.base}</strong></td>
+          <td><strong>${row.race}</strong></td>
+          <td>${row.is_meta_parent ? `<span class="meta-tag">${t("meta_tag")}</span>` : ""}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+      results.appendChild(table);
+    } else {
+      results.appendChild(buildCandidateCards(top4));
+    }
+
+    // Esplorazione a un salto + piano spark: SEMPRE visibili (non solo in
+    // modalita' debug), perche' non sono dettagli diagnostici ma la feature
+    // principale per pianificare il loop.
+    if (one_hop) {
+      renderOneHop(one_hop, results);
+      if (one_hop.first_cycle_races) renderFirstCycleRaces(one_hop.first_cycle_races, results);
+      renderPinkSparkPanel(one_hop, target, group_aptitudes, calendar_matrix, results);
+    }
+    if (one_hop_error) {
+      const p = document.createElement("p");
+      p.className = "warning";
+      p.textContent = translateServerMessage(one_hop_error);
+      results.appendChild(p);
+    }
+
+    // modalita' debug: SOLO le liste top-10 aggiuntive restano qui dentro.
+    if (top10_base || top10_race || top10_total) {
+      const debugBox = document.createElement("details");
+      debugBox.className = "debug-box";
+      debugBox.open = true;
+      const debugSummary = document.createElement("summary");
+      debugSummary.textContent = t("debug_details_title");
+      debugBox.appendChild(debugSummary);
+
+      if (one_hop) renderOverallAffinityFormulas(one_hop.cycles, debugBox);
+      if (top10_total) renderTop10TotalList(t("top10_total_title", { name: formatCharacterName(target) }), top10_total, debugBox);
+      if (top10_base) renderTop10List(t("top10_base_title", { name: formatCharacterName(target) }), top10_base, debugBox);
+      if (top10_race) renderTop10List(t("top10_race_title", { name: formatCharacterName(target) }), top10_race, debugBox);
+
+      results.appendChild(debugBox);
+    }
+
+    if (!timelineRendered && calendar_matrix) {
+      setTimelineTab("original", t("tab_original"), calendar_matrix, [target, ...top4.map(r => r.character)], true);
+      timelineRendered = true;
+    }
+  });
+}
+
+function renderLoop(data) {
+  lastRun = { type: "loop", data };
+  disablePdfButton();  // modalita' "Miglior loop a 5" non produce la struttura cycles richiesta dal PDF
+  results.innerHTML = renderWarning(data.warning);
+  const h2 = document.createElement("h2");
+  h2.textContent = t("loop_heading", { value: data.total_score.toFixed(1) });
+  results.appendChild(h2);
+
+  const ul = document.createElement("ul");
+  data.group.forEach(member => {
+    const li = document.createElement("li");
+    li.textContent = formatCharacterName(member.character) + (member.is_meta_parent ? t("meta_suffix") : "");
+    ul.appendChild(li);
+  });
+  results.appendChild(ul);
+
+  resetTimelineTabs();
+  setTimelineTab("original", t("tab_original"), data.calendar_matrix, data.group.map(m => m.character), true);
+}
+
+async function runQuery() {
+  const mode = modeSelect.value;
+  const calendarMode = calendarSelect.value;
+  const globalOnly = globalOnlyCheckbox.checked;
+  const owned = getOwnedSelection();
+  results.innerHTML = `<p class="placeholder">${t("calc_in_progress")}</p>`;
+
+  try {
+    if (mode === "top4") {
+      const character = characterSelect.value;
+      const resp = await fetch("/api/top4", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          character, mode: calendarMode, global_only: globalOnly, owned,
+          debug: debugCheckbox.checked,
+        }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(translateServerMessage(data.error) || t("error_unknown"));
+      renderTop4(data);
+    } else if (mode === "loop") {
+      const mustInclude = getMustInclude();
+      const resp = await fetch("/api/loop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: calendarMode, global_only: globalOnly, owned,
+          must_include: mustInclude, pool_size: 20,
+        }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(translateServerMessage(data.error) || t("error_unknown"));
+      renderLoop(data);
+    }
+  } catch (err) {
+    results.innerHTML = `<p class="placeholder">${t("error_prefix", { message: err.message })}</p>`;
+  }
+}
+
+runButton.addEventListener("click", runQuery);
+
+// --- Salvataggio/caricamento JSON (2026-08-01) -----------------------------
+// Obiettivo: al caricamento la schermata deve apparire ESATTAMENTE come al
+// momento del salvataggio. Approccio: invece di duplicare la logica di
+// rendering in un secondo "motore di ripristino" parallelo, il caricamento
+// RIUSA le stesse funzioni di rendering gia' esistenti:
+//   - controlli (mode/calendario/filtri/posseduti/lingua) -> riassegnati
+//     direttamente agli elementi del form.
+//   - risultati principali (top4/loop) -> renderTop4(data)/renderLoop(data),
+//     le stesse funzioni gia' usate per il cambio lingua (vedi setLang):
+//     data e' l'intera risposta "congelata" del server al momento della
+//     ricerca, quindi il rendering e' bit-per-bit identico.
+//   - pannello spark (Modalita' A/B, se presenti): l'input dell'utente viene
+//     riletto direttamente dal DOM al salvataggio (collectSparkPanelState) e
+//     ririempito simulando le stesse interazioni che l'utente farebbe
+//     (dispatchEvent di change/input, click sul bottone "Aggiungi") --
+//     nessuna duplicazione della logica interna di buildSparkCycleBox/
+//     buildSignatureSparkSection. Il risultato calcolato di /api/pink_spark
+//     (se presente) e' anch'esso "congelato" e ridisegnato con la stessa
+//     renderSparkResultData usata dal calcolo live, senza richiamare il
+//     server (cosi' il salvataggio resta valido anche se i dati di gioco
+//     cambiano nel frattempo).
+
+function defaultSaveName() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2, "0");
+  return `Save_${d.getFullYear()}_${pad(d.getMonth() + 1)}_${pad(d.getDate())}`;
+}
+
+function collectSparkPanelState(panel) {
+  const modeAPlan = collectSparkPlan(panel);  // {cicloStr: {categoria: stelle}}
+  const modeBPlan = {};
+  panel.querySelectorAll(".spark-b-assignment-list li").forEach(li => {
+    modeBPlan[li.dataset.character] = { [li.dataset.category]: Number(li.dataset.stars) };
+  });
+  const resultBox = panel.querySelector(".spark-result");
+  return {
+    target: panel.dataset.target,
+    mode_a_plan: modeAPlan,
+    mode_b_plan: modeBPlan,
+    result: resultBox ? (resultBox._sparkResultData || null) : null,
+  };
+}
+
+function collectAllSparkPanels() {
+  return Array.from(document.querySelectorAll(".spark-panel")).map(collectSparkPanelState);
+}
+
+function buildSaveData() {
+  return {
+    app: "uma_legacy_loop_tool_save",
+    version: 1,
+    saved_at: new Date().toISOString(),
+    lang: currentLang,
+    controls: {
+      mode: modeSelect.value,
+      calendar_mode: calendarSelect.value,
+      global_only: globalOnlyCheckbox.checked,
+      debug: debugCheckbox.checked,
+      owned: getOwnedSelection(),
+      owned_sort: ownedSortSelect.value,
+      owned_sort_descending: ownedSortDescending,
+      character: characterSelect.value,
+      must_include: getMustInclude(),
+    },
+    last_run: lastRun,  // { type: "top4"|"loop", data } congelato, o null se nessuna ricerca ancora fatta
+    spark_panels: collectAllSparkPanels(),
+    active_timeline_tab: activeTimelineTabId,
+  };
+}
+
+async function handleSaveClick() {
+  const suggested = defaultSaveName();
+  const input = window.prompt(t("save_filename_prompt"), suggested);
+  if (input === null) return;  // annullato esplicitamente: nessun salvataggio
+  const name = input.trim() || suggested;
+  const filename = name.toLowerCase().endsWith(".json") ? name : `${name}.json`;
+
+  const payload = buildSaveData();
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function restoreSparkPanels(sparkPanelsState) {
+  if (!Array.isArray(sparkPanelsState)) return;
+  sparkPanelsState.forEach(state => {
+    if (!state || !state.target) return;
+    const panel = document.querySelector(`.spark-panel[data-target="${state.target}"]`);
+    if (!panel) return;
+
+    // Modalita' A: per ogni ciclo salvato, riempie le righe libere e simula
+    // gli stessi eventi change/input che l'utente scatenerebbe a mano, cosi'
+    // i listener gia' presenti (validazione, anteprima aptitude) fanno il
+    // resto senza duplicare logica qui.
+    Object.entries(state.mode_a_plan || {}).forEach(([cycleNum, plan]) => {
+      const cycleBox = panel.querySelector(`.spark-cycle[data-cycle="${cycleNum}"]`);
+      if (!cycleBox) return;
+      const rows = Array.from(cycleBox.querySelectorAll(".spark-row"));
+      Object.entries(plan).forEach(([category, stars], idx) => {
+        const row = rows[idx];
+        if (!row) return;
+        const select = row.querySelector(".spark-category-select");
+        const input = row.querySelector(".spark-star-input");
+        select.value = category;
+        select.dispatchEvent(new Event("change"));
+        input.value = String(stars);
+        input.dispatchEvent(new Event("input"));
+      });
+    });
+
+    // Modalita' B: simula un click su "Aggiungi" per ogni spark firma
+    // salvata -- stesso identico codice del click reale (vedi addButton in
+    // buildSignatureSparkSection), nessuno stato interno riscritto a mano.
+    const charSelect = panel.querySelector(".spark-b-character-select");
+    const catSelect = panel.querySelector(".spark-b-category-select");
+    const starInput = panel.querySelector(".spark-b-star-input");
+    const addButton = panel.querySelector(".spark-b-add-button");
+    if (charSelect && catSelect && starInput && addButton) {
+      Object.entries(state.mode_b_plan || {}).forEach(([character, plan]) => {
+        const [category, stars] = Object.entries(plan)[0];
+        charSelect.value = character;
+        catSelect.value = category;
+        starInput.value = String(stars);
+        addButton.click();
+      });
+    }
+
+    if (state.result) {
+      const resultBox = panel.querySelector(".spark-result");
+      renderSparkResultData(resultBox, state.result, { activateTimeline: false });
+    }
+  });
+}
+
+async function restoreFromSave(save) {
+  if (!save || typeof save !== "object") {
+    throw new Error(t("load_error", { message: "JSON non valido" }));
+  }
+
+  if (save.lang === "it" || save.lang === "en") {
+    currentLang = save.lang;
+    try {
+      localStorage.setItem(LANG_STORAGE_KEY, currentLang);
+    } catch (err) {
+      // localStorage non disponibile: non bloccante.
+    }
+  }
+
+  const controls = save.controls || {};
+  if (controls.mode) modeSelect.value = controls.mode;
+  if (controls.calendar_mode) calendarSelect.value = controls.calendar_mode;
+  if (typeof controls.global_only === "boolean") globalOnlyCheckbox.checked = controls.global_only;
+  if (typeof controls.debug === "boolean") debugCheckbox.checked = controls.debug;
+  if (typeof controls.owned_sort_descending === "boolean") ownedSortDescending = controls.owned_sort_descending;
+  if (controls.owned_sort) ownedSortSelect.value = controls.owned_sort;
+  if (Array.isArray(controls.owned)) ownedSelection = new Set(controls.owned);
+
+  await charactersLoadedPromise;  // le select dei personaggi devono essere popolate prima di assegnare i loro valori
+
+  updateFieldVisibility();
+  applyStaticTranslations();
+  renderOwnedList();
+  populateMustIncludeSelects();
+  renderCharacterSelect();
+  savePersistedSettings();
+
+  if (controls.character) characterSelect.value = controls.character;
+  if (Array.isArray(controls.must_include)) {
+    controls.must_include.forEach((name, i) => {
+      if (mustIncludeSelects[i]) mustIncludeSelects[i].value = name;
+    });
+  }
+
+  if (save.last_run && save.last_run.type === "top4") {
+    renderTop4(save.last_run.data);
+    restoreSparkPanels(save.spark_panels);
+  } else if (save.last_run && save.last_run.type === "loop") {
+    renderLoop(save.last_run.data);
+  } else {
+    lastRun = null;
+    disablePdfButton();
+    results.innerHTML = `<p class="placeholder">${t("placeholder_results")}</p>`;
+    resetTimelineTabs();
+  }
+
+  if (save.active_timeline_tab && timelineTabs.some(tab => tab.id === save.active_timeline_tab)) {
+    activeTimelineTabId = save.active_timeline_tab;
+    renderTimelinePanel();
+  }
+}
+
+function handleLoadFile(file) {
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try {
+      const save = JSON.parse(reader.result);
+      await restoreFromSave(save);
+    } catch (err) {
+      results.innerHTML = `<p class="placeholder">${t("load_error", { message: err.message })}</p>`;
+    }
+  };
+  reader.onerror = () => {
+    results.innerHTML = `<p class="placeholder">${t("load_error", { message: reader.error })}</p>`;
+  };
+  reader.readAsText(file);
+}
+
+saveButton.addEventListener("click", handleSaveClick);
+loadButton.addEventListener("click", () => loadFileInput.click());
+pdfButton.addEventListener("click", () => {
+  if (pdfContext) handleGeneratePdf(pdfContext.oneHop, pdfContext.target, pdfContext.resultBox, pdfStatus);
+});
+
+autoUpdateCheckbox.addEventListener("change", () => {
+  fetch("/api/auto_update_setting", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ enabled: autoUpdateCheckbox.checked }),
+  });
+});
+loadFileInput.addEventListener("change", () => {
+  const file = loadFileInput.files[0];
+  if (file) handleLoadFile(file);
+  loadFileInput.value = "";  // permette di ricaricare lo stesso file una seconda volta
+});

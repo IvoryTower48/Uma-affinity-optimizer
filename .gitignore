@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.pyc
+
+# Build/dist locali (rigenerabili con build_exe.bat, non vanno in repo:
+# troppo pesanti e sono output, non sorgente)
+build/
+dist/
+release/
+
+# Cache immagini scaricate da gametora.com (ritratti/targhe gara): MAI
+# committate nel repository per motivi di copyright, vedi pdf_export.py.
+# Si rigenerano da sole al primo uso (o restano assenti, fallback al
+# segnaposto: comportamento gia' previsto, non e' un errore).
+data/image_cache/
+
+# Stato/backup locali generati a runtime, specifici della macchina
+# dell'utente: non hanno senso in un repository condiviso.
+data/update_backups/
+data/.update_state.json
+data/.variant_check_state.json
+data/last_update_report.json
+data/update_settings.json
+
+# Note di lavoro interne (handoff tra sessioni), non documentazione per
+# chi scarica il progetto da GitHub.
+HANDOFF.md
+HANDOFF.original.md
+
+# Config locale di Claude Code (permessi specifici di questa macchina)
+.claude/settings.local.json
