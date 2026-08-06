@@ -312,7 +312,7 @@ const I18N = {
 const LANG_STORAGE_KEY = "uma_tool_lang";
 const THEME_STORAGE_KEY = "uma_tool_theme";
 const LAYOUT_STORAGE_KEY = "uma_tool_layout";
-let currentLang = "it";
+let currentLang = "en";
 let currentTheme = "light";
 let layoutMode = "modern";  // "modern" (default, card/ritratti) | "classic" (tabelle di sempre)
 
