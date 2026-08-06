@@ -114,7 +114,7 @@ for easy access to the raw data on character id and relative weights to compute 
 [Gametora](https://gametora.com/umamusume) and its Discord for general knowledge, 
 affinity computation clarification, and downloadable illustrations.
 
-Each line of Python code has been written by an AI, supervised and micromanaged by IvoryTower48.
+Each line of Python code has been written by an AI, supervised and micromanaged by IvoryTower48 (in game: Arnit, Trainer ID 600 621 108 642).
 
 ## Additional notes
 This is my most serious attempt at learning how to work with AI and its limits and capabilities.

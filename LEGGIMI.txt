@@ -7,7 +7,7 @@ che si allenano a vicenda come genitori/nonni) in Umamusume Pretty Derby:
 top-4 compatibili con un personaggio, miglior loop a 5, pianificazione
 delle pink spark, timeline delle carriere, esportazione PDF illustrata.
 
-La UI e' disponibile sia in italiano che in inglese: cambia lingua
+La UI è disponibile sia in italiano che in inglese: cambia lingua
 dall'icona ingranaggio (Impostazioni) dentro il programma.
 
 COME SI AVVIA
@@ -23,14 +23,13 @@ COME SI AVVIA
    si chiude da solo (anche la finestra nera). In alternativa puoi chiudere
    la finestra nera direttamente.
 
-Solo Windows. Il programma gira interamente sul tuo PC: nessun dato viene
-mandato in giro, nessun account, nessun costo.
+Solo per Windows; il programma gira interamente sul tuo PC.
 
-RETE INTERNET
+CONNESSIONE A INTERNET
 --------------
 Non obbligatoria per usare il programma. I ritratti dei personaggi e le
 targhe delle gare (usati nella UI e nel PDF esportato) sono gia' inclusi
-in questo pacchetto: la rete serve solo per due cose opzionali:
+in questo pacchetto. la rete serve solo per due cose opzionali:
 - scaricare le immagini di eventuali personaggi/gare nuovi non ancora
   presenti nel pacchetto — se manca la rete, il programma li sostituisce
   automaticamente con un segnaposto, senza errori;
@@ -42,8 +41,8 @@ in questo pacchetto: la rete serve solo per due cose opzionali:
  Crediti
 ====================================================
 
-Tutto lo sviluppo (scrittura del codice, in ogni sua parte) è stato
-realizzato interamente da un'intelligenza artificiale (Claude, Anthropic).
+mee1080 (https://github.com/mee1080) e la sua repository Umaishow per mantenere i dati dei personaggi per calcolare le loro affinità.
 
-Idea, direzione del progetto, ogni scelta di design e di funzionalità:
-IvoryTower (in game: Arnit, Trainer ID 600 621 108 642).
+Gametora e il suo server Discord per aver fornito supporto, spiegazioni sul calcolo delle affinità e le illustrazioni.
+
+Ogni riga di questo codice è stata scritta da una IA, supervisionata e gestita passo dopo passo da IvoryTower48 (in game: Arnit, Trainer ID 600 621 108 642).

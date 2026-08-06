@@ -2,13 +2,19 @@
  Uma Legacy Loop Optimizer
 ====================================================
 
-A tool to find and plan "legacy loops" (closed groups of 5 umamusume that
-train each other as parents/grandparents) in Umamusume Pretty Derby:
-top-4 matches for a character, best 5-loop search, pink spark planning,
-career timelines, illustrated PDF export.
+The purpose of this tool is to help planning for "legacy loops" (closed 
+sets of 5 characters that become each others' parents and grandparents) 
+in Umamusume Pretty Derby.
+There are two main modes: 
+- top-4 compatibles with a chosen character (max affinity in first loop
+  without degrading the other four steps);
+- best 5-loop for affinity (with the possibility of choosing multiple
+  characters that must be in the loop).
 
-The UI is available in both Italian and English: switch language from the
-gear icon (Settings) inside the program.
+This tool also features a simple pink spark planning (e.g. requiring 
+long or dirt sparks so that a character can run more races) and a
+table that summarizes the career timeline of the 5 umamusume in the loop.
+
 
 HOW TO START
 --------------
@@ -23,10 +29,9 @@ HOW TO START
    (including the black window). Alternatively you can close the black
    window directly.
 
-Windows only. The program runs entirely on your PC: no data is sent
-anywhere, no account, no cost.
+The .exe is Windows only; the program runs entirely on your PC.
 
-INTERNET
+ABOUT INTERNET CONNECTION
 --------------
 Not required to use the program. Character portraits and race plaques
 (used in the UI and in the exported PDF) are already included in this
@@ -42,8 +47,11 @@ package: internet access is only needed for two optional things:
  Credits
 ====================================================
 
-All development (writing the code, in every part) was done entirely by
-an artificial intelligence (Claude, Anthropic).
+mee1080 (https://github.com/mee1080) and its repository Umaishow for easy access to the raw data 
+on character id and relative weights to compute affinity.
 
-Idea, project direction, every design and feature choice:
-IvoryTower (in game: Arnit, Trainer ID 600 621 108 642).
+Gametora and its Discord server for general knowledge, 
+affinity computation explanation, and downloadable illustrations.
+
+Each line of Python code has been written by an AI, supervised and micromanaged by IvoryTower48 (in game: Arnit, Trainer ID 600 621 108 642).
+
