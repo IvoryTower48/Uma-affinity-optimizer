@@ -23,11 +23,6 @@ of this repository, extract the .zip file in a folder and run
 `UmaLegacyLoopOptimizer.exe`. Soon after the app will open a browser page,
 and it can be used as-is; by closing the tab, you'll stop the program. 
 
-
-If you prefer to run it in a terminal, you'll
-find more details in `LEGGIMI.txt` (Italian) and `README.txt` (English)
-inside the .zip you just downloaded.
-
 ## From the source code (Python required)
 
 Run these two commands:
@@ -94,7 +89,7 @@ python main.py --data-dir data --loop
 python main.py --data-dir data --loop --global-only
 ```
 
-## Note di design (per riferimento futuro)
+## Design notes
 
 - **`career` vs `mant`**: in `career`, a race is 'winnable' and 'shared' between 2 umas
   only if the time slot is not occupied with a different mandatory race; in `mant`
@@ -123,7 +118,7 @@ this tool will have bugs and is surely badly written from a programmer's PoV.
 
 While I'm not a fan of contributing to GitHub and the community with AI code, I have to recognize that
 this tool would not exist in its present form without it. I have a data science background, so
-tasks like preparing the UI and automatically updating the data would've been hard tasks for me;
+tasks like preparing the UI and automatically updating the data would've been tough for me;
 since the Umamusume community is quite active, speed and presentation were qualities I wanted.
 
 Feel free to improve this tool, or to tell me which issues it has so I can also try my hand at
