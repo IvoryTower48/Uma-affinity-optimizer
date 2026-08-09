@@ -1,17 +1,30 @@
 # IvoryTower48's Uma Legacy Loop Optimizer
 
 The purpose of this tool is to help planning for "legacy loops" (closed 
-sets of 5 characters that become each others' parents and grandparents) 
+groups of characters that become each others' parents and grandparents) 
 in Umamusume Pretty Derby.
-There are two main modes: 
+There are three main modes: 
 - top-4 compatibles with a chosen character (max affinity in first loop
   without degrading the other four steps);
 - best 5-loop for affinity (with the possibility of choosing multiple
-  characters that must be in the loop).
+  characters that must be in the loop);
+- rental loop, for the common case of a rented (never owned) "anchor"
+  parent: only 3 owned characters need to rotate instead of 5.
 
-This tool also features a simple pink spark planning (e.g. requiring 
-long or dirt sparks so that a character can run more races) and a
-table that summarizes the career timeline of the 5 umamusume in the loop.
+This tool also features:
+- pink spark planning (Aptitude Inheritance): simulate the aptitude boost
+  from pink sparks across the whole loop, preview the resulting career
+  timeline live, and get a suggested single-member substitution if another
+  character would score higher;
+- a table that summarizes the career timeline of the loop;
+- an illustrated PDF export of the finished loop (character portraits,
+  real race plaques, genealogy trees);
+- save/load of a full session (search results, spark plan, filters) as JSON.
+
+All of the above is configurable from the in-app Settings panel: UI language
+(English/Italian), light/dark theme, modern/classic layout, per-category
+minimum aptitude thresholds, the auto-update toggle, and a custom
+meta-parent list.
 
 At the moment this tool supports English and Italian, and the .exe can
 be ran only in Windows without requiring any installation.
@@ -46,14 +59,21 @@ config.py                constants (suffixes related to uma variants, aptitude t
 naming.py                mapping from uma variant name -> uma base name
 display_names.py         Name format for the UI
 data_loader.py           loading and normalization of all datasets
-data_updater.py          data update from gametora.com (optional, turned off by default)
-affinity.py              base affinity, race compatibility, regular aptitude requirements for a win
+data_updater.py          data update from gametora.com/GitHub/Wikipedia/umapyoi.net
+                         (optional, turned off by default; toggle also in the UI)
+affinity.py              base affinity, achievable races, calendar conflict resolution,
+                         regular aptitude requirements for a win
 loop_search.py           searches the top-4 compatible characters or searches the best 5-loop
-cycle_analysis.py        full description of a parent cycle, affinity score breakdown
-aptitude_inheritance.py  pink spark planning
+cycle_analysis.py        full description of a parent cycle, affinity score breakdown,
+                         rental loop schedule, candidate substitution search
+aptitude_inheritance.py  pink spark (Aptitude Inheritance) planning
+inspiration.py           pink spark inspiration-chance formulas (category/stars -> % base
+                         rates); calculation-only module, no UI yet
 timeline.py              race caledndar/timeline for the looping characters
-pdf_export.py            rudimentary PDF export complete with illustrations for easy reference
-main.py                  CLI
+pdf_export.py            illustrated PDF export of the finished loop (character portraits,
+                         race plaques, genealogy trees)
+main.py                  CLI (does not expose pink spark planning, rental loop mode, or
+                         meta-parent management, which are UI-only)
 app.py                   local Flask server (UI)
 templates/               HTML page for the UI
 static/                  CSS and JS for the UI
@@ -72,6 +92,13 @@ data/                    dataset (see below)
 in the repository: this folder will fill itself the first time it's requested
 (requires allowing internet connection at least once) or it will stay empty.
 In their place, there are placeholders to represent the umas and races.
+
+A few more files under `data/` are runtime settings, not part of the curated
+dataset above: `meta_parents.json` (custom meta-parent list), `update_settings.json`
+(auto-update toggle), `extra_suffixes.json` (variant suffixes discovered
+automatically), `.update_state.json`/`.variant_check_state.json` (auto-update
+timestamps), and `update_backups/` (timestamped backup before every automatic
+write to the datasets above). None of these need to exist for the tool to work.
 
 ## Further command examples to use this tool (CLI)
 
@@ -98,8 +125,12 @@ python main.py --data-dir data --loop --global-only
   and computes inidividual and overall affninity for each. It's more useful if
   1+ characters are selected, since the program restricts the pool size to avoid
   unnecessary computations (`--pool-size`, default 20).
-- The **minimum threshold for each aptitude** (`MIN_APTITUDE` in `config.py`) is defined
-  as a constant, so it's easy to change them without touching the underlying logic.
+- **`rental_loop`** (UI only): plans around a fixed "anchor" parent that is rented
+  every time instead of owned, so only 3 owned characters rotate through the loop
+  instead of 5.
+- The **minimum threshold for each aptitude** (`MIN_APTITUDE` in `config.py`) is the
+  default value; it can be adjusted per-category from the UI for the current
+  session (not persisted between restarts), without touching the underlying logic.
 
 ## Credits
 
@@ -108,6 +139,12 @@ for easy access to the raw data on character id and relative weights to compute 
 
 [Gametora](https://gametora.com/umamusume) and its Discord for general knowledge, 
 affinity computation clarification, and downloadable illustrations.
+
+[uma.guide](https://uma.guide) for the race plaque illustrations used in the
+timeline grid and in the PDF export.
+
+[umapyoi.net](https://umapyoi.net) for Japanese-server release dates, used to
+order characters still pending a Global release.
 
 Each line of Python code has been written by an AI, supervised and micromanaged by IvoryTower48 (in game: Arnit, Trainer ID 600 621 108 642).
 

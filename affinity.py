@@ -2,9 +2,9 @@
 """
 Funzioni di calcolo dell'affinita' tra due personaggi (varianti incluse):
   - base_affinity: dalla matrice di ID/pesi (richiede name_map slug -> nome giapponese)
-  - race_compatibility: dal calendario gare obbligate + soglie di aptitude
+  - achievable_races_for/resolve_achievable: raggiungibilita' gare dal calendario + soglie di aptitude
 """
-from config import GRADE_RANK, RACE_SHARED_WIN_POINTS
+from config import GRADE_RANK
 
 
 def meets_threshold(grade: str, min_grade: str) -> bool:
@@ -160,33 +160,6 @@ def resolve_achievable(character: str, candidate_race_ids, races: dict, aptitude
         try_augment(race_id, set())
 
     return guaranteed | set(slot_owner.values())
-
-
-def shared_wins(char_a: str, char_b: str, calendar: dict, races: dict,
-                 aptitudes: dict, mode: str, min_aptitude: dict) -> list:
-    """
-    Gare che ENTRAMBI i personaggi possono vincere DAVVERO in comune. Prima si
-    calcola achievable_a/achievable_b (raggiungibilita' individuale grezza,
-    senza risolvere ancora eventuali conflitti tra gare candidate), poi la loro
-    intersezione (common). Il conflitto di turno viene risolto SEPARATAMENTE
-    per ciascun personaggio (resolve_achievable), ma limitato all'insieme
-    common: questo garantisce che, quando un personaggio ha gia' un'obbligatoria
-    che esclude altre gare del gruppo comune, la risoluzione lo rispetti (non
-    si limita a un dedup "alla cieca" sull'insieme intersecato).
-    """
-    achievable_a = achievable_races_for(char_a, races, aptitudes, calendar, mode, min_aptitude)
-    achievable_b = achievable_races_for(char_b, races, aptitudes, calendar, mode, min_aptitude)
-    common = achievable_a & achievable_b
-    resolved_a = resolve_achievable(char_a, common, races, aptitudes, calendar, mode)
-    resolved_b = resolve_achievable(char_b, common, races, aptitudes, calendar, mode)
-    return sorted(resolved_a & resolved_b)
-
-
-def race_compatibility(char_a: str, char_b: str, calendar: dict, races: dict,
-                        aptitudes: dict, min_aptitude: dict, mode: str = "career") -> int:
-    """Punteggio di race-compatibility = numero di gare condivise vincibili * punti per gara."""
-    wins = shared_wins(char_a, char_b, calendar, races, aptitudes, mode, min_aptitude)
-    return len(wins) * RACE_SHARED_WIN_POINTS
 
 
 def base_affinity(char_a: str, char_b: str, name_map: dict,

@@ -2,18 +2,25 @@
  Uma Legacy Loop Optimizer
 ====================================================
 
-The purpose of this tool is to help planning for "legacy loops" (closed 
-sets of 5 characters that become each others' parents and grandparents) 
+The purpose of this tool is to help planning for "legacy loops" (closed
+groups of characters that become each others' parents and grandparents)
 in Umamusume Pretty Derby.
-There are two main modes: 
+There are three main modes:
 - top-4 compatibles with a chosen character (max affinity in first loop
   without degrading the other four steps);
 - best 5-loop for affinity (with the possibility of choosing multiple
-  characters that must be in the loop).
+  characters that must be in the loop);
+- rental loop, for the common case of a rented (never owned) "anchor"
+  parent: only 3 owned characters need to rotate instead of 5.
 
-This tool also features a simple pink spark planning (e.g. requiring 
-long or dirt sparks so that a character can run more races) and a
-table that summarizes the career timeline of the 5 umamusume in the loop.
+This tool also features pink spark planning (Aptitude Inheritance: simulate
+the aptitude boost from pink sparks and preview its effect on the loop live),
+a table that summarizes the career timeline of the loop, save/load of a
+full session, and an illustrated PDF export of the finished loop.
+
+The UI is available in both English and Italian, with a light/dark theme
+and a modern/classic layout: change these from the gear icon (Settings)
+inside the program.
 
 
 HOW TO START
@@ -50,8 +57,14 @@ package: internet access is only needed for two optional things:
 mee1080 (https://github.com/mee1080) and its repository Umaishow for easy access to the raw data 
 on character id and relative weights to compute affinity.
 
-Gametora and its Discord server for general knowledge, 
+Gametora and its Discord server for general knowledge,
 affinity computation explanation, and downloadable illustrations.
+
+uma.guide (https://uma.guide) for the race plaque illustrations used in
+the timeline grid and in the PDF export.
+
+umapyoi.net (https://umapyoi.net) for Japanese-server release dates, used
+to order characters still pending a Global release.
 
 Each line of Python code has been written by an AI, supervised and micromanaged by IvoryTower48 (in game: Arnit, Trainer ID 600 621 108 642).
 

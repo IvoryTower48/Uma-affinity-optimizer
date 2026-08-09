@@ -76,7 +76,7 @@ from itertools import combinations
 from affinity import base_affinity_three, achievable_races_for, resolve_achievable
 from display_names import format_character_name, format_race_name
 from config import RACE_SHARED_WIN_POINTS, RACE_PRIORITY_OVERRIDE, ANCHOR_LOOP_SIZE
-from loop_search import pair_score, has_duplicate_base, shortlist_candidates_for_fixed
+from loop_search import has_duplicate_base, shortlist_candidates_for_fixed
 from naming import base_character
 from aptitude_inheritance import (
     apply_character_spark_plan, validate_spark_plan, validate_signature_spark, spark_plan_warning,

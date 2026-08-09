@@ -2,13 +2,18 @@
  Uma Legacy Loop Optimizer
 ====================================================
 
-Tool per trovare e pianificare "legacy loop" (gruppi chiusi di 5 umamusume
+Tool per trovare e pianificare "legacy loop" (gruppi chiusi di umamusume
 che si allenano a vicenda come genitori/nonni) in Umamusume Pretty Derby:
-top-4 compatibili con un personaggio, miglior loop a 5, pianificazione
-delle pink spark, timeline delle carriere, esportazione PDF illustrata.
+top-4 compatibili con un personaggio, miglior loop a 5, loop con genitore
+in prestito (rental loop: ruotano solo 3 personaggi posseduti attorno a un
+"anchor" sempre affittato), pianificazione delle pink spark (Aptitude
+Inheritance, con anteprima live dell'effetto sul loop), timeline delle
+carriere, salvataggio/caricamento di un'intera sessione, ed esportazione
+PDF illustrata.
 
-La UI è disponibile sia in italiano che in inglese: cambia lingua
-dall'icona ingranaggio (Impostazioni) dentro il programma.
+La UI è disponibile sia in italiano che in inglese, con tema chiaro/scuro
+e layout moderno/classico: cambia queste impostazioni dall'icona
+ingranaggio (Impostazioni) dentro il programma.
 
 COME SI AVVIA
 --------------
@@ -44,5 +49,9 @@ in questo pacchetto. la rete serve solo per due cose opzionali:
 mee1080 (https://github.com/mee1080) e la sua repository Umaishow per mantenere i dati dei personaggi per calcolare le loro affinità.
 
 Gametora e il suo server Discord per aver fornito supporto, spiegazioni sul calcolo delle affinità e le illustrazioni.
+
+uma.guide (https://uma.guide) per le targhe delle gare usate nella griglia timeline e nel PDF esportato.
+
+umapyoi.net (https://umapyoi.net) per le date di rilascio sul server giapponese, usate per ordinare i personaggi ancora in attesa del rilascio Global.
 
 Ogni riga di questo codice è stata scritta da una IA, supervisionata e gestita passo dopo passo da IvoryTower48 (in game: Arnit, Trainer ID 600 621 108 642).
