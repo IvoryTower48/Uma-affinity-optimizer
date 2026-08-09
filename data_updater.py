@@ -85,7 +85,7 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
-from config import KNOWN_SUFFIXES
+from config import KNOWN_SUFFIXES, META_PARENTS
 
 SOURCE_KT_URL = (
     "https://raw.githubusercontent.com/mee1080/umaishow/main/core/src/"
@@ -824,6 +824,33 @@ def set_auto_update_enabled(data_dir: str, enabled: bool) -> None:
     path = _update_settings_path(data_dir)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps({"auto_update_enabled": enabled}, indent=2))
+
+
+def _meta_parents_path(data_dir: str) -> Path:
+    return Path(data_dir) / "meta_parents.json"
+
+
+def get_meta_parents(data_dir: str) -> list:
+    """
+    Lista corrente dei genitori 'meta' (personalizzabile dall'utente da UI,
+    vedi /api/meta_parents in app.py). Se il file non esiste ancora (mai
+    salvato), ritorna il default hardcoded di config.META_PARENTS -- stesso
+    valore che config.py avrebbe gia' caricato all'avvio in quel caso.
+    """
+    return _read_json(_meta_parents_path(data_dir), list(META_PARENTS))
+
+
+def set_meta_parents(data_dir: str, characters: list) -> None:
+    """
+    Sostituisce PER INTERO la lista dei genitori 'meta' (non additiva, a
+    differenza di extra_suffixes.json: l'utente deve poter anche togliere
+    una voce di default che non condivide). Il chiamante (app.py) valida
+    che ogni voce sia un personaggio esistente prima di richiamare questa
+    funzione -- qui si scrive senza ulteriori controlli.
+    """
+    path = _meta_parents_path(data_dir)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(list(characters), indent=2))
 
 
 def _variant_state_path(data_dir: str) -> Path:

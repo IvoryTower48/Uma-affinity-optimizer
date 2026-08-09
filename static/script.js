@@ -3,6 +3,11 @@ const characterField = document.getElementById("character-field");
 const characterSelect = document.getElementById("character-select");
 const calendarSelect = document.getElementById("calendar-select");
 const globalOnlyCheckbox = document.getElementById("global-only-checkbox");
+const minAptitudeSelects = Array.from(document.querySelectorAll(".min-aptitude-select"));
+const infoAptitudeTable = document.getElementById("info-aptitude-table");
+// GRADE_ORDER/GRADE_RANK sono dichiarate piu' sotto (gia' esistenti per la logica
+// spark): populateMinAptitudeSelects()/renderMinAptitudeTable() vengono quindi
+// invocate solo dopo quel punto, vedi in fondo al file vicino a GRADE_RANK.
 const autoUpdateCheckbox = document.getElementById("auto-update-checkbox");
 const debugCheckbox = document.getElementById("debug-checkbox");
 const ownedList = document.getElementById("owned-list");
@@ -12,6 +17,11 @@ const selectAllButton = document.getElementById("select-all-button");
 const selectNoneButton = document.getElementById("select-none-button");
 const loopField = document.getElementById("loop-field");
 const mustIncludeSelects = Array.from(document.querySelectorAll(".must-include-select"));
+const rentalField = document.getElementById("rental-field");
+const rentalAnchorSelect = document.getElementById("rental-anchor-select");
+const rentalGpASelect = document.getElementById("rental-gp-a-select");
+const rentalGpBSelect = document.getElementById("rental-gp-b-select");
+const rentalFixedSelects = Array.from(document.querySelectorAll(".rental-fixed-select"));
 const runButton = document.getElementById("run-button");
 const saveButton = document.getElementById("save-button");
 const loadButton = document.getElementById("load-button");
@@ -25,6 +35,14 @@ const layoutSwitch = document.getElementById("layout-switch");
 const results = document.getElementById("results");
 const timelinePanel = document.getElementById("timeline-panel");
 const langSwitch = document.getElementById("lang-switch");
+const metaParentsOpenButton = document.getElementById("meta-parents-open-button");
+const metaParentsModal = document.getElementById("meta-parents-modal");
+const metaParentsList = document.getElementById("meta-parents-list");
+const metaParentsSelectAllButton = document.getElementById("meta-parents-select-all");
+const metaParentsSelectNoneButton = document.getElementById("meta-parents-select-none");
+const metaParentsCancelButton = document.getElementById("meta-parents-cancel-button");
+const metaParentsSaveButton = document.getElementById("meta-parents-save-button");
+const metaParentsError = document.getElementById("meta-parents-error");
 
 // Tiene aperta una connessione verso il server per tutta la vita di QUESTA
 // scheda (vedi app.py, /api/heartbeat): quando la scheda si chiude il
@@ -63,6 +81,13 @@ const I18N = {
     opt_calendar_mant: "Nessun vincolo (Make A New Track)",
     label_global_only: "Solo personaggi già usciti su Global",
     label_debug: "Modalità debug",
+    label_min_aptitude: "Soglie minime di aptitude per considerare una gara vincibile (solo per questa sessione)",
+    label_apt_turf: "Turf",
+    label_apt_dirt: "Dirt",
+    label_apt_sprint: "Sprint",
+    label_apt_mile: "Mile",
+    label_apt_medium: "Medium",
+    label_apt_long: "Long",
     label_owned: "Personaggi posseduti (vuoto = considera tutti)",
     btn_select_all: "Seleziona tutti",
     btn_select_none: "Deseleziona tutti",
@@ -75,8 +100,29 @@ const I18N = {
     label_character: "Personaggio",
     label_loop_include: "Personaggi da includere nel loop (fino a 5, opzionale)",
     opt_none: "-- nessuno --",
+    opt_mode_rental: "Loop con genitore in prestito",
+    rental_section_title: "Loop con genitore in prestito",
+    rental_intro: "Il genitore è obbligatorio e viene utilizzato in ogni step del ciclo; i nonni sono opzionali ma aiutano a calcolare correttamente l'affinità massima.",
+    label_rental_anchor: "Genitore preso in prestito",
+    label_rental_gp_a: "Nonno/a 1 (opzionale)",
+    label_rental_gp_b: "Nonno/a 2 (opzionale)",
+    label_rental_fixed: "Personaggi posseduti gia' scelti per la rotazione (fino a 3, opzionale)",
+    unknown_ancestor: "N/D",
+    rental_heading: "Rental loop con {name}",
+    rental_total_label: "Total Loop Affinity",
+    rental_partial_note: "Nonni ignoti: alcuni termini non sono calcolati (mostrati come N/D), il totale copre solo quelli noti.",
+    rental_gp_suggestions_label: "Nonni suggeriti, in ordine di affinità potenziale massima",
+    rental_gp_pairs_label: "Migliori coppie di nonni per affinità aggiunta al loop (Δ per step)",
+    th_gp_affinity_steps: "Affinità (1/2/3)",
+    th_gp_pair: "Coppia",
+    th_gp_deltas: "Δ per step (1/2/3)",
+    th_gp_total: "Totale",
     btn_run: "Esegui",
     btn_save: "Salva",
+    btn_cancel: "Annulla",
+    btn_manage_meta_parents: "Gestisci genitori meta…",
+    meta_parents_modal_title: "Genitori meta",
+    meta_parents_modal_intro: "Personaggi mostrati con il badge \"META\" nei risultati. La modifica ha effetto subito, su tutti i risultati futuri.",
     btn_load: "Carica",
     save_filename_prompt: "Nome del file di salvataggio (lascia vuoto per il nome predefinito):",
     load_error: "Impossibile caricare il file: {message}",
@@ -115,7 +161,11 @@ const I18N = {
     calc_in_progress: "Calcolo in corso...",
     error_unknown: "Errore sconosciuto",
     total_loop_affinity: "Total Loop Affinity: {value}",
-    spark_panel_title: "Piano spark (Aptitude Inheritance, v3)",
+    spark_panel_title: "Piano spark (Aptitude Inheritance)",
+    spark_mode_a_title: "Modalità A",
+    spark_mode_b_title: "Modalità B",
+    breakdown_base_affinity: "Affinità di base",
+    breakdown_race_bonus: "Affinità bonus gare",
     btn_calc_spark: "Calcola con queste spark",
     btn_generate_pdf: "Genera PDF",
     pdf_generating: "Generazione PDF in corso...",
@@ -190,6 +240,13 @@ const I18N = {
     opt_calendar_mant: "No constraints (Make A New Track)",
     label_global_only: "Only characters already released on Global",
     label_debug: "Debug mode",
+    label_min_aptitude: "Minimum aptitude thresholds to consider a race winnable (this session only)",
+    label_apt_turf: "Turf",
+    label_apt_dirt: "Dirt",
+    label_apt_sprint: "Sprint",
+    label_apt_mile: "Mile",
+    label_apt_medium: "Medium",
+    label_apt_long: "Long",
     label_owned: "Owned characters (empty = consider all)",
     btn_select_all: "Select all",
     btn_select_none: "Deselect all",
@@ -202,8 +259,29 @@ const I18N = {
     label_character: "Character",
     label_loop_include: "Characters to include in the loop (up to 5, optional)",
     opt_none: "-- none --",
+    opt_mode_rental: "Loop with a rental parent",
+    rental_section_title: "Loop with a rental parent",
+    rental_intro: "The parent is mandatory and is used in every step of the cycle; the grandparents are optional but help compute the maximum affinity correctly.",
+    label_rental_anchor: "Rental parent",
+    label_rental_gp_a: "Grandparent 1 (optional)",
+    label_rental_gp_b: "Grandparent 2 (optional)",
+    label_rental_fixed: "Owned characters already chosen for the rotation (up to 3, optional)",
+    unknown_ancestor: "N/A",
+    rental_heading: "Rental loop with {name}",
+    rental_total_label: "Total Loop Affinity",
+    rental_partial_note: "Grandparents unknown: some terms aren't computed (shown as N/A), the total only covers the known ones.",
+    rental_gp_suggestions_label: "Suggested grandparents, ordered by potential maximum affinity",
+    rental_gp_pairs_label: "Best grandparent pairs by affinity added to the loop (Δ per step)",
+    th_gp_affinity_steps: "Affinity (1/2/3)",
+    th_gp_pair: "Pair",
+    th_gp_deltas: "Δ per step (1/2/3)",
+    th_gp_total: "Total",
     btn_run: "Run",
     btn_save: "Save",
+    btn_cancel: "Cancel",
+    btn_manage_meta_parents: "Manage meta parents…",
+    meta_parents_modal_title: "Meta parents",
+    meta_parents_modal_intro: "Characters shown with the \"META\" badge in results. The change takes effect immediately, on all future results.",
     btn_load: "Load",
     save_filename_prompt: "Save file name (leave empty for the default name):",
     load_error: "Could not load the file: {message}",
@@ -243,7 +321,11 @@ const I18N = {
     calc_in_progress: "Calculating...",
     error_unknown: "Unknown error",
     total_loop_affinity: "Total Loop Affinity: {value}",
-    spark_panel_title: "Spark plan (Aptitude Inheritance, v3)",
+    spark_panel_title: "Spark plan (Aptitude Inheritance)",
+    spark_mode_a_title: "Mode A",
+    spark_mode_b_title: "Mode B",
+    breakdown_base_affinity: "Base affinity",
+    breakdown_race_bonus: "Race bonus affinity",
     btn_calc_spark: "Calculate with these sparks",
     btn_generate_pdf: "Generate PDF",
     pdf_generating: "Generating PDF...",
@@ -642,12 +724,46 @@ function buildPortraitWrap(character) {
 }
 
 function updateFieldVisibility() {
-  const isTop4 = modeSelect.value === "top4";
-  characterField.style.display = isTop4 ? "block" : "none";
-  loopField.style.display = isTop4 ? "none" : "block";
+  // "" (non "block") per mostrare: rimuove lo style inline e lascia vincere
+  // il display:flex di .control-card in style.css -- un inline style
+  // "block" avrebbe priorita' sulla classe e romperebbe l'impilamento
+  // verticale label/select dei campi con piu' coppie (es. #rental-field).
+  const mode = modeSelect.value;
+  characterField.style.display = mode === "top4" ? "" : "none";
+  loopField.style.display = mode === "loop" ? "" : "none";
+  rentalField.style.display = mode === "rental" ? "" : "none";
 }
 modeSelect.addEventListener("change", updateFieldVisibility);
 updateFieldVisibility();
+
+function populateMinAptitudeSelects() {
+  const defaultsEl = document.getElementById("min-aptitude-default");
+  const defaults = defaultsEl ? JSON.parse(defaultsEl.textContent) : {};
+  minAptitudeSelects.forEach(select => {
+    select.innerHTML = "";
+    GRADE_ORDER.forEach(grade => {
+      const opt = document.createElement("option");
+      opt.value = grade;
+      opt.textContent = grade;
+      select.appendChild(opt);
+    });
+    select.value = defaults[select.dataset.category] || "C";
+  });
+}
+
+function getMinAptitude() {
+  const result = {};
+  minAptitudeSelects.forEach(select => { result[select.dataset.category] = select.value; });
+  return result;
+}
+
+function renderMinAptitudeTable() {
+  if (!infoAptitudeTable) return;
+  const values = getMinAptitude();
+  infoAptitudeTable.innerHTML = Object.entries(values)
+    .map(([key, grade]) => `<tr><td>${key.charAt(0).toUpperCase()}${key.slice(1)}</td><td><strong>${grade}</strong></td></tr>`)
+    .join("");
+}
 
 function populateMustIncludeSelects() {
   const globalOnly = globalOnlyCheckbox.checked;
@@ -655,7 +771,8 @@ function populateMustIncludeSelects() {
     .filter(c => !globalOnly || !!c.global_release_date)
     .map(c => c.character)
     .sort((a, b) => a.localeCompare(b));
-  mustIncludeSelects.forEach(select => {
+
+  const fillWithNone = select => {
     const current = select.value;
     select.innerHTML = `<option value="">${t("opt_none")}</option>`;
     sortedNames.forEach(name => {
@@ -665,7 +782,23 @@ function populateMustIncludeSelects() {
       select.appendChild(opt);
     });
     select.value = current;  // se 'current' non e' piu' tra le opzioni, resta vuoto
+  };
+
+  mustIncludeSelects.forEach(fillWithNone);
+  rentalFixedSelects.forEach(fillWithNone);
+  fillWithNone(rentalGpASelect);
+  fillWithNone(rentalGpBSelect);
+
+  // l'anchor e' obbligatorio (non serve un'opzione "nessuno"), stesso universo degli altri
+  const currentAnchor = rentalAnchorSelect.value;
+  rentalAnchorSelect.innerHTML = "";
+  sortedNames.forEach(name => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = formatCharacterName(name);
+    rentalAnchorSelect.appendChild(opt);
   });
+  rentalAnchorSelect.value = sortedNames.includes(currentAnchor) ? currentAnchor : (sortedNames[0] || "");
 }
 
 function renderCharacterSelect() {
@@ -689,6 +822,10 @@ function renderCharacterSelect() {
 
 function getMustInclude() {
   return mustIncludeSelects.map(s => s.value).filter(v => v);
+}
+
+function getRentalFixedMembers() {
+  return rentalFixedSelects.map(s => s.value).filter(v => v);
 }
 
 function visibleItems() {
@@ -833,7 +970,7 @@ function renderTop10List(title, items, container = results) {
   const details = makeCollapsibleSection(title, container);
   appendTable(
     details, [t("table_header_character"), t("table_header_value")],
-    items.map(row => [formatCharacterName(row.character), `<strong>${row.value.toFixed(1)}</strong>`]),
+    items.map(row => [formatCharacterName(row.character), `<strong>${row.value}</strong>`]),
   );
 }
 
@@ -859,8 +996,8 @@ function renderOverallAffinityFormulas(cycles, container = results) {
     heading.textContent = t("overall_formula_cycle_heading", { n: i + 1, name: formatCharacterName(c.child) });
     details.appendChild(heading);
 
-    const rows = c.overall_breakdown.map(([label, value]) => [label, value.toFixed(1)]);
-    rows.push([`<strong>${t("overall_formula_total_label")}</strong>`, `<strong>${c.overall_affinity.toFixed(1)}</strong>`]);
+    const rows = c.overall_breakdown.map(([label, value]) => [label, value]);
+    rows.push([`<strong>${t("overall_formula_total_label")}</strong>`, `<strong>${c.overall_affinity}</strong>`]);
     appendTable(details, [t("table_header_term"), t("table_header_value")], rows);
   });
 }
@@ -869,18 +1006,34 @@ function renderTop10TotalList(title, items, container = results) {
   const details = makeCollapsibleSection(title, container);
   appendTable(
     details, [t("table_header_character"), t("th_base"), t("th_race"), t("table_header_value")],
-    items.map(row => [formatCharacterName(row.character), row.base, row.race, `<strong>${row.value.toFixed(1)}</strong>`]),
+    items.map(row => [formatCharacterName(row.character), row.base, row.race, `<strong>${row.value}</strong>`]),
   );
+}
+
+// Le label del breakdown arrivano dal server in notazione a formula (es.
+// "bAff(child,p1,gp1a)", "Bonus(p1,p2)") -- utile per il debug (vedi
+// renderOverallAffinityFormulas, che la mostra cosi' apposta) ma opaca nel
+// tooltip al hover sui personaggi: qui viene tradotta in etichette leggibili
+// (nomi formattati, "bAff" -> affinita' di base, "Bonus" -> bonus da gare).
+function humanizeBreakdownLabel(label) {
+  let m = label.match(/^bAff\(([^,]+),([^,]+),([^)]+)\)$/);
+  if (m) return `${t("breakdown_base_affinity")}: ${formatCharacterName(m[1])} – ${formatCharacterName(m[2])} – ${formatCharacterName(m[3])}`;
+  m = label.match(/^bAff\(([^,]+),([^)]+)\)$/);
+  if (m) return `${t("breakdown_base_affinity")}: ${formatCharacterName(m[1])} – ${formatCharacterName(m[2])}`;
+  m = label.match(/^Bonus\(([^,]+),([^)]+)\)$/);
+  if (m) return `${t("breakdown_race_bonus")}: ${formatCharacterName(m[1])} – ${formatCharacterName(m[2])}`;
+  return label;
 }
 
 function formatBreakdownTooltip(terms) {
   // "label: valore" uno per riga, per il title (tooltip nativo al hover)
-  return terms.map(([label, value]) => `${label} = ${value}`).join("\n");
+  return terms.map(([label, value]) => `${humanizeBreakdownLabel(label)} = ${value}`).join("\n");
 }
 
 function characterWithAffinity(name, value, breakdownTerms) {
+  if (name == null) return `<span class="affinity-unknown">${t("unknown_ancestor")}</span>`;
   const tooltip = formatBreakdownTooltip(breakdownTerms);
-  return `${formatCharacterName(name)} (<span class="affinity-value" title="${tooltip}">${value.toFixed(1)}</span>)`;
+  return `${formatCharacterName(name)} (<span class="affinity-value" title="${tooltip}">${value}</span>)`;
 }
 
 function renderFirstCycleRaces(firstCycleRaces, container = results) {
@@ -918,6 +1071,10 @@ const SPARK_WARNING_CATEGORIES = 3;
 // autoritativo resta sempre quello del server in /api/pink_spark.
 const GRADE_ORDER = ["S", "A", "B", "C", "D", "E", "F", "G"];
 const GRADE_RANK = Object.fromEntries(GRADE_ORDER.map((g, i) => [g, i]));
+
+populateMinAptitudeSelects();
+renderMinAptitudeTable();
+minAptitudeSelects.forEach(select => select.addEventListener("change", renderMinAptitudeTable));
 
 function starsToLevelsJs(totalStars) {
   if (totalStars >= 10) return 4;
@@ -1114,11 +1271,12 @@ function deriveCycleSparkFromSignatures(cycle, signatureSparks) {
 }
 
 function buildSignatureSparkSection(oneHop, groupMembers, groupAptitudes, panel, signatureSparks) {
-  const section = document.createElement("div");
-  section.className = "spark-mode-b";
-
-  const divider = document.createElement("hr");
-  section.appendChild(divider);
+  const section = document.createElement("details");
+  section.className = "collapsible-list spark-mode-b";
+  section.open = true;
+  const summary = document.createElement("summary");
+  summary.textContent = t("spark_mode_b_title");
+  section.appendChild(summary);
 
   const intro = document.createElement("p");
   intro.className = "spark-intro";
@@ -1233,9 +1391,9 @@ function renderSubstitutionBox(substitution, container) {
     box.innerHTML = t("substitution_found", {
       oldName: formatCharacterName(best.old_character),
       newName: formatCharacterName(best.new_character),
-      baseline: substitution.baseline_total_loop_affinity.toFixed(1),
-      total: best.total_loop_affinity.toFixed(1),
-      delta: best.delta.toFixed(1),
+      baseline: substitution.baseline_total_loop_affinity,
+      total: best.total_loop_affinity,
+      delta: best.delta,
     });
   }
   container.appendChild(box);
@@ -1262,7 +1420,7 @@ function renderSparkResultData(resultBox, data, { activateTimeline = true } = {}
 
   const totalLine = document.createElement("p");
   totalLine.className = "total-loop-affinity";
-  totalLine.innerHTML = t("total_loop_affinity", { value: `<strong>${data.total_loop_affinity.toFixed(1)}</strong>` });
+  totalLine.innerHTML = t("total_loop_affinity", { value: `<strong>${data.total_loop_affinity}</strong>` });
   resultBox.appendChild(totalLine);
 
   resultBox.appendChild(
@@ -1289,6 +1447,7 @@ async function runSparkPlan(panel, target, signatureSparks) {
         mode: calendarSelect.value,
         global_only: globalOnlyCheckbox.checked,
         owned: getOwnedSelection(),
+        min_aptitude: getMinAptitude(),
         spark_plan: sparkPlan,
         character_spark_plan: signatureSparks,
       }),
@@ -1374,10 +1533,17 @@ function renderPinkSparkPanel(oneHop, target, groupAptitudes, calendarMatrix, co
   summary.textContent = t("spark_panel_title");
   panel.appendChild(summary);
 
+  const modeA = document.createElement("details");
+  modeA.className = "collapsible-list spark-mode-a";
+  modeA.open = true;
+  const modeASummary = document.createElement("summary");
+  modeASummary.textContent = t("spark_mode_a_title");
+  modeA.appendChild(modeASummary);
+
   const intro = document.createElement("p");
   intro.className = "spark-intro";
   intro.innerHTML = t("spark_a_intro");
-  panel.appendChild(intro);
+  modeA.appendChild(intro);
 
   // stato condiviso con la sezione Modalita' B sotto: dict[personaggio] ->
   // {categoria: stelle}, referenziato per closure dai box Modalita' A cosi'
@@ -1386,11 +1552,12 @@ function renderPinkSparkPanel(oneHop, target, groupAptitudes, calendarMatrix, co
   const signatureSparks = {};
 
   oneHop.cycles.forEach((c, i) => {
-    panel.appendChild(buildSparkCycleBox(
+    modeA.appendChild(buildSparkCycleBox(
       i + 1, c.child, groupAptitudes[c.child],
       () => deriveCycleSparkFromSignatures(oneHop.cycles[i], signatureSparks),
     ));
   });
+  panel.appendChild(modeA);
 
   const groupMembers = oneHop.cycles.map(c => c.child);
   panel.appendChild(buildSignatureSparkSection(oneHop, groupMembers, groupAptitudes, panel, signatureSparks));
@@ -1442,7 +1609,7 @@ function buildCycleTable(cycles) {
       <td>${characterWithAffinity(c.gp_parent1[1], ia.gp1b, bd.gp1b)}</td>
       <td>${characterWithAffinity(c.gp_parent2[0], ia.gp2a, bd.gp2a)}</td>
       <td>${characterWithAffinity(c.gp_parent2[1], ia.gp2b, bd.gp2b)}</td>
-      <td><strong>${c.overall_affinity.toFixed(1)}</strong></td>
+      <td><strong>${c.overall_affinity}</strong></td>
     `;
     tbody.appendChild(tr);
   });
@@ -1457,6 +1624,11 @@ function buildCycleTable(cycles) {
 // mostra una).
 function buildGenealogyNode(character, ia, breakdownTerms) {
   const node = document.createElement("div");
+  if (character == null) {
+    node.className = "genealogy-node genealogy-node-unknown";
+    node.textContent = t("unknown_ancestor");
+    return node;
+  }
   node.className = "genealogy-node";
   node.title = breakdownTerms ? formatBreakdownTooltip(breakdownTerms) : formatCharacterName(character);
   node.appendChild(buildPortraitWrap(character));
@@ -1467,13 +1639,17 @@ function buildGenealogyNode(character, ia, breakdownTerms) {
   if (ia !== undefined) {
     const iaEl = document.createElement("div");
     iaEl.className = "genealogy-node-ia";
-    iaEl.textContent = ia.toFixed(1);
+    iaEl.textContent = ia;
     node.appendChild(iaEl);
   }
   return node;
 }
 
-function buildGenealogyTier(labelKey, className, entries) {
+// dividerIndex: indice del nodo prima del quale disegnare una linea
+// verticale leggera -- segna dove finisce un ramo dell'albero (un
+// genitore/coppia di nonni) e comincia l'altro, per distinguerli a colpo
+// d'occhio (non sono interscambiabili tra loro).
+function buildGenealogyTier(labelKey, className, entries, dividerIndex = null) {
   const wrap = document.createElement("div");
   const label = document.createElement("div");
   label.className = "genealogy-tier-label";
@@ -1481,7 +1657,11 @@ function buildGenealogyTier(labelKey, className, entries) {
   wrap.appendChild(label);
   const tier = document.createElement("div");
   tier.className = `genealogy-tier ${className}`;
-  entries.forEach(([character, ia, terms]) => tier.appendChild(buildGenealogyNode(character, ia, terms)));
+  entries.forEach(([character, ia, terms], i) => {
+    const node = buildGenealogyNode(character, ia, terms);
+    if (i === dividerIndex) node.classList.add("genealogy-branch-divider");
+    tier.appendChild(node);
+  });
   wrap.appendChild(tier);
   return wrap;
 }
@@ -1509,18 +1689,18 @@ function buildGenealogyCards(cycles) {
       [c.gp_parent1[1], ia.gp1b, bd.gp1b],
       [c.gp_parent2[0], ia.gp2a, bd.gp2a],
       [c.gp_parent2[1], ia.gp2b, bd.gp2b],
-    ]));
+    ], 2));
     card.appendChild(buildGenealogyTier("genealogy_label_parents", "genealogy-tier-parents", [
       [c.parent1, ia.parent1, bd.parent1],
       [c.parent2, ia.parent2, bd.parent2],
-    ]));
+    ], 1));
     card.appendChild(buildGenealogyTier("genealogy_label_child", "genealogy-tier-child", [
       [c.child],
     ]));
 
     const overall = document.createElement("div");
     overall.className = "genealogy-overall";
-    overall.innerHTML = `${t("th_overall_affinity")}: <strong>${c.overall_affinity.toFixed(1)}</strong>`;
+    overall.innerHTML = `${t("th_overall_affinity")}: <strong>${c.overall_affinity}</strong>`;
     card.appendChild(overall);
 
     row.appendChild(card);
@@ -1553,8 +1733,8 @@ function resetTimelineTabs() {
   renderTimelinePanel();
 }
 
-function setTimelineTab(id, label, calendarMatrix, groupMembers, activate = false) {
-  const tab = { id, label, calendarMatrix, groupMembers };
+function setTimelineTab(id, label, calendarMatrix, groupMembers, activate = false, separatorIndex = null) {
+  const tab = { id, label, calendarMatrix, groupMembers, separatorIndex };
   const existingIndex = timelineTabs.findIndex(t => t.id === id);
   if (existingIndex >= 0) timelineTabs[existingIndex] = tab;
   else timelineTabs.push(tab);
@@ -1562,7 +1742,7 @@ function setTimelineTab(id, label, calendarMatrix, groupMembers, activate = fals
   renderTimelinePanel();
 }
 
-function buildTimelineContent(calendarMatrix, groupMembers) {
+function buildTimelineContent(calendarMatrix, groupMembers, separatorIndex = null) {
   const fragment = document.createDocumentFragment();
   if (!calendarMatrix) {
     const p = document.createElement("p");
@@ -1577,7 +1757,7 @@ function buildTimelineContent(calendarMatrix, groupMembers) {
 
   const theadRow = document.createElement("tr");
   theadRow.innerHTML = `<th class="race-col">${t("timeline_race_col")}</th>` +
-    groupMembers.map(c => `<th class="char-col">${formatCharacterName(c)}</th>`).join("");
+    groupMembers.map((c, i) => `<th class="char-col${i === separatorIndex ? " col-separator" : ""}">${formatCharacterName(c)}</th>`).join("");
   const thead = document.createElement("thead");
   thead.appendChild(theadRow);
   table.appendChild(thead);
@@ -1613,10 +1793,10 @@ function buildTimelineContent(calendarMatrix, groupMembers) {
     raceCell.title = row.label;
     tr.appendChild(raceCell);
 
-    groupMembers.forEach(char => {
+    groupMembers.forEach((char, i) => {
       const cell = row.cells[char];
       const td = document.createElement("td");
-      td.className = `cell ${classFor(cell)}`;
+      td.className = `cell ${classFor(cell)}${i === separatorIndex ? " col-separator" : ""}`;
       td.textContent = symbolFor(cell);
       td.title = titleFor(char, cell);
       tr.appendChild(td);
@@ -1663,7 +1843,7 @@ function renderTimelinePanel() {
     timelinePanel.appendChild(tabBar);
   }
   const activeTab = timelineTabs.find(t => t.id === activeTimelineTabId) || timelineTabs[0];
-  timelinePanel.appendChild(buildTimelineContent(activeTab.calendarMatrix, activeTab.groupMembers));
+  timelinePanel.appendChild(buildTimelineContent(activeTab.calendarMatrix, activeTab.groupMembers, activeTab.separatorIndex));
 }
 
 function disablePdfButton() {
@@ -1700,7 +1880,7 @@ function buildCandidateCards(top4) {
     const scores = document.createElement("div");
     scores.className = "candidate-scores";
     scores.innerHTML = `
-      <span class="candidate-score-total">${t("th_total")}: <strong>${entry.total.toFixed(1)}</strong></span>
+      <span class="candidate-score-total">${t("th_total")}: <strong>${entry.total}</strong></span>
       <span>${t("th_base")}: <strong>${entry.base}</strong></span>
       <span>${t("th_race")}: <strong>${entry.race}</strong></span>
     `;
@@ -1739,7 +1919,7 @@ function renderTop4(data) {
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${formatCharacterName(row.character)}</td>
-          <td><strong>${row.total.toFixed(1)}</strong></td>
+          <td><strong>${row.total}</strong></td>
           <td><strong>${row.base}</strong></td>
           <td><strong>${row.race}</strong></td>
           <td>${row.is_meta_parent ? `<span class="meta-tag">${t("meta_tag")}</span>` : ""}</td>
@@ -1795,7 +1975,7 @@ function renderLoop(data) {
   disablePdfButton();  // modalita' "Miglior loop a 5" non produce la struttura cycles richiesta dal PDF
   results.innerHTML = renderWarning(data.warning);
   const h2 = document.createElement("h2");
-  h2.textContent = t("loop_heading", { value: data.total_score.toFixed(1) });
+  h2.textContent = t("loop_heading", { value: data.total_score });
   results.appendChild(h2);
 
   const ul = document.createElement("ul");
@@ -1810,11 +1990,150 @@ function renderLoop(data) {
   setTimelineTab("original", t("tab_original"), data.calendar_matrix, data.group.map(m => m.character), true);
 }
 
+// Intestazione comune alle due tabelle sotto: due blocchi affiancati, ogni
+// blocco ripete le stesse colonne (la colonna rank/# non ha un'intestazione,
+// e' implicita). 'labels' = [nomeColonna2, nomeColonna3, nomeColonna4] (la
+// prima colonna di ogni blocco e' sempre il rank, senza header).
+function buildGpTableHead(labels) {
+  const thead = document.createElement("thead");
+  const tr = document.createElement("tr");
+  const cells = labels.map(l => `<th>${l}</th>`).join("");
+  tr.innerHTML = `<th></th>${cells}<th class="gp-divider"></th>${cells}`;
+  thead.appendChild(tr);
+  return thead;
+}
+
+// Tabella compatta per i suggerimenti nonni: sfrutta lo spazio orizzontale
+// mostrando due blocchi (#, nome, affinita' per step, totale) affiancati
+// invece di una lista verticale lunga -- prima meta' a sinistra, seconda
+// meta' a destra, ordinate per somma decrescente, righe allineate per
+// indice (non intrecciate 1,3,5.../2,4,6...).
+function buildGpSuggestionsTable(suggestions) {
+  const half = Math.ceil(suggestions.length / 2);
+  const left = suggestions.slice(0, half);
+  const right = suggestions.slice(half);
+  const table = document.createElement("table");
+  table.className = "gp-suggestions-table";
+  table.appendChild(buildGpTableHead([t("table_header_character"), t("th_gp_affinity_steps"), t("th_gp_total")]));
+  const tbody = document.createElement("tbody");
+  const stepsText = s => s ? s.affinities.join(" / ") : "";
+  const totalText = s => s ? s.affinities.reduce((a, b) => a + b, 0) : "";
+  left.forEach((l, i) => {
+    const r = right[i];
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="gp-rank">${i + 1}</td>
+      <td>${formatCharacterName(l.character)}</td>
+      <td class="gp-affinity">${stepsText(l)}</td>
+      <td class="gp-affinity">${totalText(l)}</td>
+      <td class="gp-rank gp-divider">${r ? half + i + 1 : ""}</td>
+      <td>${r ? formatCharacterName(r.character) : ""}</td>
+      <td class="gp-affinity">${stepsText(r)}</td>
+      <td class="gp-affinity">${totalText(r)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  return table;
+}
+
+// Tabella delle migliori COPPIE di nonni: quanto aggiungono all'Overall
+// Affinity di ciascuno dei 3 step se inserite ENTRAMBE (diverso dalla
+// tabella sopra, che valuta un candidato alla volta) -- stesso layout a due
+// blocchi affiancati (5+5, ordinate per somma decrescente) della tabella
+// sopra.
+function buildGpPairSuggestionsTable(pairs) {
+  const half = Math.ceil(pairs.length / 2);
+  const left = pairs.slice(0, half);
+  const right = pairs.slice(half);
+  const table = document.createElement("table");
+  table.className = "gp-suggestions-table";
+  table.appendChild(buildGpTableHead([t("th_gp_pair"), t("th_gp_deltas"), t("th_gp_total")]));
+  const tbody = document.createElement("tbody");
+  const pairName = p => p ? `${formatCharacterName(p.gp_a)}<br>${formatCharacterName(p.gp_b)}` : "";
+  const pairDelta = p => p ? p.deltas.map(d => (d >= 0 ? "+" : "") + d).join(" / ") : "";
+  const pairTotal = p => p ? (p.total_delta >= 0 ? "+" : "") + p.total_delta : "";
+  left.forEach((l, i) => {
+    const r = right[i];
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="gp-rank">${i + 1}</td>
+      <td>${pairName(l)}</td>
+      <td class="gp-affinity">${pairDelta(l)}</td>
+      <td class="gp-affinity">${pairTotal(l)}</td>
+      <td class="gp-rank gp-divider">${r ? half + i + 1 : ""}</td>
+      <td>${pairName(r)}</td>
+      <td class="gp-affinity">${pairDelta(r)}</td>
+      <td class="gp-affinity">${pairTotal(r)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  return table;
+}
+
+function renderRentalResult(data) {
+  lastRun = { type: "rental", data };
+  disablePdfButton();  // il rental loop non produce la struttura richiesta dal PDF (fuori scope)
+  results.innerHTML = renderWarning(data.warning);
+
+  const h2 = document.createElement("h2");
+  h2.textContent = t("rental_heading", { name: formatCharacterName(data.anchor) });
+  results.appendChild(h2);
+
+  if (!data.gp_known) {
+    const note = document.createElement("p");
+    note.className = "warning";
+    note.textContent = t("rental_partial_note");
+    results.appendChild(note);
+  }
+
+  const totalLine = document.createElement("p");
+  totalLine.className = "total-loop-affinity";
+  totalLine.innerHTML = `${t("rental_total_label")}: <strong>${data.total_loop_affinity}</strong>`;
+  results.appendChild(totalLine);
+
+  results.appendChild(
+    layoutMode === "classic" ? buildCycleTable(data.cycles) : buildGenealogyCards(data.cycles),
+  );
+
+  const hasSingle = data.gp_suggestions && data.gp_suggestions.length;
+  const hasPairs = data.gp_pair_suggestions && data.gp_pair_suggestions.length;
+  if (hasSingle || hasPairs) {
+    const row = document.createElement("div");
+    row.className = "gp-suggestions-row";
+    if (hasSingle) {
+      const box = document.createElement("div");
+      const label = document.createElement("p");
+      label.textContent = t("rental_gp_suggestions_label");
+      box.appendChild(label);
+      box.appendChild(buildGpSuggestionsTable(data.gp_suggestions));
+      row.appendChild(box);
+    }
+    if (hasPairs) {
+      const box2 = document.createElement("div");
+      const label2 = document.createElement("p");
+      label2.textContent = t("rental_gp_pairs_label");
+      box2.appendChild(label2);
+      box2.appendChild(buildGpPairSuggestionsTable(data.gp_pair_suggestions));
+      row.appendChild(box2);
+    }
+    results.appendChild(row);
+  }
+
+  resetTimelineTabs();
+  // colonne: i 3 posseduti della rotazione, poi l'anchor per ultimo con un
+  // separatore visivo (vedi setTimelineTab/buildTimelineContent, col-separator)
+  const timelineMembers = [...data.members, data.anchor];
+  setTimelineTab("original", t("tab_original"), data.calendar_matrix, timelineMembers, true, timelineMembers.length - 1);
+}
+
 async function runQuery() {
   const mode = modeSelect.value;
   const calendarMode = calendarSelect.value;
   const globalOnly = globalOnlyCheckbox.checked;
   const owned = getOwnedSelection();
+  const minAptitude = getMinAptitude();
   results.innerHTML = `<p class="placeholder">${t("calc_in_progress")}</p>`;
 
   try {
@@ -1825,7 +2144,7 @@ async function runQuery() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           character, mode: calendarMode, global_only: globalOnly, owned,
-          debug: debugCheckbox.checked,
+          min_aptitude: minAptitude, debug: debugCheckbox.checked,
         }),
       });
       const data = await resp.json();
@@ -1837,13 +2156,27 @@ async function runQuery() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          mode: calendarMode, global_only: globalOnly, owned,
+          mode: calendarMode, global_only: globalOnly, owned, min_aptitude: minAptitude,
           must_include: mustInclude, pool_size: 20,
         }),
       });
       const data = await resp.json();
       if (!resp.ok) throw new Error(translateServerMessage(data.error) || t("error_unknown"));
       renderLoop(data);
+    } else if (mode === "rental") {
+      const resp = await fetch("/api/rental_loop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: calendarMode, global_only: globalOnly, owned, min_aptitude: minAptitude,
+          anchor: rentalAnchorSelect.value,
+          anchor_gp_a: rentalGpASelect.value, anchor_gp_b: rentalGpBSelect.value,
+          fixed_members: getRentalFixedMembers(),
+        }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(translateServerMessage(data.error) || t("error_unknown"));
+      renderRentalResult(data);
     }
   } catch (err) {
     results.innerHTML = `<p class="placeholder">${t("error_prefix", { message: err.message })}</p>`;
@@ -1915,6 +2248,11 @@ function buildSaveData() {
       owned_sort_descending: ownedSortDescending,
       character: characterSelect.value,
       must_include: getMustInclude(),
+      min_aptitude: getMinAptitude(),
+      rental_anchor: rentalAnchorSelect.value,
+      rental_gp_a: rentalGpASelect.value,
+      rental_gp_b: rentalGpBSelect.value,
+      rental_fixed_members: getRentalFixedMembers(),
     },
     last_run: lastRun,  // { type: "top4"|"loop", data } congelato, o null se nessuna ricerca ancora fatta
     spark_panels: collectAllSparkPanels(),
@@ -2030,12 +2368,30 @@ async function restoreFromSave(save) {
       if (mustIncludeSelects[i]) mustIncludeSelects[i].value = name;
     });
   }
+  if (controls.min_aptitude) {
+    minAptitudeSelects.forEach(select => {
+      if (controls.min_aptitude[select.dataset.category]) {
+        select.value = controls.min_aptitude[select.dataset.category];
+      }
+    });
+    renderMinAptitudeTable();
+  }
+  if (controls.rental_anchor) rentalAnchorSelect.value = controls.rental_anchor;
+  if (controls.rental_gp_a) rentalGpASelect.value = controls.rental_gp_a;
+  if (controls.rental_gp_b) rentalGpBSelect.value = controls.rental_gp_b;
+  if (Array.isArray(controls.rental_fixed_members)) {
+    controls.rental_fixed_members.forEach((name, i) => {
+      if (rentalFixedSelects[i]) rentalFixedSelects[i].value = name;
+    });
+  }
 
   if (save.last_run && save.last_run.type === "top4") {
     renderTop4(save.last_run.data);
     restoreSparkPanels(save.spark_panels);
   } else if (save.last_run && save.last_run.type === "loop") {
     renderLoop(save.last_run.data);
+  } else if (save.last_run && save.last_run.type === "rental") {
+    renderRentalResult(save.last_run.data);
   } else {
     lastRun = null;
     disablePdfButton();
@@ -2077,6 +2433,77 @@ autoUpdateCheckbox.addEventListener("change", () => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ enabled: autoUpdateCheckbox.checked }),
   });
+});
+
+// --- Modal genitori meta (personalizzabile da UI, persistito sul server) --
+// Stato di lavoro separato da qualunque altra cosa: si ricarica da
+// /api/meta_parents ogni volta che il modal si apre, cosi' Annulla scarta
+// davvero le modifiche non salvate (basta non richiamare renderMetaParentsList
+// dopo una chiusura senza salvare).
+let metaParentsSelection = new Set();
+
+function renderMetaParentsList() {
+  const sorted = [...allCharactersData].sort((a, b) => a.character.localeCompare(b.character));
+  metaParentsList.innerHTML = "";
+  sorted.forEach(c => {
+    const id = `meta-parent-cb-${c.character}`;
+    const wrapper = document.createElement("label");
+    wrapper.setAttribute("for", id);
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.id = id;
+    checkbox.value = c.character;
+    checkbox.checked = metaParentsSelection.has(c.character);
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) metaParentsSelection.add(c.character);
+      else metaParentsSelection.delete(c.character);
+    });
+    wrapper.appendChild(checkbox);
+    wrapper.appendChild(document.createTextNode(formatCharacterName(c.character)));
+    metaParentsList.appendChild(wrapper);
+  });
+}
+
+async function openMetaParentsModal() {
+  metaParentsError.hidden = true;
+  await charactersLoadedPromise;
+  const resp = await fetch("/api/meta_parents");
+  const data = await resp.json();
+  metaParentsSelection = new Set(data.characters || []);
+  renderMetaParentsList();
+  metaParentsModal.hidden = false;
+}
+
+function closeMetaParentsModal() {
+  metaParentsModal.hidden = true;
+}
+
+metaParentsOpenButton.addEventListener("click", openMetaParentsModal);
+metaParentsCancelButton.addEventListener("click", closeMetaParentsModal);
+metaParentsSelectAllButton.addEventListener("click", () => {
+  allCharactersData.forEach(c => metaParentsSelection.add(c.character));
+  renderMetaParentsList();
+});
+metaParentsSelectNoneButton.addEventListener("click", () => {
+  metaParentsSelection.clear();
+  renderMetaParentsList();
+});
+metaParentsSaveButton.addEventListener("click", async () => {
+  const resp = await fetch("/api/meta_parents", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ characters: Array.from(metaParentsSelection) }),
+  });
+  const data = await resp.json();
+  if (!resp.ok) {
+    metaParentsError.textContent = translateServerMessage(data.error) || t("error_unknown");
+    metaParentsError.hidden = false;
+    return;
+  }
+  closeMetaParentsModal();
+});
+metaParentsModal.addEventListener("click", event => {
+  if (event.target === metaParentsModal) closeMetaParentsModal();  // click fuori dal box chiude, come i popover
 });
 loadFileInput.addEventListener("change", () => {
   const file = loadFileInput.files[0];

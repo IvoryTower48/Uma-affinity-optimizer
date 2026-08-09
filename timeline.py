@@ -34,7 +34,7 @@ from cycle_analysis import resolve_group_achievable
 from display_names import format_race_name
 
 
-def race_status_for_character(character, race_id, races, aptitudes, calendar, mode, resolved_achievable):
+def race_status_for_character(character, race_id, races, aptitudes, calendar, mode, resolved_achievable, min_aptitude):
     """
     Ritorna un dict {status, winnable} per una singola coppia (personaggio, gara).
     status in {"obbligatoria", "impossibile", "raggiungibile", "aptitude"}.
@@ -53,7 +53,7 @@ def race_status_for_character(character, race_id, races, aptitudes, calendar, mo
     risoluzione dei conflitti (resolved_achievable); solo se OGNI occorrenza e'
     bloccata da un'altra obbligatoria, lo stato e' "impossibile" a priori.
     """
-    winnable = race_is_winnable(character, race_id, races, aptitudes)
+    winnable = race_is_winnable(character, race_id, races, aptitudes, min_aptitude)
 
     if mode == "mant":
         # nessun vincolo di calendario obbligatorio, ma il matching gara/turno
@@ -76,7 +76,7 @@ def race_status_for_character(character, race_id, races, aptitudes, calendar, mo
     return {"status": "impossibile", "winnable": False}
 
 
-def build_calendar_matrix(group_members, races, aptitudes, calendar, mode):
+def build_calendar_matrix(group_members, races, aptitudes, calendar, mode, min_aptitude):
     """
     Ritorna una lista di righe (una per gara, ordinate per turn_number), ognuna:
       {
@@ -93,14 +93,14 @@ def build_calendar_matrix(group_members, races, aptitudes, calendar, mode):
 
     # risoluzione group-aware dei conflitti di turno, una volta per l'intero
     # gruppo (vedi cycle_analysis.resolve_group_achievable)
-    resolved_per_member = resolve_group_achievable(group_members, races, aptitudes, calendar, mode)
+    resolved_per_member = resolve_group_achievable(group_members, races, aptitudes, calendar, mode, min_aptitude)
 
     # precalcolo stato per ogni (personaggio, gara), cosi' il controllo di
     # condivisione non ricalcola nulla
     raw = {
         race_id: {
             char: race_status_for_character(
-                char, race_id, races, aptitudes, calendar, mode, resolved_per_member[char],
+                char, race_id, races, aptitudes, calendar, mode, resolved_per_member[char], min_aptitude,
             )
             for char in group_members
         }

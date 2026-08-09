@@ -12,7 +12,7 @@ from naming import base_character
 
 
 def build_score_matrix(characters, name_map, character_ids, id_weights,
-                        calendar, races, aptitudes, mode="career"):
+                        calendar, races, aptitudes, min_aptitude, mode="career"):
     """
     Precalcola il punteggio combinato per ogni coppia di personaggi (una sola volta),
     per evitare di ricalcolarlo ripetutamente durante la ricerca del loop.
@@ -22,7 +22,7 @@ def build_score_matrix(characters, name_map, character_ids, id_weights,
     Ritorna dict[(a,b)] -> score_dict, con a < b alfabeticamente (chiave unica per coppia).
     """
     achievable = {
-        char: achievable_races_for(char, races, aptitudes, calendar, mode)
+        char: achievable_races_for(char, races, aptitudes, calendar, mode, min_aptitude)
         for char in characters
     }
 

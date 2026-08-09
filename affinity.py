@@ -4,7 +4,7 @@ Funzioni di calcolo dell'affinita' tra due personaggi (varianti incluse):
   - base_affinity: dalla matrice di ID/pesi (richiede name_map slug -> nome giapponese)
   - race_compatibility: dal calendario gare obbligate + soglie di aptitude
 """
-from config import GRADE_RANK, MIN_APTITUDE, RACE_SHARED_WIN_POINTS
+from config import GRADE_RANK, RACE_SHARED_WIN_POINTS
 
 
 def meets_threshold(grade: str, min_grade: str) -> bool:
@@ -12,9 +12,10 @@ def meets_threshold(grade: str, min_grade: str) -> bool:
     return GRADE_RANK.get(grade, len(GRADE_RANK)) <= GRADE_RANK[min_grade]
 
 
-def race_is_winnable(character: str, race_id: str, races: dict, aptitudes: dict) -> bool:
+def race_is_winnable(character: str, race_id: str, races: dict, aptitudes: dict, min_aptitude: dict) -> bool:
     """
-    True se il personaggio soddisfa le soglie minime di aptitude (superficie E distanza)
+    True se il personaggio soddisfa le soglie minime di aptitude (superficie E distanza,
+    date da min_aptitude -- di norma config.MIN_APTITUDE, ma regolabile per sessione)
     per poter considerare quella gara "vinta" ai fini dell'affinita'.
     """
     if character not in aptitudes:
@@ -24,8 +25,8 @@ def race_is_winnable(character: str, race_id: str, races: dict, aptitudes: dict)
     distance = race_info["distance"]
     apt = aptitudes[character]
     return (
-        meets_threshold(apt[surface], MIN_APTITUDE[surface])
-        and meets_threshold(apt[distance], MIN_APTITUDE[distance])
+        meets_threshold(apt[surface], min_aptitude[surface])
+        and meets_threshold(apt[distance], min_aptitude[distance])
     )
 
 
@@ -44,7 +45,7 @@ def slot_occupation_map(character: str, calendar: dict) -> dict:
 
 
 def race_is_achievable(character: str, race_id: str, races: dict, aptitudes: dict,
-                        occupation: dict, mode: str) -> bool:
+                        occupation: dict, mode: str, min_aptitude: dict) -> bool:
     """
     True se il personaggio PUO' vincere questa gara (ai fini dell'affinita'):
       - deve sempre soddisfare le soglie di aptitude (superficie + distanza)
@@ -56,7 +57,7 @@ def race_is_achievable(character: str, race_id: str, races: dict, aptitudes: dic
         Un vincolo obbligatorio in un anno non blocca quindi automaticamente
         questa gara se e' raggiungibile in un anno diverso.
     """
-    if not race_is_winnable(character, race_id, races, aptitudes):
+    if not race_is_winnable(character, race_id, races, aptitudes, min_aptitude):
         return False
     if mode == "mant":
         return True
@@ -68,12 +69,12 @@ def race_is_achievable(character: str, race_id: str, races: dict, aptitudes: dic
 
 
 def achievable_races_for(character: str, races: dict, aptitudes: dict,
-                          calendar: dict, mode: str) -> set:
+                          calendar: dict, mode: str, min_aptitude: dict) -> set:
     """Precalcola l'insieme di gare (di races.xlsx) raggiungibili da un personaggio."""
     occupation = slot_occupation_map(character, calendar)
     return {
         race_id for race_id in races
-        if race_is_achievable(character, race_id, races, aptitudes, occupation, mode)
+        if race_is_achievable(character, race_id, races, aptitudes, occupation, mode, min_aptitude)
     }
 
 
@@ -162,7 +163,7 @@ def resolve_achievable(character: str, candidate_race_ids, races: dict, aptitude
 
 
 def shared_wins(char_a: str, char_b: str, calendar: dict, races: dict,
-                 aptitudes: dict, mode: str) -> list:
+                 aptitudes: dict, mode: str, min_aptitude: dict) -> list:
     """
     Gare che ENTRAMBI i personaggi possono vincere DAVVERO in comune. Prima si
     calcola achievable_a/achievable_b (raggiungibilita' individuale grezza,
@@ -173,8 +174,8 @@ def shared_wins(char_a: str, char_b: str, calendar: dict, races: dict,
     che esclude altre gare del gruppo comune, la risoluzione lo rispetti (non
     si limita a un dedup "alla cieca" sull'insieme intersecato).
     """
-    achievable_a = achievable_races_for(char_a, races, aptitudes, calendar, mode)
-    achievable_b = achievable_races_for(char_b, races, aptitudes, calendar, mode)
+    achievable_a = achievable_races_for(char_a, races, aptitudes, calendar, mode, min_aptitude)
+    achievable_b = achievable_races_for(char_b, races, aptitudes, calendar, mode, min_aptitude)
     common = achievable_a & achievable_b
     resolved_a = resolve_achievable(char_a, common, races, aptitudes, calendar, mode)
     resolved_b = resolve_achievable(char_b, common, races, aptitudes, calendar, mode)
@@ -182,9 +183,9 @@ def shared_wins(char_a: str, char_b: str, calendar: dict, races: dict,
 
 
 def race_compatibility(char_a: str, char_b: str, calendar: dict, races: dict,
-                        aptitudes: dict, mode: str = "career") -> int:
+                        aptitudes: dict, min_aptitude: dict, mode: str = "career") -> int:
     """Punteggio di race-compatibility = numero di gare condivise vincibili * punti per gara."""
-    wins = shared_wins(char_a, char_b, calendar, races, aptitudes, mode)
+    wins = shared_wins(char_a, char_b, calendar, races, aptitudes, mode, min_aptitude)
     return len(wins) * RACE_SHARED_WIN_POINTS
 
 

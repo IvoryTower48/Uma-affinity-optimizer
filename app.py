@@ -20,7 +20,7 @@ import webbrowser
 
 import pdf_export
 
-from config import META_PARENTS, MIN_APTITUDE, app_dir
+from config import META_PARENTS, MIN_APTITUDE, app_dir, validate_min_aptitude
 from naming import base_character, resolve_character_input
 from display_names import format_character_name
 from data_loader import (
@@ -34,7 +34,8 @@ from loop_search import (
 )
 from cycle_analysis import (
     one_hop_exploration, first_cycle_shared_races, all_cycles_shared_races,
-    one_hop_exploration_with_sparks, find_best_substitution,
+    one_hop_exploration_with_sparks, find_best_substitution, best_anchor_loop,
+    suggest_anchor_grandparents, suggest_anchor_grandparent_pairs,
 )
 from timeline import build_calendar_matrix
 import data_updater
@@ -114,14 +115,28 @@ name_map, releases = load_character_info(DATA_DIR)
 ALL_CHARACTERS = sorted(aptitudes.keys())
 BASE_NAMES = sorted(set(base_character(c) for c in ALL_CHARACTERS))
 
-# matrici precalcolate per entrambe le modalita' (dataset piccolo, costo trascurabile)
+# matrici precalcolate per entrambe le modalita' con le soglie di default
+# (dataset piccolo, costo trascurabile). Se una richiesta porta soglie
+# min_aptitude diverse dal default, get_matrix() la ricostruisce al volo per
+# quella singola richiesta -- nessuna cache, il tool e' locale a singolo
+# utente e il caso "soglie modificate" scatta solo quando l'utente le tocca
+# di proposito.
 MATRICES = {
     mode: build_score_matrix(
         ALL_CHARACTERS, name_map, character_ids, id_weights,
-        calendar, races, aptitudes, mode,
+        calendar, races, aptitudes, MIN_APTITUDE, mode=mode,
     )
     for mode in ("career", "mant")
 }
+
+
+def get_matrix(mode, min_aptitude):
+    if min_aptitude == MIN_APTITUDE:
+        return MATRICES[mode]
+    return build_score_matrix(
+        ALL_CHARACTERS, name_map, character_ids, id_weights,
+        calendar, races, aptitudes, min_aptitude, mode=mode,
+    )
 
 
 def get_universe(global_only):
@@ -175,6 +190,30 @@ def api_auto_update_setting():
         enabled = bool((request.get_json(silent=True) or {}).get("enabled"))
         data_updater.set_auto_update_enabled(DATA_DIR, enabled)
     return jsonify({"enabled": data_updater.is_auto_update_enabled(DATA_DIR)})
+
+
+@app.route("/api/meta_parents", methods=["GET", "POST"])
+def api_meta_parents():
+    """
+    Permette all'utente di personalizzare da UI l'elenco dei genitori 'meta'
+    (badge "META" mostrato su top4/loop/rental), persistito in
+    data/meta_parents.json (sostituisce per intero il default hardcoded di
+    config.META_PARENTS, vedi commento li'). A differenza di
+    /api/auto_update_setting, ha effetto SUBITO (non dal prossimo avvio):
+    META_PARENTS[:] = ... muta la lista in-place, quindi tutti i moduli che
+    l'hanno importata con 'from config import META_PARENTS' (questo file
+    incluso) vedono il nuovo valore immediatamente, senza restart.
+    """
+    if request.method == "POST":
+        characters = (request.get_json(silent=True) or {}).get("characters", [])
+        if not isinstance(characters, list):
+            return jsonify({"error": "'characters' deve essere una lista."}), 400
+        unknown = [c for c in characters if c not in ALL_CHARACTERS]
+        if unknown:
+            return jsonify({"error": f"Personaggi non esistenti: {unknown}."}), 400
+        data_updater.set_meta_parents(DATA_DIR, characters)
+        META_PARENTS[:] = characters
+    return jsonify({"characters": data_updater.get_meta_parents(DATA_DIR)})
 
 
 @app.route("/api/portrait/<path:character>")
@@ -233,7 +272,11 @@ def api_top4():
     global_only = bool(payload.get("global_only", False))
     owned = payload.get("owned", [])
     debug = bool(payload.get("debug", False))
-    matrix = MATRICES[mode]
+    try:
+        min_aptitude = validate_min_aptitude(payload.get("min_aptitude"))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    matrix = get_matrix(mode, min_aptitude)
 
     universe, warning = get_universe(global_only)
     # il personaggio richiesto puo' anche non essere posseduto (si valuta un
@@ -270,13 +313,13 @@ def api_top4():
         if len(entries) == 4:
             group_members = [target] + [e["character"] for e in entries]
             result["calendar_matrix"] = build_calendar_matrix(
-                group_members, races, aptitudes, calendar, mode,
+                group_members, races, aptitudes, calendar, mode, min_aptitude,
             )
             result["group_aptitudes"] = {m: aptitudes[m] for m in group_members}
             one_hop = one_hop_exploration(
                 target, [e["character"] for e in entries], matrix,
                 name_map, character_ids, id_weights,
-                calendar, races, aptitudes, mode,
+                calendar, races, aptitudes, mode, min_aptitude,
             )
             resolved_per_member = one_hop.pop("_resolved_per_member")
             one_hop["first_cycle_races"] = first_cycle_shared_races(
@@ -356,7 +399,11 @@ def api_pink_spark():
     owned = payload.get("owned", [])
     raw_spark_plan = payload.get("spark_plan", {})
     raw_character_spark_plan = payload.get("character_spark_plan", {})
-    matrix = MATRICES[mode]
+    try:
+        min_aptitude = validate_min_aptitude(payload.get("min_aptitude"))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    matrix = get_matrix(mode, min_aptitude)
 
     universe, warning = get_universe(global_only)
     targets = resolve_targets(name_input, universe)
@@ -401,7 +448,7 @@ def api_pink_spark():
     try:
         result = one_hop_exploration_with_sparks(
             target, top4_ordered, spark_plan, matrix, name_map,
-            character_ids, id_weights, calendar, races, aptitudes, mode,
+            character_ids, id_weights, calendar, races, aptitudes, mode, min_aptitude,
             character_spark_plan=character_spark_plan,
         )
     except ValueError as e:
@@ -421,12 +468,12 @@ def api_pink_spark():
     # automaticamente quando viene calcolato questo risultato. Stesso ordine
     # di colonne di /api/top4 ([target] + top4_ordered), per coerenza.
     result["calendar_matrix"] = build_calendar_matrix(
-        group_members_ordered, races, modified_aptitudes, calendar, mode,
+        group_members_ordered, races, modified_aptitudes, calendar, mode, min_aptitude,
     )
 
     substitution = find_best_substitution(
         target, top4_ordered, spark_plan, matrix, name_map,
-        character_ids, id_weights, calendar, races, aptitudes, mode, candidate_pool,
+        character_ids, id_weights, calendar, races, aptitudes, mode, min_aptitude, candidate_pool,
         character_spark_plan=character_spark_plan,
     )
     result["substitution"] = substitution
@@ -442,7 +489,11 @@ def api_loop():
     owned = payload.get("owned", [])
     must_include_input = [x for x in payload.get("must_include", []) if x]
     pool_size = int(payload.get("pool_size", 20))
-    matrix = MATRICES[mode]
+    try:
+        min_aptitude = validate_min_aptitude(payload.get("min_aptitude"))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    matrix = get_matrix(mode, min_aptitude)
 
     universe, warning = get_universe(global_only)
     # per il loop, l'INTERO gruppo deve venire dai posseduti (altrimenti il
@@ -491,10 +542,160 @@ def api_loop():
         }), 400
 
     members = [{"character": c, "is_meta_parent": c in META_PARENTS} for c in group]
-    calendar_matrix = build_calendar_matrix(list(group), races, aptitudes, calendar, mode)
+    calendar_matrix = build_calendar_matrix(list(group), races, aptitudes, calendar, mode, min_aptitude)
     return jsonify({
         "pool": pool, "group": members, "total_score": score, "warning": warning,
         "calendar_matrix": calendar_matrix,
+    })
+
+
+@app.route("/api/rental_loop", methods=["POST"])
+def api_rental_loop():
+    """
+    "Rental loop": un genitore costante 'anchor' preso in prestito (mai
+    posseduto, mai allevato) + una rotazione chiusa di 3 personaggi
+    posseduti, ciascuno allevato da anchor + il precedente nella rotazione
+    (vedi cycle_analysis.build_anchor_loop_schedule/best_anchor_loop).
+
+    Payload:
+      mode, global_only, owned, min_aptitude: stessi filtri degli altri endpoint.
+      anchor: personaggio (base o variante), obbligatorio, NON ristretto ai posseduti.
+      anchor_gp_a, anchor_gp_b: nonne/nonni dell'anchor, opzionali, NON ristretti ai posseduti.
+        Se forniti ENTRAMBI, i cicli includono i loro termini di affinita'; se
+        anche uno solo manca, quei termini sono omessi (mai stimati a 0).
+      fixed_members: 0-3 personaggi posseduti gia' scelti per la rotazione
+        (il resto viene cercato per massimizzare l'affinita' congiunta con l'anchor).
+    """
+    payload = request.get_json()
+    mode = payload.get("mode", "career")
+    global_only = bool(payload.get("global_only", False))
+    owned = payload.get("owned", [])
+    try:
+        min_aptitude = validate_min_aptitude(payload.get("min_aptitude"))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    matrix = get_matrix(mode, min_aptitude)
+
+    universe, warning = get_universe(global_only)
+
+    def resolve_single(name_input, label):
+        targets = resolve_targets(name_input, universe)
+        if not targets:
+            return None, (jsonify({
+                "error": f"'{name_input}' ({label}) non trovato "
+                         f"(con il filtro Global attivo)." if global_only else
+                         f"'{name_input}' ({label}) non trovato."
+            }), 404)
+        if len(targets) > 1:
+            return None, (jsonify({
+                "error": f"'{name_input}' ({label}) e' ambiguo tra le varianti: "
+                         f"{targets}. Specifica quale con il nome completo."
+            }), 400)
+        return targets[0], None
+
+    anchor_input = payload.get("anchor", "")
+    if not anchor_input:
+        return jsonify({"error": "Serve un personaggio 'anchor' (il genitore preso in prestito)."}), 400
+    anchor, error = resolve_single(anchor_input, "anchor")
+    if error:
+        return error
+
+    gp_a = gp_b = None
+    if payload.get("anchor_gp_a"):
+        gp_a, error = resolve_single(payload["anchor_gp_a"], "nonno/a dell'anchor")
+        if error:
+            return error
+    if payload.get("anchor_gp_b"):
+        gp_b, error = resolve_single(payload["anchor_gp_b"], "nonno/a dell'anchor")
+        if error:
+            return error
+    gp_known = gp_a is not None and gp_b is not None
+
+    candidate_pool = restrict_to_owned(universe, owned)
+    if len(candidate_pool) < 3:
+        return jsonify({
+            "error": "Servono almeno 3 personaggi posseduti (dopo i filtri attivi) "
+                     "per cercare un rental loop."
+        }), 400
+
+    fixed_input = [x for x in payload.get("fixed_members", []) if x]
+    if len(fixed_input) > 3:
+        return jsonify({"error": "Puoi fissare al massimo 3 personaggi nella rotazione."}), 400
+    fixed_members = []
+    for name_input in fixed_input:
+        resolved, candidates = resolve_character_input(name_input, candidate_pool)
+        if resolved is None:
+            if candidates:
+                return jsonify({
+                    "error": f"'{name_input}' e' ambiguo tra le varianti: "
+                             f"{candidates}. Specifica quale con il nome completo."
+                }), 400
+            return jsonify({
+                "error": f"'{name_input}' non trovato tra i personaggi posseduti "
+                         f"(dopo i filtri Global attivi)."
+            }), 404
+        fixed_members.append(resolved)
+
+    try:
+        result = best_anchor_loop(
+            anchor, gp_a, gp_b, fixed_members, candidate_pool, matrix,
+            name_map, character_ids, id_weights, races, aptitudes, calendar, mode, min_aptitude,
+        )
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+    if result is None:
+        return jsonify({
+            "error": "Non e' stato possibile trovare un rental loop completo con questi "
+                     "vincoli (pool troppo ristretto dopo aver escluso basi duplicate)."
+        }), 400
+
+    members = result["members"]
+    gp_suggestions = None
+    gp_pair_suggestions = None
+    if not gp_known:
+        used_bases = {base_character(c) for c in [anchor, *members] + ([gp_a] if gp_a else []) + ([gp_b] if gp_b else [])}
+        ranked = suggest_anchor_grandparents(
+            anchor, members, candidate_pool, matrix, name_map, character_ids, id_weights, used_bases,
+            races, aptitudes, calendar, mode, min_aptitude,
+        )
+        gp_suggestions = [{"character": c, "affinities": steps} for c, steps in ranked]
+
+        # le coppie hanno senso solo quando ENTRAMBI gli slot sono liberi --
+        # con un nonno gia' scelto resta un solo slot da riempire, gia'
+        # coperto da gp_suggestions sopra (una "coppia" con un lato fisso
+        # non aggiungerebbe informazione, solo confusione).
+        if gp_a is None and gp_b is None:
+            pairs = suggest_anchor_grandparent_pairs(
+                anchor, members, candidate_pool, matrix, name_map, character_ids, id_weights, used_bases,
+                races, aptitudes, calendar, mode, min_aptitude, result["cycles"],
+            )
+            gp_pair_suggestions = [
+                {"gp_a": p["gp_a"], "gp_b": p["gp_b"], "total_delta": p["total_delta"], "deltas": p["deltas"]}
+                for p in pairs
+            ]
+
+    known_gps = [g for g in (gp_a, gp_b) if g is not None]
+    full_group = [anchor] + members + known_gps
+    calendar_matrix = build_calendar_matrix(full_group, races, aptitudes, calendar, mode, min_aptitude)
+    display_members = set(members) | {anchor}
+    for row in calendar_matrix:
+        row["cells"] = {c: v for c, v in row["cells"].items() if c in display_members}
+
+    return jsonify({
+        "anchor": anchor, "anchor_gp_a": gp_a, "anchor_gp_b": gp_b,
+        "members": members, "cycles": result["cycles"], "gp_known": gp_known,
+        "total_loop_affinity": result["total_loop_affinity"],
+        "calendar_matrix": calendar_matrix, "gp_suggestions": gp_suggestions,
+        "gp_pair_suggestions": gp_pair_suggestions,
+        # coerenza con /api/top4 e /api/loop (che espongono gia' is_meta_parent
+        # per candidato/membro) -- qui solo il dato, l'anchor e i membri non
+        # hanno una lista piatta da annotare come li' (il rental loop mostra
+        # solo card genealogiche, che oggi non hanno un badge "META" da
+        # nessuna parte, nemmeno per top4/loop: aggiungere quel badge e' una
+        # feature a se', non inclusa qui).
+        "meta_parents": [c for c in [anchor, *members] if c in META_PARENTS],
+        "warning": warning,
     })
 
 

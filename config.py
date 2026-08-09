@@ -43,7 +43,13 @@ if os.path.exists(_EXTRA_SUFFIXES_PATH):
             if _suf not in KNOWN_SUFFIXES:
                 KNOWN_SUFFIXES.append(_suf)
 
-# Genitori "meta" noti per strategia/PvP, curati a mano.
+# Genitori "meta" noti per strategia/PvP -- default curato a mano, ma
+# personalizzabile dall'utente da UI (vedi data_updater.get_meta_parents/
+# set_meta_parents, endpoint /api/meta_parents in app.py). Se esiste
+# data/meta_parents.json, SOSTITUISCE per intero questo default (a differenza
+# di data/extra_suffixes.json sopra, che invece si limita ad AGGIUNGERE --
+# qui l'utente deve poter anche rimuovere una voce di default che non
+# condivide, non solo aggiungerne).
 # NOTA: qui teniamo solo l'elenco piatto fornito dall'utente (senza distinzione di
 # strategia per ora) - da espandere in futuro con {strategia: [personaggi]} se serve.
 META_PARENTS = [
@@ -51,6 +57,10 @@ META_PARENTS = [
     "symboli_rudolf", "agnes_digital", "maruzensky", "taiki_shuttle",
     "narita_brian", "kitasan_black", "el_condor_pasa",
 ]
+_META_PARENTS_PATH = os.path.join(app_dir(), "data", "meta_parents.json")
+if os.path.exists(_META_PARENTS_PATH):
+    with open(_META_PARENTS_PATH, encoding="utf-8") as _f:
+        META_PARENTS = json.load(_f)
 
 # Ordinamento dei voti aptitude, dal migliore al peggiore.
 # Un voto e' "sufficiente" se il suo indice e' <= indice della soglia richiesta.
@@ -86,3 +96,25 @@ RACE_SHARED_WIN_POINTS = 3
 
 # Dimensione del loop da cercare (personaggi diversi, chiuso).
 LOOP_SIZE = 5
+
+# Dimensione della rotazione posseduta nel "rental loop" (un genitore costante
+# preso in prestito + N personaggi posseduti che ruotano): con un genitore
+# sempre disponibile (si riaffitta, non "nasce" mai) bastano 3 identita'
+# genealogiche distinte per chiudere il ciclo, non 5.
+ANCHOR_LOOP_SIZE = 3
+
+
+def validate_min_aptitude(payload_dict: dict) -> dict:
+    """
+    Merge di un dict parziale (es. da un payload JSON) sopra i default di
+    MIN_APTITUDE, poi validazione: solleva ValueError se una chiave non e' tra
+    le 6 note o un valore non e' un voto valido (GRADE_RANK).
+    """
+    merged = {**MIN_APTITUDE, **(payload_dict or {})}
+    unknown_keys = set(merged) - set(MIN_APTITUDE)
+    if unknown_keys:
+        raise ValueError(f"Chiavi min_aptitude sconosciute: {sorted(unknown_keys)}")
+    invalid = {k: v for k, v in merged.items() if v not in GRADE_RANK}
+    if invalid:
+        raise ValueError(f"Voti min_aptitude non validi: {invalid}")
+    return merged

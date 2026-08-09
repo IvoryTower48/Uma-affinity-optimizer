@@ -269,6 +269,46 @@ select, input[type="number"], input[type="text"] {
   font-style: italic;
 }
 
+.field-intro {
+  margin: 0 0 0.6rem;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.field-section-title {
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.rental-columns {
+  display: flex;
+  gap: 1rem;
+}
+
+.rental-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* Nel pannello rental l'intro spiega il funzionamento della modalita' --
+   deve leggersi bene, non essere una didascalia minuscola come le altre. */
+#rental-field .field-intro {
+  font-size: var(--fs-sm);
+}
+
+/* Le label di anchor/nonni/membri fissi sono didascalie di picklist, non
+   intestazioni: stesso trattamento compatto delle label min-aptitude. */
+#rental-field .rental-column > label {
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
 .lang-switch, .theme-switch, .layout-switch {
   display: flex;
   gap: 0.25rem;
@@ -355,6 +395,17 @@ select, input[type="number"], input[type="text"] {
   margin-bottom: 1.2rem;
 }
 
+.controls-row {
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+}
+
+.controls-row > .control-card {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 .control-card {
   background: var(--bg-elevated);
   border: 1px solid var(--border);
@@ -374,10 +425,43 @@ select, input[type="number"], input[type="text"] {
 }
 
 .control-actions {
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   gap: 0.7rem;
+}
+
+.run-button-large {
+  font-size: var(--fs-lg);
+  padding: 0.8rem 1.2rem;
+}
+
+/* Comandi (save/load/pdf/esegui) a sinistra della selezione del personaggio/
+   loop/rental -- solo uno dei tre campi e' visibile per volta (display
+   none/vuoto gestito da updateFieldVisibility), il wrapper .selection-fields
+   li contiene tutti cosi' il layout resta identico nelle 3 modalita'. */
+.action-row {
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+}
+
+.action-row > .control-actions {
+  flex: 0 0 auto;
+  width: 220px;
+}
+
+.action-row > .selection-fields {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* Il layout classico appiattisce i .control-card con display:contents (vedi
+   sotto): questi due wrapper nuovi non sono .control-card, quindi senza
+   questa regola resterebbero contenitori flex/block "estranei" dentro il
+   flusso piatto voluto in quella modalita'. */
+[data-layout="classic"] .action-row,
+[data-layout="classic"] .selection-fields {
+  display: contents;
 }
 
 button {
@@ -432,10 +516,84 @@ button:disabled {
 
 .owned-list input { width: auto; }
 
-.must-include-selects {
+.must-include-selects, .rental-fixed-selects {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+}
+
+.min-aptitude-selects {
+  display: flex;
+  /* justify-content invece di flex:1 sui figli: i valori sono sempre una
+     singola lettera, non serve stirare le select a riempire la riga --
+     restano compatte e la distanza tra loro resta comunque uniforme. */
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.min-aptitude-selects > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.min-aptitude-selects label {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.min-aptitude-selects select {
+  width: 3.6rem;
+  padding: 0.35rem 0.3rem;
+  text-align: center;
+}
+
+.gp-suggestions-table {
+  /* NON width:100% -- il contenuto e' corto (rank/nome/numero), stirarla a
+     riempire tutta la card lascia un vuoto assurdo tra le due meta'. Larga
+     quanto le serve, non di piu'. */
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+  width: auto;
+  margin-top: 0.4rem;
+}
+
+.gp-suggestions-table td {
+  padding: 0.2rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.gp-suggestions-table .gp-rank {
+  color: var(--text-muted);
+  text-align: right;
+  width: 1.6rem;
+  white-space: nowrap;
+}
+
+.gp-suggestions-table .gp-divider {
+  /* separa visivamente la prima meta' (1-5) dalla seconda (6-10). */
+  border-left: 2px solid var(--border-strong);
+  padding-left: 0.6rem;
+}
+
+.gp-suggestions-table .gp-affinity {
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.gp-suggestions-row {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  margin-top: 0.6rem;
+}
+
+.affinity-unknown, .genealogy-node-unknown {
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 .owned-sort-row {
@@ -604,10 +762,19 @@ details.collapsible-list summary {
   position: relative;
   border-radius: 50%;
   overflow: hidden;
-  background: var(--bg-sunken);
+  /* Fissa (non dipendente dal tema), su richiesta esplicita: bianco. */
+  background: #ffffff;
   border: 2px solid var(--bg-elevated);
   box-shadow: 0 0 0 1px var(--border);
   flex-shrink: 0;
+}
+
+/* In light mode lo sfondo della pagina e' quasi bianco quanto il cerchio
+   stesso: senza un contorno piu' marcato il ritratto si confonde nel resto
+   della UI. Il dark mode ha gia' abbastanza contrasto (cerchio chiaro su
+   sfondo scuro) e non ne ha bisogno. */
+:root[data-theme="light"] .portrait-wrap {
+  box-shadow: 0 0 0 2px var(--border-strong);
 }
 
 .portrait-img {
@@ -626,8 +793,11 @@ details.collapsible-list summary {
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  color: var(--primary-contrast);
-  background: var(--primary-fill);
+  /* Stesso sfondo bianco fisso del cerchio (vedi sopra). Testo fisso scuro
+     (non var(--text)): in dark mode --text e' quasi bianco, su sfondo
+     bianco sparirebbe. */
+  color: #2a2a2a;
+  background: #ffffff;
 }
 
 /* =============================================================================
@@ -735,6 +905,12 @@ details.collapsible-list summary {
   width: 4.4rem;
 }
 
+.genealogy-branch-divider {
+  border-left: 1px solid var(--border);
+  padding-left: 0.5rem;
+  margin-left: 0.1rem;
+}
+
 .genealogy-tier-gp .genealogy-node { width: 3.6rem; }
 .genealogy-tier-gp .portrait-wrap { width: 32px; height: 32px; font-size: 0.6rem; }
 .genealogy-tier-parents .portrait-wrap { width: 44px; height: 44px; font-size: 0.75rem; }
@@ -802,10 +978,15 @@ details.collapsible-list summary {
   border-collapse: collapse;
   font-size: var(--fs-xs);
   width: 100%;
+  /* var(--border)/(--border-strong) sono pensati per contrastare con lo
+     sfondo pagina, non con le celle colorate della griglia sotto (stati
+     mandatory/impossible/shared/reachable/aptitude, vedi :root sopra):
+     serve un colore estraneo a quella palette, ben distinguibile su ognuna. */
+  border: 2px solid var(--primary-fill);
 }
 
 .timeline-table th, .timeline-table td {
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   padding: 0.15rem 0.3rem;
   text-align: center;
 }
@@ -832,6 +1013,11 @@ details.collapsible-list summary {
   font-weight: 700;
   width: 1.6rem;
 }
+
+/* Stesso ragionamento del bordo esterno: deve distinguersi da OGNI colore di
+   stato della griglia, non solo dallo sfondo pagina -- riusa --primary-fill,
+   niente nella palette di stato ci si avvicina (viola/grigio/verde/blu/oro). */
+.timeline-table .col-separator { border-left: 4px solid var(--primary-fill); }
 
 .cal-obbligatoria { background: var(--status-mandatory-bg); color: var(--status-mandatory-text); }
 .cal-obbligatoria-non-vincibile { background: var(--status-mandatory-warn-bg); color: var(--status-mandatory-warn-text); }
@@ -903,13 +1089,7 @@ details.collapsible-list summary {
 
 .spark-panel > button { margin-top: 0.9rem; }
 
-.spark-panel hr {
-  border: none;
-  border-top: 1px solid var(--border);
-  margin: 1rem 0 0.6rem;
-}
-
-.spark-mode-b { margin-top: 0.4rem; }
+.spark-mode-a, .spark-mode-b { margin-top: 0.6rem; }
 
 .spark-b-picker {
   display: flex;
@@ -1076,6 +1256,68 @@ details.collapsible-list summary {
   border-radius: 0;
 }
 
+/* Modal genitori meta -- primo vero overlay del progetto (finora solo
+   pannello impostazioni a tendina e popover hover). ':not([hidden])' invece
+   di 'display:flex' diretto sulla classe base, altrimenti quella regola
+   (specificita' di classe) vincerebbe sul default UA '[hidden]{display:none}'
+   (specificita' di attributo, piu' bassa) e l'overlay resterebbe visibile
+   anche con l'attributo hidden impostato. */
+.modal-overlay:not([hidden]) {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal-box {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  padding: 1.1rem 1.2rem;
+  width: min(420px, 92vw);
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.modal-title {
+  margin: 0;
+  font-weight: 700;
+  font-size: var(--fs-md);
+}
+
+.modal-intro {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+#meta-parents-list {
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 120px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.6rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.modal-button-secondary {
+  background: var(--bg-sunken);
+  color: var(--primary-text);
+  border: 1px solid var(--border-strong);
+}
+
 .credits-footer {
   position: fixed;
   right: 0.6rem;
@@ -1164,3 +1406,4 @@ details.collapsible-list summary {
   color: var(--text-faint);
   font-style: italic;
 }
+

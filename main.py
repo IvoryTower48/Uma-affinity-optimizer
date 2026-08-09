@@ -17,7 +17,10 @@ Note:
 import argparse
 import sys
 
-from config import META_PARENTS, LOOP_SIZE
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
+from config import META_PARENTS, MIN_APTITUDE, LOOP_SIZE
 from naming import base_character, variant_group, resolve_character_input
 from display_names import format_character_name
 import data_updater
@@ -114,7 +117,7 @@ def main():
 
         matrix = build_score_matrix(
             all_characters, name_map, character_ids, id_weights,
-            calendar, races, aptitudes, args.mode,
+            calendar, races, aptitudes, MIN_APTITUDE, mode=args.mode,
         )
         for target in targets:
             top4 = top_n_by_field(target, all_characters, matrix, n=4)
@@ -129,7 +132,7 @@ def main():
     if args.loop:
         matrix = build_score_matrix(
             all_characters, name_map, character_ids, id_weights,
-            calendar, races, aptitudes, args.mode,
+            calendar, races, aptitudes, MIN_APTITUDE, mode=args.mode,
         )
         pool = shortlist_candidates(all_characters, matrix, pool_size=args.pool_size)
         print(f"\nPool ristretto per la ricerca del loop ({len(pool)} personaggi): "

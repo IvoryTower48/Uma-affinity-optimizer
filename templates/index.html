@@ -55,40 +55,76 @@
           </label>
           <p class="auto-update-note" data-i18n="note_auto_update">Disattivato di default: attivalo solo se vuoi che il programma si connetta a internet da solo. La modifica ha effetto dal prossimo avvio.</p>
         </div>
+
+        <div class="settings-row settings-row-block">
+          <button type="button" id="meta-parents-open-button" data-i18n="btn_manage_meta_parents">Gestisci genitori meta…</button>
+        </div>
       </div>
     </div>
   </header>
 
+  <div id="meta-parents-modal" class="modal-overlay" hidden>
+    <div class="modal-box">
+      <p class="modal-title" data-i18n="meta_parents_modal_title">Genitori meta</p>
+      <p class="modal-intro" data-i18n="meta_parents_modal_intro">Personaggi mostrati con il badge "META" nei risultati. La modifica ha effetto subito, su tutti i risultati futuri.</p>
+      <div class="owned-select-buttons">
+        <button type="button" id="meta-parents-select-all" data-i18n="btn_select_all">Seleziona tutti</button>
+        <button type="button" id="meta-parents-select-none" data-i18n="btn_select_none">Deseleziona tutti</button>
+      </div>
+      <div id="meta-parents-list" class="owned-list"></div>
+      <p id="meta-parents-error" class="warning" hidden></p>
+      <div class="modal-actions">
+        <button type="button" id="meta-parents-cancel-button" class="modal-button-secondary" data-i18n="btn_cancel">Annulla</button>
+        <button type="button" id="meta-parents-save-button" data-i18n="btn_save">Salva</button>
+      </div>
+    </div>
+  </div>
+
   <div class="app-layout">
     <div class="left-panel">
       <section class="controls">
-        <div class="control-card">
-          <label for="mode-select" data-i18n="label_mode">Modalità di utilizzo</label>
-          <select id="mode-select">
-            <option value="top4" data-i18n="opt_mode_top4">Top-4 compatibili con un personaggio</option>
-            <option value="loop" data-i18n="opt_mode_loop">Miglior loop a 5</option>
-          </select>
-
-          <div>
-            <label for="calendar-select" data-i18n="label_calendar">Vincolo di calendario</label>
-            <select id="calendar-select">
-              <option value="career" data-i18n="opt_calendar_career">Con vincoli di carriera normale</option>
-              <option value="mant" data-i18n="opt_calendar_mant">Nessun vincolo (Make A New Track)</option>
+        <div class="controls-row">
+          <div class="control-card">
+            <label for="mode-select" data-i18n="label_mode">Modalità di utilizzo</label>
+            <select id="mode-select">
+              <option value="top4" data-i18n="opt_mode_top4">Top-4 compatibili con un personaggio</option>
+              <option value="loop" data-i18n="opt_mode_loop">Miglior loop a 5</option>
+              <option value="rental" data-i18n="opt_mode_rental">Loop con genitore in prestito</option>
             </select>
+
+            <div>
+              <label for="calendar-select" data-i18n="label_calendar">Vincolo di calendario</label>
+              <select id="calendar-select">
+                <option value="career" data-i18n="opt_calendar_career">Con vincoli di carriera normale</option>
+                <option value="mant" data-i18n="opt_calendar_mant">Nessun vincolo (Make A New Track)</option>
+              </select>
+            </div>
+
+            <div class="checkbox-field">
+              <label>
+                <input type="checkbox" id="global-only-checkbox">
+                <span data-i18n="label_global_only">Solo personaggi già usciti su Global</span>
+              </label>
+            </div>
+
+            <div class="checkbox-field">
+              <label>
+                <input type="checkbox" id="debug-checkbox">
+                <span data-i18n="label_debug">Modalità debug</span>
+              </label>
+            </div>
           </div>
 
-          <div class="checkbox-field">
-            <label>
-              <input type="checkbox" id="global-only-checkbox">
-              <span data-i18n="label_global_only">Solo personaggi già usciti su Global</span>
-            </label>
-          </div>
-
-          <div class="checkbox-field">
-            <label>
-              <input type="checkbox" id="debug-checkbox">
-              <span data-i18n="label_debug">Modalità debug</span>
-            </label>
+          <div id="min-aptitude-field" class="control-card">
+            <label data-i18n="label_min_aptitude">Soglie minime di aptitude per considerare una gara vincibile (solo per questa sessione)</label>
+            <div class="min-aptitude-selects">
+              <div><label for="min-apt-turf" data-i18n="label_apt_turf">Turf</label><select id="min-apt-turf" class="min-aptitude-select" data-category="turf"></select></div>
+              <div><label for="min-apt-dirt" data-i18n="label_apt_dirt">Dirt</label><select id="min-apt-dirt" class="min-aptitude-select" data-category="dirt"></select></div>
+              <div><label for="min-apt-sprint" data-i18n="label_apt_sprint">Sprint</label><select id="min-apt-sprint" class="min-aptitude-select" data-category="sprint"></select></div>
+              <div><label for="min-apt-mile" data-i18n="label_apt_mile">Mile</label><select id="min-apt-mile" class="min-aptitude-select" data-category="mile"></select></div>
+              <div><label for="min-apt-medium" data-i18n="label_apt_medium">Medium</label><select id="min-apt-medium" class="min-aptitude-select" data-category="medium"></select></div>
+              <div><label for="min-apt-long" data-i18n="label_apt_long">Long</label><select id="min-apt-long" class="min-aptitude-select" data-category="long"></select></div>
+            </div>
           </div>
         </div>
 
@@ -109,33 +145,63 @@
           </div>
         </div>
 
-        <div id="character-field" class="control-card">
-          <label for="character-select" data-i18n="label_character">Personaggio</label>
-          <select id="character-select">
-            {% for name in base_names %}
-            <option value="{{ name.id }}">{{ name.display }}</option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <div id="loop-field" class="loop-field control-card">
-          <label data-i18n="label_loop_include">Personaggi da includere nel loop (fino a 5, opzionale)</label>
-          <div class="must-include-selects">
-            {% for _ in range(5) %}
-            <select class="must-include-select"><option value="" data-i18n="opt_none">-- nessuno --</option></select>
-            {% endfor %}
+        <div class="action-row">
+          <div class="control-card control-actions">
+            <div class="save-load-buttons">
+              <button type="button" id="save-button" data-i18n="btn_save">Salva</button>
+              <button type="button" id="load-button" data-i18n="btn_load">Carica</button>
+              <input type="file" id="load-file-input" accept="application/json" style="display:none">
+              <button type="button" id="pdf-button" data-i18n="btn_generate_pdf" disabled>Genera PDF</button>
+              <span id="pdf-status" class="pdf-export-status"></span>
+            </div>
+            <button id="run-button" class="run-button-large" data-i18n="btn_run">Esegui</button>
           </div>
-        </div>
 
-        <div class="control-card control-actions">
-          <button id="run-button" data-i18n="btn_run">Esegui</button>
+          <div class="selection-fields">
+            <div id="character-field" class="control-card">
+              <label for="character-select" data-i18n="label_character">Personaggio</label>
+              <select id="character-select">
+                {% for name in base_names %}
+                <option value="{{ name.id }}">{{ name.display }}</option>
+                {% endfor %}
+              </select>
+            </div>
 
-          <div class="save-load-buttons">
-            <button type="button" id="save-button" data-i18n="btn_save">Salva</button>
-            <button type="button" id="load-button" data-i18n="btn_load">Carica</button>
-            <input type="file" id="load-file-input" accept="application/json" style="display:none">
-            <button type="button" id="pdf-button" data-i18n="btn_generate_pdf" disabled>Genera PDF</button>
-            <span id="pdf-status" class="pdf-export-status"></span>
+            <div id="loop-field" class="loop-field control-card">
+              <label data-i18n="label_loop_include">Personaggi da includere nel loop (fino a 5, opzionale)</label>
+              <div class="must-include-selects">
+                {% for _ in range(5) %}
+                <select class="must-include-select"><option value="" data-i18n="opt_none">-- nessuno --</option></select>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div id="rental-field" class="rental-field control-card">
+              <p class="field-section-title" data-i18n="rental_section_title">Loop con genitore in prestito</p>
+              <p class="field-intro" data-i18n="rental_intro">Il genitore è obbligatorio e viene utilizzato in ogni step del ciclo; i nonni sono opzionali ma aiutano a calcolare correttamente l'affinità massima.</p>
+
+              <div class="rental-columns">
+                <div class="rental-column">
+                  <label for="rental-anchor-select" data-i18n="label_rental_anchor">Genitore preso in prestito</label>
+                  <select id="rental-anchor-select"></select>
+
+                  <label for="rental-gp-a-select" data-i18n="label_rental_gp_a">Nonno/a 1 (opzionale)</label>
+                  <select id="rental-gp-a-select"><option value="" data-i18n="opt_none">-- nessuno --</option></select>
+
+                  <label for="rental-gp-b-select" data-i18n="label_rental_gp_b">Nonno/a 2 (opzionale)</label>
+                  <select id="rental-gp-b-select"><option value="" data-i18n="opt_none">-- nessuno --</option></select>
+                </div>
+
+                <div class="rental-column">
+                  <label data-i18n="label_rental_fixed">Personaggi posseduti gia' scelti per la rotazione (fino a 3, opzionale)</label>
+                  <div class="rental-fixed-selects">
+                    {% for _ in range(3) %}
+                    <select class="rental-fixed-select"><option value="" data-i18n="opt_none">-- nessuno --</option></select>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -152,11 +218,7 @@
           <button type="button" class="info-icon" data-i18n-title="info_aptitude_title" title="Quando una gara è vincibile?">i</button>
           <div class="info-popover-panel">
             <p data-i18n="info_aptitude_text">Vincibile solo se l'aptitude soddisfa ENTRAMBE le soglie minime (superficie e distanza):</p>
-            <table class="info-aptitude-table">
-              {% for key, grade in min_aptitude.items() %}
-              <tr><td>{{ key|capitalize }}</td><td><strong>{{ grade }}</strong></td></tr>
-              {% endfor %}
-            </table>
+            <table id="info-aptitude-table" class="info-aptitude-table"></table>
             <p class="info-aptitude-note" data-i18n="info_aptitude_note">Voto minimo o migliore (scala S migliore di A, ..., G peggiore).</p>
           </div>
         </div>
@@ -171,6 +233,7 @@
     <span data-i18n="credits_footer">Codice: Claude (Anthropic). Idea e design: IvoryTower.</span>
   </footer>
 
+  <script id="min-aptitude-default" type="application/json">{{ min_aptitude | tojson }}</script>
   <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>

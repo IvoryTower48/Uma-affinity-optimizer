@@ -72,10 +72,11 @@ caso gestito). Ogni singola coppia dentro il gruppo usa comunque, come
 fallback, la gara che ESSA PUO' raggiungere tra quelle rimaste disponibili,
 anche se non e' quella "vincente" per il gruppo nel suo complesso.
 """
+from itertools import combinations
 from affinity import base_affinity_three, achievable_races_for, resolve_achievable
 from display_names import format_character_name, format_race_name
-from config import RACE_SHARED_WIN_POINTS, RACE_PRIORITY_OVERRIDE
-from loop_search import pair_score
+from config import RACE_SHARED_WIN_POINTS, RACE_PRIORITY_OVERRIDE, ANCHOR_LOOP_SIZE
+from loop_search import pair_score, has_duplicate_base, shortlist_candidates_for_fixed
 from naming import base_character
 from aptitude_inheritance import (
     apply_character_spark_plan, validate_spark_plan, validate_signature_spark, spark_plan_warning,
@@ -116,7 +117,7 @@ def build_five_cycle_schedule(child, top4_ordered):
     return established
 
 
-def compute_turn_priority(group_members, races, aptitudes, calendar, mode):
+def compute_turn_priority(group_members, races, aptitudes, calendar, mode, min_aptitude):
     """
     Per un gruppo FISSO di personaggi (qui: i 5 dell'esplorazione a un salto),
     calcola per OGNI gara (singola o ricorrente, nessuna distinzione) quanti
@@ -142,7 +143,7 @@ def compute_turn_priority(group_members, races, aptitudes, calendar, mode):
     mantengono il tie-break alfabetico di sempre.
     """
     achievable_per_member = {
-        c: achievable_races_for(c, races, aptitudes, calendar, mode)
+        c: achievable_races_for(c, races, aptitudes, calendar, mode, min_aptitude)
         for c in group_members
     }
     counts = {
@@ -191,113 +192,144 @@ def bonus_group_aware(a, b, resolved_per_member):
 
 
 def build_cycle_details(established, matrix, name_map, character_ids, id_weights,
-                         resolved_per_member):
+                         resolved_per_member, children=None):
     """
-    Costruisce, per ciascuno dei 5 personaggi come figlio, il dettaglio completo
-    del ciclo corrispondente secondo il modello Individual/Overall Affinity.
-    Il bonus da gare condivise usa la risoluzione group-aware GIA' calcolata
-    per l'intero gruppo (resolved_per_member, da resolve_group_achievable),
-    non piu' il valore precalcolato nella matrice (che e' pairwise puro).
+    Costruisce, per ciascuno dei personaggi-figlio richiesti, il dettaglio
+    completo del ciclo corrispondente secondo il modello Individual/Overall
+    Affinity. Il bonus da gare condivise usa la risoluzione group-aware GIA'
+    calcolata per l'intero gruppo (resolved_per_member, da
+    resolve_group_achievable), non piu' il valore precalcolato nella matrice
+    (che e' pairwise puro).
 
-    Ritorna una lista di 5 dict, uno per ciclo, con chiavi:
+    children: quali chiavi di 'established' processare come figlio. Default
+    None = tutte (comportamento del loop chiuso a 5: ogni membro e' figlio di
+    esattamente un ciclo). Un chiamante puo' passare un sottoinsieme esplicito
+    quando 'established' contiene anche membri che non devono mai comparire
+    come figlio (es. il rental loop, dove l'anchor e' sempre genitore, mai
+    figlio -- vedi build_anchor_loop_schedule).
+
+    Un genitore puo' non avere una entry in 'established' (es. l'anchor del
+    rental loop quando le sue nonne/nonni non sono noti): in quel caso i
+    termini che dipendono dai suoi nonni vengono OMESSI (non calcolati come
+    0) dai dict individual_affinity/breakdown restituiti -- il chiamante puo'
+    distinguere "ignoto" da "affinita' zero" controllando se la chiave e'
+    presente.
+
+    Ritorna una lista di dict, uno per ciclo, con chiavi:
       child, parent1, parent2, gp_parent1 (tupla), gp_parent2 (tupla),
-      individual_affinity: dict con le IA di parent1, parent2, gp1a, gp1b, gp2a, gp2b
-      overall_affinity: somma di ogni bAff/Bonus coinvolto, contato una sola volta
+      individual_affinity: dict con le IA di parent1, parent2, e le gp note
+      overall_affinity: somma di ogni bAff/Bonus NOTO, contato una sola volta
     """
     cycles = []
-    for child, (p1, p2) in established.items():
-        gp1a, gp1b = established[p1]
-        gp2a, gp2b = established[p2]
+    for child in (established.keys() if children is None else children):
+        p1, p2 = established[child]
+        gp1a, gp1b = established.get(p1, (None, None))
+        gp2a, gp2b = established.get(p2, (None, None))
 
         # --- termini di base (bAff), a due e a tre (invariati, non c'entra il calendario) ---
         b_child_p1 = base_two(child, p1, matrix)
         b_child_p2 = base_two(child, p2, matrix)
         b_p1_p2 = base_two(p1, p2, matrix)
-        b3_p1_gp1a = base_affinity_three(child, p1, gp1a, name_map, character_ids, id_weights)
-        b3_p1_gp1b = base_affinity_three(child, p1, gp1b, name_map, character_ids, id_weights)
-        b3_p2_gp2a = base_affinity_three(child, p2, gp2a, name_map, character_ids, id_weights)
-        b3_p2_gp2b = base_affinity_three(child, p2, gp2b, name_map, character_ids, id_weights)
+        b3_p1_gp1a = base_affinity_three(child, p1, gp1a, name_map, character_ids, id_weights) if gp1a is not None else None
+        b3_p1_gp1b = base_affinity_three(child, p1, gp1b, name_map, character_ids, id_weights) if gp1b is not None else None
+        b3_p2_gp2a = base_affinity_three(child, p2, gp2a, name_map, character_ids, id_weights) if gp2a is not None else None
+        b3_p2_gp2b = base_affinity_three(child, p2, gp2b, name_map, character_ids, id_weights) if gp2b is not None else None
 
         # --- termini di bonus da gare (group-aware, mai tra figlio e genitore) ---
         bonus_p1_p2 = bonus_group_aware(p1, p2, resolved_per_member)
-        bonus_p1_gp1a = bonus_group_aware(p1, gp1a, resolved_per_member)
-        bonus_p1_gp1b = bonus_group_aware(p1, gp1b, resolved_per_member)
-        bonus_p2_gp2a = bonus_group_aware(p2, gp2a, resolved_per_member)
-        bonus_p2_gp2b = bonus_group_aware(p2, gp2b, resolved_per_member)
+        bonus_p1_gp1a = bonus_group_aware(p1, gp1a, resolved_per_member) if gp1a is not None else None
+        bonus_p1_gp1b = bonus_group_aware(p1, gp1b, resolved_per_member) if gp1b is not None else None
+        bonus_p2_gp2a = bonus_group_aware(p2, gp2a, resolved_per_member) if gp2a is not None else None
+        bonus_p2_gp2b = bonus_group_aware(p2, gp2b, resolved_per_member) if gp2b is not None else None
 
         individual_affinity = {
-            "parent1": b_child_p1 + b_p1_p2 + b3_p1_gp1a + b3_p1_gp1b
-                       + bonus_p1_gp1a + bonus_p1_gp1b + bonus_p1_p2,
-            "parent2": b_child_p2 + b_p1_p2 + b3_p2_gp2a + b3_p2_gp2b
-                       + bonus_p2_gp2a + bonus_p2_gp2b + bonus_p1_p2,
-            "gp1a": b3_p1_gp1a + bonus_p1_gp1a,
-            "gp1b": b3_p1_gp1b + bonus_p1_gp1b,
-            "gp2a": b3_p2_gp2a + bonus_p2_gp2a,
-            "gp2b": b3_p2_gp2b + bonus_p2_gp2b,
+            "parent1": b_child_p1 + b_p1_p2 + (b3_p1_gp1a or 0) + (b3_p1_gp1b or 0)
+                       + (bonus_p1_gp1a or 0) + (bonus_p1_gp1b or 0) + bonus_p1_p2,
+            "parent2": b_child_p2 + b_p1_p2 + (b3_p2_gp2a or 0) + (b3_p2_gp2b or 0)
+                       + (bonus_p2_gp2a or 0) + (bonus_p2_gp2b or 0) + bonus_p1_p2,
         }
+        if gp1a is not None:
+            individual_affinity["gp1a"] = b3_p1_gp1a + bonus_p1_gp1a
+        if gp1b is not None:
+            individual_affinity["gp1b"] = b3_p1_gp1b + bonus_p1_gp1b
+        if gp2a is not None:
+            individual_affinity["gp2a"] = b3_p2_gp2a + bonus_p2_gp2a
+        if gp2b is not None:
+            individual_affinity["gp2b"] = b3_p2_gp2b + bonus_p2_gp2b
 
-        # scomposizione dei singoli addendi per ruolo, usata per il tooltip in UI
+        # scomposizione dei singoli addendi per ruolo, usata per il tooltip in UI.
+        # I termini con un gp ignoto (None) sono filtrati via, non mostrati a 0.
         breakdown = {
             "parent1": [
-                (f"bAff({child},{p1})", b_child_p1),
-                (f"bAff({p1},{p2})", b_p1_p2),
-                (f"bAff({child},{p1},{gp1a})", b3_p1_gp1a),
-                (f"bAff({child},{p1},{gp1b})", b3_p1_gp1b),
-                (f"Bonus({p1},{gp1a})", bonus_p1_gp1a),
-                (f"Bonus({p1},{gp1b})", bonus_p1_gp1b),
-                (f"Bonus({p1},{p2})", bonus_p1_p2),
+                t for t in [
+                    (f"bAff({child},{p1})", b_child_p1),
+                    (f"bAff({p1},{p2})", b_p1_p2),
+                    (f"bAff({child},{p1},{gp1a})", b3_p1_gp1a) if gp1a is not None else None,
+                    (f"bAff({child},{p1},{gp1b})", b3_p1_gp1b) if gp1b is not None else None,
+                    (f"Bonus({p1},{gp1a})", bonus_p1_gp1a) if gp1a is not None else None,
+                    (f"Bonus({p1},{gp1b})", bonus_p1_gp1b) if gp1b is not None else None,
+                    (f"Bonus({p1},{p2})", bonus_p1_p2),
+                ] if t is not None
             ],
             "parent2": [
-                (f"bAff({child},{p2})", b_child_p2),
-                (f"bAff({p1},{p2})", b_p1_p2),
-                (f"bAff({child},{p2},{gp2a})", b3_p2_gp2a),
-                (f"bAff({child},{p2},{gp2b})", b3_p2_gp2b),
-                (f"Bonus({p2},{gp2a})", bonus_p2_gp2a),
-                (f"Bonus({p2},{gp2b})", bonus_p2_gp2b),
-                (f"Bonus({p1},{p2})", bonus_p1_p2),
-            ],
-            "gp1a": [
-                (f"bAff({child},{p1},{gp1a})", b3_p1_gp1a),
-                (f"Bonus({p1},{gp1a})", bonus_p1_gp1a),
-            ],
-            "gp1b": [
-                (f"bAff({child},{p1},{gp1b})", b3_p1_gp1b),
-                (f"Bonus({p1},{gp1b})", bonus_p1_gp1b),
-            ],
-            "gp2a": [
-                (f"bAff({child},{p2},{gp2a})", b3_p2_gp2a),
-                (f"Bonus({p2},{gp2a})", bonus_p2_gp2a),
-            ],
-            "gp2b": [
-                (f"bAff({child},{p2},{gp2b})", b3_p2_gp2b),
-                (f"Bonus({p2},{gp2b})", bonus_p2_gp2b),
+                t for t in [
+                    (f"bAff({child},{p2})", b_child_p2),
+                    (f"bAff({p1},{p2})", b_p1_p2),
+                    (f"bAff({child},{p2},{gp2a})", b3_p2_gp2a) if gp2a is not None else None,
+                    (f"bAff({child},{p2},{gp2b})", b3_p2_gp2b) if gp2b is not None else None,
+                    (f"Bonus({p2},{gp2a})", bonus_p2_gp2a) if gp2a is not None else None,
+                    (f"Bonus({p2},{gp2b})", bonus_p2_gp2b) if gp2b is not None else None,
+                    (f"Bonus({p1},{p2})", bonus_p1_p2),
+                ] if t is not None
             ],
         }
+        if gp1a is not None:
+            breakdown["gp1a"] = [
+                (f"bAff({child},{p1},{gp1a})", b3_p1_gp1a),
+                (f"Bonus({p1},{gp1a})", bonus_p1_gp1a),
+            ]
+        if gp1b is not None:
+            breakdown["gp1b"] = [
+                (f"bAff({child},{p1},{gp1b})", b3_p1_gp1b),
+                (f"Bonus({p1},{gp1b})", bonus_p1_gp1b),
+            ]
+        if gp2a is not None:
+            breakdown["gp2a"] = [
+                (f"bAff({child},{p2},{gp2a})", b3_p2_gp2a),
+                (f"Bonus({p2},{gp2a})", bonus_p2_gp2a),
+            ]
+        if gp2b is not None:
+            breakdown["gp2b"] = [
+                (f"bAff({child},{p2},{gp2b})", b3_p2_gp2b),
+                (f"Bonus({p2},{gp2b})", bonus_p2_gp2b),
+            ]
 
         overall_affinity = (
             b_child_p1 + b_child_p2 + b_p1_p2
-            + b3_p1_gp1a + b3_p1_gp1b + b3_p2_gp2a + b3_p2_gp2b
-            + bonus_p1_p2 + bonus_p1_gp1a + bonus_p1_gp1b + bonus_p2_gp2a + bonus_p2_gp2b
+            + (b3_p1_gp1a or 0) + (b3_p1_gp1b or 0) + (b3_p2_gp2a or 0) + (b3_p2_gp2b or 0)
+            + bonus_p1_p2 + (bonus_p1_gp1a or 0) + (bonus_p1_gp1b or 0) + (bonus_p2_gp2a or 0) + (bonus_p2_gp2b or 0)
         )
 
-        # scomposizione della formula Overall Affinity, ciascun termine
+        # scomposizione della formula Overall Affinity, ciascun termine NOTO
         # contato UNA SOLA VOLTA (a differenza di 'breakdown' sopra, dove
         # es. bAff(p1,p2)/Bonus(p1,p2) compaiono sia in parent1 sia in
         # parent2 perche' contribuiscono all'Individual Affinity di
         # ENTRAMBI) -- usata solo per la UI in modalita' debug.
         overall_breakdown = [
-            (f"bAff({child},{p1})", b_child_p1),
-            (f"bAff({child},{p2})", b_child_p2),
-            (f"bAff({p1},{p2})", b_p1_p2),
-            (f"bAff({child},{p1},{gp1a})", b3_p1_gp1a),
-            (f"bAff({child},{p1},{gp1b})", b3_p1_gp1b),
-            (f"bAff({child},{p2},{gp2a})", b3_p2_gp2a),
-            (f"bAff({child},{p2},{gp2b})", b3_p2_gp2b),
-            (f"Bonus({p1},{p2})", bonus_p1_p2),
-            (f"Bonus({p1},{gp1a})", bonus_p1_gp1a),
-            (f"Bonus({p1},{gp1b})", bonus_p1_gp1b),
-            (f"Bonus({p2},{gp2a})", bonus_p2_gp2a),
-            (f"Bonus({p2},{gp2b})", bonus_p2_gp2b),
+            t for t in [
+                (f"bAff({child},{p1})", b_child_p1),
+                (f"bAff({child},{p2})", b_child_p2),
+                (f"bAff({p1},{p2})", b_p1_p2),
+                (f"bAff({child},{p1},{gp1a})", b3_p1_gp1a) if gp1a is not None else None,
+                (f"bAff({child},{p1},{gp1b})", b3_p1_gp1b) if gp1b is not None else None,
+                (f"bAff({child},{p2},{gp2a})", b3_p2_gp2a) if gp2a is not None else None,
+                (f"bAff({child},{p2},{gp2b})", b3_p2_gp2b) if gp2b is not None else None,
+                (f"Bonus({p1},{p2})", bonus_p1_p2),
+                (f"Bonus({p1},{gp1a})", bonus_p1_gp1a) if gp1a is not None else None,
+                (f"Bonus({p1},{gp1b})", bonus_p1_gp1b) if gp1b is not None else None,
+                (f"Bonus({p2},{gp2a})", bonus_p2_gp2a) if gp2a is not None else None,
+                (f"Bonus({p2},{gp2b})", bonus_p2_gp2b) if gp2b is not None else None,
+            ] if t is not None
         ]
 
         cycles.append({
@@ -314,7 +346,7 @@ def build_cycle_details(established, matrix, name_map, character_ids, id_weights
     return cycles
 
 
-def resolve_group_achievable(group_members, races, aptitudes, calendar, mode):
+def resolve_group_achievable(group_members, races, aptitudes, calendar, mode, min_aptitude):
     """
     Per un gruppo FISSO (qui: i 5 dell'esplorazione a un salto, o del loop),
     ritorna dict[personaggio] -> insieme delle gare DAVVERO raggiungibili,
@@ -327,10 +359,10 @@ def resolve_group_achievable(group_members, races, aptitudes, calendar, mode):
     scarsita' di turni disponibili.
     """
     achievable_per_member = {
-        c: achievable_races_for(c, races, aptitudes, calendar, mode)
+        c: achievable_races_for(c, races, aptitudes, calendar, mode, min_aptitude)
         for c in group_members
     }
-    turn_priority = compute_turn_priority(group_members, races, aptitudes, calendar, mode)
+    turn_priority = compute_turn_priority(group_members, races, aptitudes, calendar, mode, min_aptitude)
     priority_key = lambda race_id: turn_priority[race_id]
     return {
         c: resolve_achievable(c, achievable_per_member[c], races, aptitudes, calendar, mode, priority_key)
@@ -339,7 +371,7 @@ def resolve_group_achievable(group_members, races, aptitudes, calendar, mode):
 
 
 def one_hop_exploration(child, top4_ordered, matrix, name_map, character_ids, id_weights,
-                         calendar, races, aptitudes, mode):
+                         calendar, races, aptitudes, mode, min_aptitude):
     """
     Funzione di alto livello: dato il personaggio selezionato e i suoi top-4
     (in ordine di ranking), ritorna la lista dei 5 cicli con tutti i dettagli,
@@ -348,7 +380,7 @@ def one_hop_exploration(child, top4_ordered, matrix, name_map, character_ids, id
     """
     established = build_five_cycle_schedule(child, top4_ordered)
     group_members = [child] + list(top4_ordered)
-    resolved_per_member = resolve_group_achievable(group_members, races, aptitudes, calendar, mode)
+    resolved_per_member = resolve_group_achievable(group_members, races, aptitudes, calendar, mode, min_aptitude)
     cycles = build_cycle_details(
         established, matrix, name_map, character_ids, id_weights, resolved_per_member,
     )
@@ -357,6 +389,218 @@ def one_hop_exploration(child, top4_ordered, matrix, name_map, character_ids, id
         "cycles": cycles, "total_loop_affinity": total_loop_affinity,
         "_resolved_per_member": resolved_per_member,
     }
+
+
+# --- Rental loop: genitore costante preso in prestito + rotazione a 3 ------
+#
+# Chi fa parent-looping usa spesso un genitore "in prestito" (rental, non
+# posseduto, non modificabile) che non "nasce" mai -- si riaffitta sempre.
+# Con un genitore sempre disponibile non servono 5 identita' genealogiche
+# distinte per chiudere il loop, ne bastano 3 (vedi config.ANCHOR_LOOP_SIZE):
+#
+#     members[0]: genitori = (anchor, members[2])
+#     members[1]: genitori = (anchor, members[0])
+#     members[2]: genitori = (anchor, members[1])
+#
+# Le nonne/nonni dell'anchor (gp_a, gp_b), se noti, sono anch'essi fissi/non
+# posseduti; se ignoti, i termini che dipendono da loro vengono OMESSI (non
+# calcolati come 0) da build_cycle_details -- vedi il suo parametro 'children'.
+
+
+def build_anchor_loop_schedule(anchor, members, gp_a=None, gp_b=None):
+    """
+    members: i 3 personaggi posseduti della rotazione, nell'ordine in cui si
+    succedono (members[i] e' allevato da anchor + members[i-1]).
+    Ritorna established: dict[personaggio] -> (genitore1, genitore2), stesso
+    formato di build_five_cycle_schedule. 'anchor' compare come chiave anche
+    se solo UNO tra gp_a/gp_b e' noto (es. (gp_a, None)): build_cycle_details
+    gestisce gia' i singoli slot ignoti omettendone i termini (vedi il suo
+    parametro 'children' e i confronti 'is not None'), quindi il nonno noto
+    viene mostrato con la sua Individual Affinity reale, come se l'altro
+    slot semplicemente non esistesse. 'anchor' non compare come chiave SOLO
+    se ENTRAMBI i nonni sono ignoti (mai figlio di alcun ciclo in quel caso:
+    si riaffitta, non si alleva).
+    """
+    if len(members) != ANCHOR_LOOP_SIZE:
+        raise ValueError(f"Il rental loop richiede esattamente {ANCHOR_LOOP_SIZE} personaggi posseduti.")
+    established = {
+        members[0]: (anchor, members[2]),
+        members[1]: (anchor, members[0]),
+        members[2]: (anchor, members[1]),
+    }
+    if gp_a is not None or gp_b is not None:
+        established[anchor] = (gp_a, gp_b)
+    return established
+
+
+def best_anchor_loop(anchor, gp_a, gp_b, fixed_members, candidate_pool, matrix,
+                      name_map, character_ids, id_weights, races, aptitudes,
+                      calendar, mode, min_aptitude):
+    """
+    Cerca la rotazione di ANCHOR_LOOP_SIZE personaggi posseduti che, insieme
+    all'anchor fisso (+ le sue nonne/nonni se noti), massimizza la somma
+    delle Overall Affinity dei cicli risultanti -- ottimizzazione CONGIUNTA
+    anchor-rotazione (include bAff/Bonus tra l'anchor e ciascun membro), non
+    il solo punteggio grezzo di ciascun membro verso l'anchor.
+
+    fixed_members: 0-ANCHOR_LOOP_SIZE personaggi posseduti gia' scelti
+    dall'utente (stesso ruolo di must_include nel loop a 5). Gli slot
+    restanti sono cercati esaustivamente su una shortlist economica
+    (shortlist_candidates_for_fixed, la stessa euristica gia' usata per il
+    loop a 5), provando entrambe le direzioni cicliche possibili per ogni
+    combinazione (con 3 elementi ce ne sono solo 2).
+
+    Ritorna dict {members, cycles, total_loop_affinity}, o None se nessuna
+    combinazione valida e' stata trovata. Solleva ValueError se fixed_members
+    e' troppo numeroso o condivide un nome base con se stesso/anchor/gp_a/gp_b.
+    """
+    if len(fixed_members) > ANCHOR_LOOP_SIZE:
+        raise ValueError(
+            f"Troppi personaggi fissi ({len(fixed_members)}): il rental loop ha "
+            f"spazio per al massimo {ANCHOR_LOOP_SIZE}."
+        )
+    anchor_group = [anchor] + [g for g in (gp_a, gp_b) if g is not None]
+    if has_duplicate_base(list(fixed_members) + anchor_group):
+        raise ValueError(
+            "L'anchor, le sue nonne/nonni e i personaggi fissi non possono "
+            "condividere lo stesso nome base (stessa identita' genealogica)."
+        )
+
+    remaining_size = ANCHOR_LOOP_SIZE - len(fixed_members)
+    fixed_bases = {base_character(c) for c in list(fixed_members) + anchor_group}
+    if remaining_size == 0:
+        pool = []
+    else:
+        shortlisted = shortlist_candidates_for_fixed(list(fixed_members) + [anchor], candidate_pool, matrix)
+        pool = [c for c in shortlisted if base_character(c) not in fixed_bases]
+
+    best = None
+    for combo in combinations(pool, remaining_size):
+        if has_duplicate_base(combo):
+            continue
+        candidate_members = list(fixed_members) + list(combo)
+        orderings = [candidate_members]
+        if len(candidate_members) == 3:
+            orderings.append([candidate_members[0], candidate_members[2], candidate_members[1]])
+        for members in orderings:
+            established = build_anchor_loop_schedule(anchor, members, gp_a, gp_b)
+            group_members = [anchor] + members + anchor_group[1:]
+            resolved_per_member = resolve_group_achievable(
+                group_members, races, aptitudes, calendar, mode, min_aptitude,
+            )
+            cycles = build_cycle_details(
+                established, matrix, name_map, character_ids, id_weights,
+                resolved_per_member, children=members,
+            )
+            total = sum(c["overall_affinity"] for c in cycles)
+            if best is None or total > best["total_loop_affinity"]:
+                best = {"members": members, "cycles": cycles, "total_loop_affinity": total}
+
+    return best
+
+
+def suggest_anchor_grandparents(anchor, members, candidate_pool, matrix, name_map,
+                                 character_ids, id_weights, exclude_bases,
+                                 races, aptitudes, calendar, mode, min_aptitude, limit=10):
+    """
+    Suggerimenti per le nonne/nonni dell'anchor quando non sono ancora noti:
+    per ciascun candidato, la sua Individual Affinity REALE in ognuno dei 3
+    step della rotazione (non un'approssimazione: stessi numeri che si
+    vedrebbero davvero in ciascuna delle 3 card dopo averlo scelto), piu' la
+    loro somma. Ordinati per somma decrescente.
+
+    Per ogni candidato si fissa PROVVISORIAMENTE solo gp1a=candidato (gp1b
+    resta ignoto) e si passa per la STESSA pipeline reale usata per il
+    risultato finale (resolve_group_achievable + build_cycle_details, non
+    un'approssimazione pairwise): established[anchor] = (candidato, None),
+    children=members, poi si legge individual_affinity['gp1a'] in ciascuno
+    dei 3 cicli. established[anchor] e' lo stesso per tutti e 3 (l'anchor
+    non ruota), quindi gp1a e' il candidato in ognuno -- cambia solo il
+    bAff a tre (dipende dal figlio del ciclo), il Bonus resta identico.
+
+    Ritorna una lista di tuple (personaggio, [affinita_step1, step2, step3]).
+    """
+    scored = []
+    for g in candidate_pool:
+        if g == anchor or base_character(g) in exclude_bases:
+            continue
+        established = {
+            members[0]: (anchor, members[2]),
+            members[1]: (anchor, members[0]),
+            members[2]: (anchor, members[1]),
+            anchor: (g, None),
+        }
+        group_members = [anchor] + members + [g]
+        resolved_per_member = resolve_group_achievable(
+            group_members, races, aptitudes, calendar, mode, min_aptitude,
+        )
+        cycles = build_cycle_details(
+            established, matrix, name_map, character_ids, id_weights,
+            resolved_per_member, children=members,
+        )
+        steps = [c["individual_affinity"]["gp1a"] for c in cycles]
+        scored.append((g, steps))
+    scored.sort(key=lambda x: sum(x[1]), reverse=True)
+    return scored[:limit]
+
+
+def suggest_anchor_grandparent_pairs(anchor, members, candidate_pool, matrix, name_map,
+                                      character_ids, id_weights, exclude_bases,
+                                      races, aptitudes, calendar, mode, min_aptitude,
+                                      baseline_cycles, limit=10, shortlist_size=20):
+    """
+    Le migliori COPPIE di nonne/nonni per l'anchor: quelle che, se inserite
+    ENTRAMBE, aggiungono piu' Overall Affinity all'intero loop -- diverso da
+    suggest_anchor_grandparents (che valuta un candidato alla volta, con
+    l'altro slot ignoto): qui la coppia e' completa, established[anchor] e'
+    pienamente noto, quindi TUTTI i termini della formula sono calcolati,
+    incluso il Bonus group-aware sull'intera coppia insieme (che PUO'
+    differire dalla somma dei due Bonus singoli, per via della risoluzione
+    dei turni contesi condivisa su tutto il gruppo).
+
+    baseline_cycles: i 3 cicli SENZA alcun nonno noto per questo stesso
+    anchor/members (gia' calcolati da best_anchor_loop quando gp_a/gp_b non
+    sono forniti -- passati qui per evitare di ricalcolarli). Il delta per
+    step mostrato e' overall_affinity_con_coppia - overall_affinity_baseline,
+    posizione per posizione (stessi 3 figli, nello stesso ordine).
+
+    Ricerca ristretta a una shortlist dei migliori 'shortlist_size'
+    candidati singoli (stesso criterio/ordine di suggest_anchor_grandparents)
+    invece di tutto candidate_pool: i due slot nonno sono indipendenti nella
+    formula (nessun termine incrociato tra gp1a e gp1b, l'unica interazione
+    e' nel Bonus group-aware, un effetto secondario), quindi un buon
+    candidato singolo e' quasi sempre parte della coppia migliore -- una
+    ricerca esaustiva su tutto il roster posseduto (anche 100+ personaggi,
+    C(100,2) = 4950 combinazioni) sarebbe altrimenti troppo lenta.
+
+    Ritorna una lista di dict {gp_a, gp_b, total_delta, deltas} (deltas =
+    lista di 3 delta interi, uno per step, stesso ordine di 'members'),
+    ordinata per total_delta decrescente.
+    """
+    shortlist = [g for g, _ in suggest_anchor_grandparents(
+        anchor, members, candidate_pool, matrix, name_map, character_ids,
+        id_weights, exclude_bases, races, aptitudes, calendar, mode, min_aptitude,
+        limit=shortlist_size,
+    )]
+    baseline = [c["overall_affinity"] for c in baseline_cycles]
+
+    scored = []
+    for g_a, g_b in combinations(shortlist, 2):
+        if base_character(g_a) == base_character(g_b):
+            continue
+        established = build_anchor_loop_schedule(anchor, members, g_a, g_b)
+        group_members = [anchor] + members + [g_a, g_b]
+        resolved_per_member = resolve_group_achievable(
+            group_members, races, aptitudes, calendar, mode, min_aptitude,
+        )
+        cycles = build_cycle_details(
+            established, matrix, name_map, character_ids, id_weights,
+            resolved_per_member, children=members,
+        )
+        deltas = [c["overall_affinity"] - b for c, b in zip(cycles, baseline)]
+        scored.append({"gp_a": g_a, "gp_b": g_b, "total_delta": sum(deltas), "deltas": deltas})
+    scored.sort(key=lambda x: x["total_delta"], reverse=True)
+    return scored[:limit]
 
 
 def first_cycle_shared_races(first_cycle, races, resolved_per_member):
@@ -533,7 +777,7 @@ def _merge_cycle_spark_plans(plan_a, plan_b):
 
 def one_hop_exploration_with_sparks(child, top4_ordered, spark_plan, matrix, name_map,
                                      character_ids, id_weights, calendar, races,
-                                     aptitudes, mode, character_spark_plan=None):
+                                     aptitudes, mode, min_aptitude, character_spark_plan=None):
     """
     Come one_hop_exploration, ma applicando prima il piano spark alle
     aptitude dei 5 personaggi coinvolti. Supporta ENTRAMBE le modalita' di
@@ -575,7 +819,7 @@ def one_hop_exploration_with_sparks(child, top4_ordered, spark_plan, matrix, nam
     modified_aptitudes = apply_spark_plan_to_aptitudes(established, effective_plan, aptitudes)
 
     group_members = [child] + list(top4_ordered)
-    resolved_per_member = resolve_group_achievable(group_members, races, modified_aptitudes, calendar, mode)
+    resolved_per_member = resolve_group_achievable(group_members, races, modified_aptitudes, calendar, mode, min_aptitude)
     cycles = build_cycle_details(
         established, matrix, name_map, character_ids, id_weights, resolved_per_member,
     )
@@ -596,7 +840,7 @@ def one_hop_exploration_with_sparks(child, top4_ordered, spark_plan, matrix, nam
 
 def find_best_substitution(child, top4_ordered, spark_plan, matrix, name_map,
                             character_ids, id_weights, calendar, races, aptitudes,
-                            mode, candidate_pool, character_spark_plan=None):
+                            mode, min_aptitude, candidate_pool, character_spark_plan=None):
     """
     Con un piano spark FISSO (stesso per tutti i confronti -- la Modalita' A
     segue la posizione nel ciclo, vedi sopra), cerca tra le posizioni
@@ -627,7 +871,7 @@ def find_best_substitution(child, top4_ordered, spark_plan, matrix, name_map,
 
     baseline = one_hop_exploration_with_sparks(
         child, top4_ordered, spark_plan, matrix, name_map,
-        character_ids, id_weights, calendar, races, aptitudes, mode,
+        character_ids, id_weights, calendar, races, aptitudes, mode, min_aptitude,
         character_spark_plan=character_spark_plan,
     )
     baseline_total = baseline["total_loop_affinity"]
@@ -652,7 +896,7 @@ def find_best_substitution(child, top4_ordered, spark_plan, matrix, name_map,
             trial_top4[position] = candidate
             trial = one_hop_exploration_with_sparks(
                 child, trial_top4, spark_plan, matrix, name_map,
-                character_ids, id_weights, calendar, races, aptitudes, mode,
+                character_ids, id_weights, calendar, races, aptitudes, mode, min_aptitude,
                 character_spark_plan=character_spark_plan,
             )
             trial_total = trial["total_loop_affinity"]
