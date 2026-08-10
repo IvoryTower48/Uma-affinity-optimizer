@@ -104,6 +104,25 @@ LOOP_SIZE = 5
 ANCHOR_LOOP_SIZE = 3
 
 
+MIN_INDEPENDENT_TRAINING_PROBABILITY = 80
+
+
+def validate_independent_training_threshold(value) -> int:
+    """
+    Soglia (percentuale, 1-100) sotto la quale una gara flessibile
+    dell'independent training non viene consigliata nella rotazione. Stesso
+    pattern di validate_min_aptitude: valore di default se non fornito,
+    ValueError se fuori range o non numerico.
+    """
+    if value is None:
+        return MIN_INDEPENDENT_TRAINING_PROBABILITY
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"Soglia independent training non valida: {value}")
+    if not (1 <= value <= 100):
+        raise ValueError(f"Soglia independent training fuori range [1,100]: {value}")
+    return int(value)
+
+
 def validate_min_aptitude(payload_dict: dict) -> dict:
     """
     Merge di un dict parziale (es. da un payload JSON) sopra i default di

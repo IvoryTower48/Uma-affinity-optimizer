@@ -90,7 +90,8 @@ def _character_used_slots(character: str, calendar: dict, mode: str) -> dict:
 
 
 def resolve_achievable(character: str, candidate_race_ids, races: dict, aptitudes: dict,
-                        calendar: dict, mode: str, priority_key=None) -> set:
+                        calendar: dict, mode: str, priority_key=None, slot_key=None,
+                        return_slots: bool = False):
     """
     Dato un insieme di gare CANDIDATE per un singolo personaggio (gia' filtrate
     altrove per raggiungibilita' di base, es. l'intersezione con un altro
@@ -123,7 +124,20 @@ def resolve_achievable(character: str, candidate_race_ids, races: dict, aptitude
     vengono scelte quando esistono piu' matching massimi equivalenti, non
     quante in totale.
 
-    Ritorna il sottoinsieme di candidate_race_ids davvero raggiungibile.
+    Ritorna il sottoinsieme di candidate_race_ids davvero raggiungibile (di
+    default). Due parametri opzionali, additivi e retrocompatibili (default
+    None/False => comportamento identico a prima per tutti i chiamanti
+    esistenti):
+    - slot_key: se dato, ordina le occorrenze di CIASCUNA gara (non solo
+      l'ordine di elaborazione tra gare diverse, quello e' priority_key) --
+      chiamata come slot_key(race_id, slot), cosi' la preferenza puo' variare
+      per gara (usato dall'independent training per provare specifiche
+      combinazioni di anno per le gare ricorrenti, vedi independent_training.py).
+    - return_slots: se True, ritorna anche lo slot fisico assegnato a
+      ciascuna gara raggiungibile (comprese le obbligatorie, il cui slot e'
+      comunque noto a priori) come dict slot->race_id -- serve a chi ha
+      bisogno del turn_number esatto (l'insieme raggiungibile da solo non
+      lo dice), non solo del conteggio.
     """
     priority_key = priority_key or (lambda r: r)
     occupation = _character_used_slots(character, calendar, mode)
@@ -131,16 +145,20 @@ def resolve_achievable(character: str, candidate_race_ids, races: dict, aptitude
 
     guaranteed = set()
     free_slots_by_race = {}
+    slot_owner = {}  # slot -> race_id assegnato (obbligatorie incluse, se return_slots)
     for race_id in candidate_race_ids:
         occ_slots = [o["slot"] for o in races[race_id]["occurrences"]]
-        if mode != "mant" and any(occupation.get(s) == race_id for s in occ_slots):
-            guaranteed.add(race_id)
-            continue
+        if slot_key is not None:
+            occ_slots = sorted(occ_slots, key=lambda s: slot_key(race_id, s))
+        if mode != "mant":
+            matched_slot = next((s for s in occ_slots if occupation.get(s) == race_id), None)
+            if matched_slot is not None:
+                guaranteed.add(race_id)
+                slot_owner[matched_slot] = race_id
+                continue
         free_slots = [s for s in occ_slots if s not in used_slots_base]
         if free_slots:
             free_slots_by_race[race_id] = free_slots
-
-    slot_owner = {}  # slot -> race_id assegnato in questo passo
 
     def try_augment(race_id, visited_slots):
         """DFS con augmenting path: prova ad assegnare race_id a uno dei suoi
@@ -159,7 +177,10 @@ def resolve_achievable(character: str, candidate_race_ids, races: dict, aptitude
     for race_id in sorted(free_slots_by_race, key=priority_key):
         try_augment(race_id, set())
 
-    return guaranteed | set(slot_owner.values())
+    achievable = guaranteed | set(slot_owner.values())
+    if return_slots:
+        return achievable, slot_owner
+    return achievable
 
 
 def base_affinity(char_a: str, char_b: str, name_map: dict,

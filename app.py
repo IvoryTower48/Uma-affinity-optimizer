@@ -20,9 +20,13 @@ import webbrowser
 
 import pdf_export
 
-from config import META_PARENTS, MIN_APTITUDE, app_dir, validate_min_aptitude
+from config import (
+    META_PARENTS, MIN_APTITUDE, app_dir, validate_min_aptitude,
+    validate_independent_training_threshold,
+)
+from independent_training import compute_race_probabilities
 from naming import base_character, resolve_character_input
-from display_names import format_character_name
+from display_names import format_character_name, format_race_name
 from data_loader import (
     load_base_affinity_data, load_aptitudes, load_races,
     load_mandatory_races, load_character_info, build_character_calendar,
@@ -159,6 +163,17 @@ def restrict_to_owned(characters, owned):
     return [c for c in characters if c in owned_set]
 
 
+def independent_training_for(child, mode, it_threshold):
+    """Wrapper di compute_race_probabilities che aggiunge l'etichetta di
+    visualizzazione della gara (display_names.format_race_name) -- il modulo
+    independent_training resta puro/agnostico sul formato testuale, stesso
+    principio per cui affinity.py/cycle_analysis.py non formattano nomi."""
+    entries = compute_race_probabilities(child, races, aptitudes, calendar, mode, it_threshold)
+    for entry in entries:
+        entry["race_label"] = format_race_name(entry["race"])
+    return entries
+
+
 def resolve_targets(name_input, universe):
     """Risolve l'input utente (nome base o variante) a una lista di varianti reali."""
     resolved, candidates = resolve_character_input(name_input, universe)
@@ -274,6 +289,9 @@ def api_top4():
     debug = bool(payload.get("debug", False))
     try:
         min_aptitude = validate_min_aptitude(payload.get("min_aptitude"))
+        it_threshold = validate_independent_training_threshold(
+            payload.get("independent_training_threshold"),
+        )
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     matrix = get_matrix(mode, min_aptitude)
@@ -328,6 +346,12 @@ def api_top4():
             one_hop["all_cycle_races"] = all_cycles_shared_races(
                 one_hop["cycles"], races, resolved_per_member,
             )
+            # Independent training: calcolo AGGIUNTIVO, non sostituisce nulla
+            # sopra (affinita'/bonus restano quelli deterministici gia'
+            # calcolati) -- una probabilita' di vittoria per gara, per il
+            # figlio di ciascuno dei 5 cicli.
+            for cycle in one_hop["cycles"]:
+                cycle["independent_training"] = independent_training_for(cycle["child"], mode, it_threshold)
             result["one_hop"] = one_hop
         else:
             result["one_hop_error"] = (
@@ -572,6 +596,9 @@ def api_rental_loop():
     owned = payload.get("owned", [])
     try:
         min_aptitude = validate_min_aptitude(payload.get("min_aptitude"))
+        it_threshold = validate_independent_training_threshold(
+            payload.get("independent_training_threshold"),
+        )
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     matrix = get_matrix(mode, min_aptitude)
@@ -681,6 +708,12 @@ def api_rental_loop():
     display_members = set(members) | {anchor}
     for row in calendar_matrix:
         row["cells"] = {c: v for c, v in row["cells"].items() if c in display_members}
+
+    # Independent training: calcolo AGGIUNTIVO (vedi stesso commento in
+    # /api/top4), una probabilita' di vittoria per gara per il figlio di
+    # ciascuno dei 3 cicli del rental loop.
+    for cycle in result["cycles"]:
+        cycle["independent_training"] = independent_training_for(cycle["child"], mode, it_threshold)
 
     return jsonify({
         "anchor": anchor, "anchor_gp_a": gp_a, "anchor_gp_b": gp_b,

@@ -4,6 +4,7 @@ const characterSelect = document.getElementById("character-select");
 const calendarSelect = document.getElementById("calendar-select");
 const globalOnlyCheckbox = document.getElementById("global-only-checkbox");
 const minAptitudeSelects = Array.from(document.querySelectorAll(".min-aptitude-select"));
+const independentTrainingThresholdInput = document.getElementById("independent-training-threshold");
 const infoAptitudeTable = document.getElementById("info-aptitude-table");
 // GRADE_ORDER/GRADE_RANK sono dichiarate piu' sotto (gia' esistenti per la logica
 // spark): populateMinAptitudeSelects()/renderMinAptitudeTable() vengono quindi
@@ -88,6 +89,13 @@ const I18N = {
     label_apt_mile: "Mile",
     label_apt_medium: "Medium",
     label_apt_long: "Long",
+    label_it_threshold: "Soglia consigliata independent training (%)",
+    it_section_title: "Independent training — probabilità di vittoria",
+    it_cycle_heading: "Ciclo {cycle} — Figlio: {name}",
+    th_year: "Anno",
+    th_streak: "Posizione in serie",
+    th_win_probability: "Probabilità di vittoria",
+    it_mandatory_badge: "obbligatoria",
     label_owned: "Personaggi posseduti (vuoto = considera tutti)",
     btn_select_all: "Seleziona tutti",
     btn_select_none: "Deseleziona tutti",
@@ -254,6 +262,13 @@ const I18N = {
     label_apt_mile: "Mile",
     label_apt_medium: "Medium",
     label_apt_long: "Long",
+    label_it_threshold: "Independent training recommendation threshold (%)",
+    it_section_title: "Independent training — win probability",
+    it_cycle_heading: "Cycle {cycle} — Child: {name}",
+    th_year: "Year",
+    th_streak: "Streak position",
+    th_win_probability: "Win probability",
+    it_mandatory_badge: "mandatory",
     label_owned: "Owned characters (empty = consider all)",
     btn_select_all: "Select all",
     btn_select_none: "Deselect all",
@@ -769,6 +784,12 @@ function getMinAptitude() {
   const result = {};
   minAptitudeSelects.forEach(select => { result[select.dataset.category] = select.value; });
   return result;
+}
+
+function getIndependentTrainingThreshold() {
+  const value = Number(independentTrainingThresholdInput.value);
+  if (!Number.isFinite(value)) return 80;
+  return Math.max(1, Math.min(100, Math.round(value)));
 }
 
 function renderMinAptitudeTable() {
@@ -1857,6 +1878,60 @@ function renderOneHop(oneHop, container) {
   container.appendChild(
     layoutMode === "classic" ? buildCycleTable(oneHop.cycles) : buildGenealogyCards(oneHop.cycles),
   );
+  buildIndependentTrainingSection(oneHop.cycles, container);
+}
+
+// Independent training (2026-08-10): calcolo AGGIUNTIVO e SEPARATO
+// dall'affinita'/bonus di cui sopra (mai usato per calcolare quelle) -- una
+// tabella per ciclo con la probabilita' REALE di vincere ciascuna gara del
+// figlio (aptitude + fatica da turni consecutivi), invece della soglia
+// binaria si'/no del resto del tool. Riga verde/rossa (CSS, non nuovi colori
+// hardcoded) secondo `recommended` (gia' deciso dal server in base alla
+// soglia corrente), numero esatto sempre visibile in cella.
+function buildIndependentTrainingTable(entries) {
+  const table = document.createElement("table");
+  table.className = "independent-training-table";
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th>${t("th_race")}</th><th>${t("th_year")}</th>
+        <th>${t("th_streak")}</th><th>${t("th_win_probability")}</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  `;
+  const tbody = table.querySelector("tbody");
+  entries.forEach(entry => {
+    const tr = document.createElement("tr");
+    tr.className = entry.recommended ? "it-recommended" : "it-not-recommended";
+    const yearLabel = entry.year != null ? `Y${entry.year}` : "–";
+    const mandatoryBadge = entry.is_mandatory
+      ? ` <span class="it-mandatory-badge">${t("it_mandatory_badge")}</span>` : "";
+    tr.innerHTML = `
+      <td>${entry.race_label}${mandatoryBadge}</td>
+      <td>${yearLabel}</td>
+      <td>${entry.streak_position}</td>
+      <td><strong>${Math.round(entry.probability)}%</strong></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  return table;
+}
+
+function buildIndependentTrainingSection(cycles, container) {
+  if (!cycles.some(c => c.independent_training)) return null;
+  const details = makeCollapsibleSection(t("it_section_title"), container);
+  details.classList.add("independent-training-section");
+  details.open = true;
+  cycles.forEach((cycle, i) => {
+    if (!cycle.independent_training) return;
+    const heading = document.createElement("p");
+    heading.className = "spark-cycle-title";
+    heading.textContent = t("it_cycle_heading", { cycle: i + 1, name: formatCharacterName(cycle.child) });
+    details.appendChild(heading);
+    details.appendChild(buildIndependentTrainingTable(cycle.independent_training));
+  });
+  return details;
 }
 
 // --- Timeline delle carriere: gestione a schede (2026-07-30) -------------
@@ -2242,6 +2317,7 @@ function renderRentalResult(data) {
   results.appendChild(
     layoutMode === "classic" ? buildCycleTable(data.cycles) : buildGenealogyCards(data.cycles),
   );
+  buildIndependentTrainingSection(data.cycles, results);
 
   const hasSingle = data.gp_suggestions && data.gp_suggestions.length;
   const hasPairs = data.gp_pair_suggestions && data.gp_pair_suggestions.length;
@@ -2280,6 +2356,7 @@ async function runQuery() {
   const globalOnly = globalOnlyCheckbox.checked;
   const owned = getOwnedSelection();
   const minAptitude = getMinAptitude();
+  const itThreshold = getIndependentTrainingThreshold();
   results.innerHTML = `<p class="placeholder">${t("calc_in_progress")}</p>`;
 
   try {
@@ -2291,6 +2368,7 @@ async function runQuery() {
         body: JSON.stringify({
           character, mode: calendarMode, global_only: globalOnly, owned,
           min_aptitude: minAptitude, debug: debugCheckbox.checked,
+          independent_training_threshold: itThreshold,
         }),
       });
       const data = await resp.json();
@@ -2318,6 +2396,7 @@ async function runQuery() {
           anchor: rentalAnchorSelect.value,
           anchor_gp_a: rentalGpASelect.value, anchor_gp_b: rentalGpBSelect.value,
           fixed_members: getRentalFixedMembers(),
+          independent_training_threshold: itThreshold,
         }),
       });
       const data = await resp.json();

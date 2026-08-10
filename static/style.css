@@ -1067,6 +1067,47 @@ details.collapsible-list summary {
   margin-bottom: 0.4rem;
 }
 
+.independent-training-threshold-field {
+  margin-top: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.independent-training-threshold-field input {
+  width: 4.5rem;
+}
+
+.independent-training-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0.8rem;
+}
+
+.independent-training-table th, .independent-training-table td {
+  padding: 0.25rem 0.5rem;
+  text-align: left;
+}
+
+/* Solo due colori (nessuna fascia fine per ogni 10%, scelta esplicita
+   dell'utente): il numero esatto e' sempre visibile in cella, il colore
+   comunica solo "consigliata sì/no" rispetto alla soglia corrente. */
+.it-recommended {
+  background: var(--secondary-soft-bg);
+}
+
+.it-not-recommended {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+.it-mandatory-badge {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 .spark-aptitude-preview {
   font-size: var(--fs-sm);
   color: var(--text-muted);
