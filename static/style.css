@@ -1358,6 +1358,12 @@ details.collapsible-list summary {
 }
 
 .info-popover-panel {
+  /* display:none (non visibility/opacity): un box invisibile ma
+     position:absolute conterebbe comunque nello scrollable-overflow del
+     contenitore (es. #results, overflow-x:auto) anche da chiuso -- con
+     decine di popover genealogici questo faceva apparire barre di scorrimento
+     permanenti. display:none lo rimuove del tutto dal calcolo finche' non è
+     davvero mostrato (costo: nessuna transizione di opacita', trascurabile). */
   position: absolute;
   top: calc(100% + 0.5rem);
   left: 0;
@@ -1370,17 +1376,46 @@ details.collapsible-list summary {
   font-size: var(--fs-xs);
   color: var(--text-muted);
   z-index: 20;
-  visibility: hidden;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.1s;
+  display: none;
 }
 
 .info-popover:hover .info-popover-panel,
 .info-popover:focus-within .info-popover-panel {
-  visibility: visible;
-  opacity: 1;
-  pointer-events: auto;
+  display: block;
+}
+
+/* Popover di ispirazione: position:fixed invece di absolute, coordinate
+   impostate via JS (positionInspirationPopover in script.js) sul
+   getBoundingClientRect() dell'icona al hover, sempre clampate dentro il
+   viewport -- stesso comportamento robusto del tooltip nativo (title) gia'
+   usato per il dettaglio dell'affinita' individuale: mai clippato da un
+   antenato con overflow:hidden/auto (esce anche dal bordo della card), mai
+   responsabile di barre di scorrimento (non puo' mai eccedere il viewport,
+   le coordinate sono clampate). width:max-content invece di una larghezza
+   fissa: si adatta al contenuto reale (etichette + percentuali corte). */
+.info-popover-panel-inspiration {
+  position: fixed;
+  top: auto;
+  left: auto;
+  width: max-content;
+  max-width: min(260px, calc(100vw - 16px));
+  z-index: 1000;
+}
+
+.info-inspiration-table {
+  font-size: 0.62rem;
+}
+
+/* Sovrascrive '#results table td, #results table th { overflow-wrap:
+   break-word; word-break: break-word; }' (pensato per tabelle larghe con
+   nomi lunghi) -- qui il contenuto e' gia' corto (etichette spark,
+   percentuali): niente a capo forzato a meta' parola, il popup si allarga
+   per il contenuto invece di spezzarlo (bug segnalato dall'utente). */
+.info-inspiration-table th, .info-inspiration-table td {
+  overflow-wrap: normal;
+  word-break: normal;
+  white-space: nowrap;
+  padding: 0.05rem 0.4rem;
 }
 
 .info-popover-panel p {
@@ -1395,6 +1430,52 @@ details.collapsible-list summary {
 .info-aptitude-table td {
   padding: 0.1rem 0;
   color: var(--text);
+}
+
+.info-inspiration-table th, .info-inspiration-table td {
+  text-align: right;
+  padding: 0.1rem 0.3rem;
+}
+
+.info-inspiration-table th:first-child, .info-inspiration-table td:first-child {
+  text-align: left;
+  padding-left: 0;
+}
+
+.info-popover-inline {
+  vertical-align: middle;
+}
+
+.info-icon-sm {
+  width: 0.8rem;
+  height: 0.8rem;
+  font-size: 0.55rem;
+  margin-left: 0.2rem;
+}
+
+.genealogy-node-ia {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.section-heading-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.section-heading-row h2, .section-heading-row h3 {
+  margin: 0;
+}
+
+.inspiration-legend {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 .info-aptitude-table td:last-child {

@@ -74,6 +74,26 @@ def combined_chance(chances_percent: list) -> float:
     return (1 - product) * 100
 
 
+def inspiration_table(base_rates: dict, individual_affinity: float) -> dict:
+    """
+    Tabella categoria -> stelle (str) -> probabilita' (%, 0-100) di ereditare
+    quella spark ALMENO UNA VOLTA sui 2 eventi di Inspiration in carriera
+    (eventi indipendenti, vedi combined_chance). Ogni evento singolo viene
+    cappato al 100% PRIMA di combinare i due eventi: altrimenti, con
+    un'Affinita' alta su un tasso base gia' alto (es. blue a 3 stelle), il
+    singolo evento supererebbe 100% e la formula "almeno una volta" darebbe
+    un risultato piu' BASSO del singolo evento (matematicamente assurdo per
+    una probabilita').
+    """
+    table = {}
+    for category in base_rates:
+        table[category] = {}
+        for stars_key in ("1", "2", "3"):
+            p = min(inspiration_chance(base_rates, category, int(stars_key), individual_affinity), 100.0)
+            table[category][stars_key] = combined_chance([p, p])
+    return table
+
+
 def validate_base_rates(payload_dict: dict) -> dict:
     """
     Merge di un dict parziale (es. da un payload JSON) sopra i default,
@@ -94,3 +114,25 @@ def validate_base_rates(payload_dict: dict) -> dict:
                 raise ValueError(f"Tasso non valido per {cat} {star_key}: {rate}")
             merged[cat][star_key] = rate
     return merged
+
+
+if __name__ == "__main__":
+    # Self-check: 0 affinita' -> tasso base invariato; capping al 100% prima
+    # di combinare i 2 eventi (altrimenti risultato assurdo, piu' basso del
+    # singolo evento); simmetria con combined_chance su valori noti.
+    zero_ia = inspiration_table(DEFAULT_BASE_RATES, 0)
+    assert zero_ia["pink"]["1"] == combined_chance([1, 1])
+
+    # blue 3 stelle (base 90) con affinita' 50 -> singolo evento 135%, cappato
+    # a 100% prima di combinare: il risultato finale deve restare 100%, non
+    # scendere sotto (1 - (1 - 1.35)^2) = -122.75% che sarebbe assurdo.
+    capped = inspiration_table(DEFAULT_BASE_RATES, 50)
+    assert capped["blue"]["3"] == 100.0
+
+    # affinita' alta ma non abbastanza da far scattare il cap: deve combaciare
+    # con la formula "almeno una volta" calcolata a mano.
+    normal = inspiration_table(DEFAULT_BASE_RATES, 100)
+    p = inspiration_chance(DEFAULT_BASE_RATES, "white", 2, 100)
+    assert abs(normal["white"]["2"] - combined_chance([p, p])) < 1e-9
+
+    print("inspiration.py: self-check OK")

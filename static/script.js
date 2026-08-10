@@ -132,6 +132,13 @@ const I18N = {
     info_aptitude_title: "Quando una gara è vincibile?",
     info_aptitude_text: "Vincibile solo se l'aptitude soddisfa ENTRAMBE le soglie minime (superficie e distanza):",
     info_aptitude_note: "Voto minimo o migliore (scala S migliore di A, ..., G peggiore).",
+    info_inspiration_title: "Probabilità di ispirazione",
+    info_inspiration_text: "i = % di ereditare una spark almeno una volta (2 eventi di Inspiration in carriera), secondo l'Affinità Individuale",
+    spark_color_blue: "Blu",
+    spark_color_pink: "Rosa",
+    spark_color_green: "Verde",
+    spark_color_white: "Bianca",
+    spark_color_race: "Gara",
 
     table_header_character: "Personaggio",
     table_header_value: "Valore",
@@ -291,6 +298,13 @@ const I18N = {
     info_aptitude_title: "When is a race winnable?",
     info_aptitude_text: "Winnable only if aptitude meets BOTH minimum thresholds (surface and distance):",
     info_aptitude_note: "Minimum grade or better (scale: S best, ..., G worst).",
+    info_inspiration_title: "Inspiration chance",
+    info_inspiration_text: "i = % of inheriting a spark at least once (2 Inspiration events per career), based on Individual Affinity",
+    spark_color_blue: "Blue",
+    spark_color_pink: "Pink",
+    spark_color_green: "Green",
+    spark_color_white: "White",
+    spark_color_race: "Race",
 
     table_header_character: "Character",
     table_header_value: "Value",
@@ -1033,7 +1047,7 @@ function formatBreakdownTooltip(terms) {
 function characterWithAffinity(name, value, breakdownTerms) {
   if (name == null) return `<span class="affinity-unknown">${t("unknown_ancestor")}</span>`;
   const tooltip = formatBreakdownTooltip(breakdownTerms);
-  return `${formatCharacterName(name)} (<span class="affinity-value" title="${tooltip}">${value}</span>)`;
+  return `${formatCharacterName(name)} (<span class="affinity-value" title="${tooltip}">${value}</span>${buildInspirationPopover(value)})`;
 }
 
 function renderFirstCycleRaces(firstCycleRaces, container = results) {
@@ -1097,6 +1111,125 @@ function applyPinkSparksJs(baseAptitudes, starsByCategory) {
   }
   return result;
 }
+
+// Porting puro di inspiration.py (stessa formula, stesso cap al 100% prima
+// di combinare i 2 eventi di Inspiration in carriera) -- usato SOLO per il
+// popover informativo sui nodi genitore/nonno: nessun input utente, l'unico
+// dato che varia e' l'Individual Affinity gia' presente nel payload del
+// server (pura/rientrante, aggiorna da sola quando cambia il risultato
+// mostrato, incluso dopo un piano spark).
+const INSPIRATION_BASE_RATES = {
+  blue: { 1: 70, 2: 80, 3: 90 },
+  pink: { 1: 1, 2: 3, 3: 5 },
+  green: { 1: 5, 2: 10, 3: 15 },
+  white: { 1: 3, 2: 6, 3: 9 },
+  race: { 1: 1, 2: 2, 3: 3 },
+};
+const INSPIRATION_CATEGORY_ORDER = ["blue", "pink", "green", "white", "race"];
+
+function inspirationChanceJs(category, stars, individualAffinity) {
+  return INSPIRATION_BASE_RATES[category][stars] * (1 + individualAffinity / 100);
+}
+
+function combinedChanceJs(chancesPercent) {
+  const product = chancesPercent.reduce((acc, p) => acc * (1 - p / 100), 1);
+  return (1 - product) * 100;
+}
+
+function inspirationTableJs(individualAffinity) {
+  const table = {};
+  INSPIRATION_CATEGORY_ORDER.forEach(category => {
+    table[category] = {};
+    [1, 2, 3].forEach(stars => {
+      const p = Math.min(inspirationChanceJs(category, stars, individualAffinity), 100);
+      table[category][stars] = combinedChanceJs([p, p]);
+    });
+  });
+  return table;
+}
+
+// Popover "i" riusato dal pattern gia' esistente (.info-popover/.info-icon/
+// .info-popover-panel, vedi index.html per la soglia aptitude) -- qui
+// costruito come stringa HTML perche' va inserito sia in nodi DOM (layout
+// moderno, buildGenealogyNode) sia in celle di tabella costruite via
+// innerHTML (layout classico, characterWithAffinity): il CSS hover funziona
+// identico in entrambi i casi, nessun event listener da agganciare.
+function buildInspirationPopover(individualAffinity) {
+  const table = inspirationTableJs(individualAffinity);
+  const rows = INSPIRATION_CATEGORY_ORDER.map(category => `
+    <tr>
+      <td>${t(`spark_color_${category}`)}</td>
+      <td>${table[category][1].toFixed(2)}%</td>
+      <td>${table[category][2].toFixed(2)}%</td>
+      <td>${table[category][3].toFixed(2)}%</td>
+    </tr>
+  `).join("");
+  // Niente testo introduttivo qui (spiegato una sola volta dalla legenda
+  // "i = ..." accanto al titolo della sezione, vedi buildInspirationLegend):
+  // popup piu' piccolo, meno rischio di eccedere i margini del contenitore.
+  return `
+    <span class="info-popover info-popover-inline">
+      <button type="button" class="info-icon info-icon-sm" title="${t("info_inspiration_title")}">i</button>
+      <span class="info-popover-panel info-popover-panel-inspiration">
+        <table class="info-aptitude-table info-inspiration-table">
+          <thead><tr><th></th><th>1★</th><th>2★</th><th>3★</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </span>
+    </span>
+  `;
+}
+
+// Etichetta statica e sempre visibile (niente hover) accanto al titolo di
+// ogni sezione che mostra nodi genitore/nonno con popover di ispirazione --
+// sostituisce il testo lungo che prima stava dentro OGNI singolo popup
+// (spiegato una volta sola qui, popup ridotti alla sola tabella numerica).
+function buildInspirationLegend() {
+  // <span> (non <p>): deve poter stare sulla stessa riga del titolo sia
+  // dentro un <summary> nativo (contenuto fraseggiato, un blocco lo
+  // spezzerebbe su una riga nuova) sia dentro .section-heading-row (flex).
+  const span = document.createElement("span");
+  span.className = "inspiration-legend";
+  span.textContent = t("info_inspiration_text");
+  return span;
+}
+
+// Il popover di ispirazione e' position:fixed (vedi .info-popover-panel-inspiration
+// in style.css): le coordinate non seguono automaticamente l'icona come con
+// position:absolute, vanno calcolate qui ad ogni hover sul getBoundingClientRect()
+// dell'icona e clampate dentro il viewport -- garantisce che non esca MAI dallo
+// schermo (ne' a destra ne' in basso), quindi non puo' mai causare barre di
+// scorrimento ne' venire clippato da un antenato con overflow:hidden/auto.
+// Delega su document (mouseover/focusin, capture) invece di un listener per
+// icona: funziona anche per i popover creati dopo la prima ricerca, senza
+// dover reagganciare nulla a ogni render.
+function positionInspirationPopover(event) {
+  const icon = event.target.closest(".info-popover-inline > .info-icon");
+  if (!icon) return;
+  const panel = icon.nextElementSibling;
+  if (!panel || !panel.classList.contains("info-popover-panel-inspiration")) return;
+  const margin = 8;
+  const iconRect = icon.getBoundingClientRect();
+  // offsetWidth/Height: il browser applica lo stato :hover (quindi
+  // display:block sul pannello) PRIMA di eseguire i listener su questo
+  // stesso evento, quindi qui il pannello e' gia' quello vero (width:max-content).
+  const panelWidth = panel.offsetWidth || 200;
+  const panelHeight = panel.offsetHeight || 120;
+
+  let left = Math.min(iconRect.left, window.innerWidth - margin - panelWidth);
+  left = Math.max(margin, left);
+
+  let top = iconRect.bottom + 6;
+  if (top + panelHeight > window.innerHeight - margin) {
+    top = iconRect.top - panelHeight - 6;  // niente spazio sotto: apri sopra l'icona
+  }
+  top = Math.max(margin, top);
+
+  panel.style.left = `${left}px`;
+  panel.style.top = `${top}px`;
+}
+document.addEventListener("mouseover", positionInspirationPopover, true);
+document.addEventListener("focusin", positionInspirationPopover, true);
 
 function buildSparkCategorySelect() {
   const select = document.createElement("select");
@@ -1531,6 +1664,11 @@ function renderPinkSparkPanel(oneHop, target, groupAptitudes, calendarMatrix, co
   panel.open = true;
   const summary = document.createElement("summary");
   summary.textContent = t("spark_panel_title");
+  // niente .section-heading-row qui: <summary> e' display:list-item nativo
+  // (marker/triangolo di <details>), un flex lo romperebbe -- la legenda
+  // resta contenuto fraseggiato in coda, stessa riga se c'e' spazio.
+  summary.appendChild(document.createTextNode(" "));
+  summary.appendChild(buildInspirationLegend());
   panel.appendChild(summary);
 
   const modeA = document.createElement("details");
@@ -1639,7 +1777,7 @@ function buildGenealogyNode(character, ia, breakdownTerms) {
   if (ia !== undefined) {
     const iaEl = document.createElement("div");
     iaEl.className = "genealogy-node-ia";
-    iaEl.textContent = ia;
+    iaEl.innerHTML = `${ia}${buildInspirationPopover(ia)}`;
     node.appendChild(iaEl);
   }
   return node;
@@ -1709,9 +1847,13 @@ function buildGenealogyCards(cycles) {
 }
 
 function renderOneHop(oneHop, container) {
+  const headingRow = document.createElement("div");
+  headingRow.className = "section-heading-row";
   const h3 = document.createElement("h3");
   h3.textContent = t("one_hop_heading");
-  container.appendChild(h3);
+  headingRow.appendChild(h3);
+  headingRow.appendChild(buildInspirationLegend());
+  container.appendChild(headingRow);
   container.appendChild(
     layoutMode === "classic" ? buildCycleTable(oneHop.cycles) : buildGenealogyCards(oneHop.cycles),
   );
@@ -2077,9 +2219,13 @@ function renderRentalResult(data) {
   disablePdfButton();  // il rental loop non produce la struttura richiesta dal PDF (fuori scope)
   results.innerHTML = renderWarning(data.warning);
 
+  const headingRow = document.createElement("div");
+  headingRow.className = "section-heading-row";
   const h2 = document.createElement("h2");
   h2.textContent = t("rental_heading", { name: formatCharacterName(data.anchor) });
-  results.appendChild(h2);
+  headingRow.appendChild(h2);
+  headingRow.appendChild(buildInspirationLegend());
+  results.appendChild(headingRow);
 
   if (!data.gp_known) {
     const note = document.createElement("p");
