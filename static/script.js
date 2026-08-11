@@ -89,7 +89,8 @@ const I18N = {
     label_apt_mile: "Mile",
     label_apt_medium: "Medium",
     label_apt_long: "Long",
-    label_it_threshold: "Soglia consigliata independent training (%)",
+    label_character_variant: "Variante",
+    label_it_threshold: "Soglia consigliata independent training:",
     it_section_title: "Independent training — probabilità di vittoria",
     it_cycle_heading: "Ciclo {cycle} — Figlio: {name}",
     th_year: "Anno",
@@ -262,7 +263,8 @@ const I18N = {
     label_apt_mile: "Mile",
     label_apt_medium: "Medium",
     label_apt_long: "Long",
-    label_it_threshold: "Independent training recommendation threshold (%)",
+    label_character_variant: "Variant",
+    label_it_threshold: "Independent training recommendation threshold:",
     it_section_title: "Independent training — win probability",
     it_cycle_heading: "Cycle {cycle} — Child: {name}",
     th_year: "Year",
@@ -853,6 +855,7 @@ function renderCharacterSelect() {
     characterSelect.appendChild(opt);
   });
   characterSelect.value = current;  // se 'current' non e' piu' disponibile, si sceglie il primo
+  buildAptitudeOverridePanel();
 }
 
 function getMustInclude() {
@@ -1110,6 +1113,147 @@ const GRADE_RANK = Object.fromEntries(GRADE_ORDER.map((g, i) => [g, i]));
 populateMinAptitudeSelects();
 renderMinAptitudeTable();
 minAptitudeSelects.forEach(select => select.addEventListener("change", renderMinAptitudeTable));
+
+const APTITUDE_CATEGORIES = ["turf", "dirt", "sprint", "mile", "medium", "long"];
+
+// Override temporaneo (mai persistito, mai incluso in salvataggio/ripristino
+// JSON) delle aptitude del SOLO personaggio selezionato in Top-4 -- diverso
+// dal piano pink spark v3 (per posizione nel ciclo, sull'intero loop): qui
+// riguarda un singolo personaggio, editabile solo in meglio e mai oltre 'A'
+// (stesso tetto del piano spark).
+//
+// Un nome base puo' avere piu' varianti (es. Oguri Cap): SOLO UNA alla
+// volta va davvero eseguita (mai entrambe, mai una scelta arbitraria e
+// silenziosa dal server) -- se le varianti disponibili (dopo il filtro
+// Global, se attivo) hanno aptitude DIVERSE in almeno una delle 6 mostrate
+// (quelle che contano per le gare, non lo stile di corsa), si mostra un
+// selettore esplicito e l'utente scegie quale usare; altrimenti (una sola
+// variante disponibile, o piu' varianti ma aptitude-equivalenti per le
+// gare) si usa senza chiedere nulla. getResolvedCharacter() e' la fonte di
+// verita' su QUALE id esatto verra' davvero inviato al server.
+function selectedVariantsForBase(baseName) {
+  const globalOnly = globalOnlyCheckbox.checked;
+  return allCharactersData
+    .filter(c => c.base === baseName && (!globalOnly || !!c.global_release_date))
+    .sort((a, b) => a.character.localeCompare(b.character));
+}
+
+function raceAptitudesDiffer(variants) {
+  if (variants.length < 2) return false;
+  const first = variants[0].aptitudes || {};
+  return variants.some(v => {
+    const apt = v.aptitudes || {};
+    return APTITUDE_CATEGORIES.some(cat => apt[cat] !== first[cat]);
+  });
+}
+
+function getResolvedCharacter() {
+  const variantSelect = document.getElementById("character-variant-select");
+  if (variantSelect) return variantSelect.value;
+  const variants = selectedVariantsForBase(characterSelect.value);
+  return variants.length ? variants[0].character : characterSelect.value;
+}
+
+function buildAptitudeBlock(variant) {
+  const block = document.createElement("div");
+  block.className = "aptitude-override-block";
+  block.dataset.character = variant.character;
+
+  const grid = document.createElement("div");
+  grid.className = "aptitude-override-grid";
+  APTITUDE_CATEGORIES.forEach(category => {
+    const baseGrade = (variant.aptitudes || {})[category];
+    if (!baseGrade) return;
+    const row = document.createElement("div");
+    row.className = "aptitude-override-row";
+    const label = document.createElement("span");
+    label.textContent = t(`label_apt_${category}`);
+    row.appendChild(label);
+
+    if (GRADE_RANK[baseGrade] <= GRADE_RANK["A"]) {
+      // gia' 'A' (o 'S'): nessun margine di miglioramento, testo statico.
+      const value = document.createElement("span");
+      value.className = "aptitude-override-static";
+      value.textContent = baseGrade;
+      row.appendChild(value);
+    } else {
+      const select = document.createElement("select");
+      select.className = "aptitude-override-select";
+      select.dataset.category = category;
+      select.dataset.baseGrade = baseGrade;
+      for (let i = GRADE_RANK[baseGrade]; i >= GRADE_RANK["A"]; i--) {
+        const opt = document.createElement("option");
+        opt.value = GRADE_ORDER[i];
+        opt.textContent = GRADE_ORDER[i];
+        select.appendChild(opt);
+      }
+      select.value = baseGrade;
+      row.appendChild(select);
+    }
+    grid.appendChild(row);
+  });
+  block.appendChild(grid);
+  return block;
+}
+
+// Ricostruisce SOLO il blocco aptitude (non il selettore variante) in base
+// al personaggio attualmente risolto -- cosi' cambiare la variante nel
+// selettore non lo ricostruisce da capo (che ne resetterebbe il valore
+// appena scelto al default, bug preso durante il testing).
+function refreshAptitudeBlockForVariant(container, variants) {
+  const existing = container.querySelector(".aptitude-override-block");
+  if (existing) existing.remove();
+  const resolvedCharacter = getResolvedCharacter();
+  const variant = variants.find(v => v.character === resolvedCharacter) || variants[0];
+  container.appendChild(buildAptitudeBlock(variant));
+}
+
+function buildAptitudeOverridePanel() {
+  const container = document.getElementById("aptitude-override-panel");
+  if (!container) return;
+  container.innerHTML = "";
+  const selectedBase = characterSelect.value;
+  if (!selectedBase) return;
+
+  const variants = selectedVariantsForBase(selectedBase);
+  if (!variants.length) return;  // tutte le varianti escluse dal filtro Global
+
+  if (raceAptitudesDiffer(variants)) {
+    const pickerRow = document.createElement("div");
+    pickerRow.className = "character-variant-row";
+    const label = document.createElement("label");
+    label.setAttribute("for", "character-variant-select");
+    label.textContent = t("label_character_variant");
+    pickerRow.appendChild(label);
+    const select = document.createElement("select");
+    select.id = "character-variant-select";
+    variants.forEach(v => {
+      const opt = document.createElement("option");
+      opt.value = v.character;
+      opt.textContent = formatCharacterName(v.character);
+      select.appendChild(opt);
+    });
+    select.addEventListener("change", () => refreshAptitudeBlockForVariant(container, variants));
+    pickerRow.appendChild(select);
+    container.appendChild(pickerRow);
+  }
+
+  refreshAptitudeBlockForVariant(container, variants);
+}
+
+function getAptitudeOverride() {
+  const override = {};
+  document.querySelectorAll("#aptitude-override-panel .aptitude-override-block").forEach(block => {
+    const changes = {};
+    block.querySelectorAll(".aptitude-override-select").forEach(select => {
+      if (select.value !== select.dataset.baseGrade) changes[select.dataset.category] = select.value;
+    });
+    if (Object.keys(changes).length) override[block.dataset.character] = changes;
+  });
+  return override;
+}
+
+characterSelect.addEventListener("change", buildAptitudeOverridePanel);
 
 function starsToLevelsJs(totalStars) {
   if (totalStars >= 10) return 4;
@@ -1922,14 +2066,18 @@ function buildIndependentTrainingSection(cycles, container) {
   if (!cycles.some(c => c.independent_training)) return null;
   const details = makeCollapsibleSection(t("it_section_title"), container);
   details.classList.add("independent-training-section");
-  details.open = true;
+  details.open = true;  // sezione esterna aperta di default...
   cycles.forEach((cycle, i) => {
     if (!cycle.independent_training) return;
-    const heading = document.createElement("p");
-    heading.className = "spark-cycle-title";
-    heading.textContent = t("it_cycle_heading", { cycle: i + 1, name: formatCharacterName(cycle.child) });
-    details.appendChild(heading);
-    details.appendChild(buildIndependentTrainingTable(cycle.independent_training));
+    // ...ma ogni singolo ciclo collassato di default (details.open = false,
+    // default nativo): con 5 cicli x ~25-30 righe ciascuno la tabella
+    // intera sarebbe troppo lunga da scorrere, meglio aprirne uno alla volta.
+    const cycleDetails = makeCollapsibleSection(
+      t("it_cycle_heading", { cycle: i + 1, name: formatCharacterName(cycle.child) }),
+      details,
+    );
+    cycleDetails.classList.add("independent-training-cycle");
+    cycleDetails.appendChild(buildIndependentTrainingTable(cycle.independent_training));
   });
   return details;
 }
@@ -2361,7 +2509,11 @@ async function runQuery() {
 
   try {
     if (mode === "top4") {
-      const character = characterSelect.value;
+      // ID esatto della variante risolta (mai il nome base, che il server
+      // potrebbe risolvere ad ambiguita' su piu' varianti -- vedi
+      // getResolvedCharacter/buildAptitudeOverridePanel): garantisce che
+      // venga eseguita SOLO la variante scelta dall'utente, mai entrambe.
+      const character = getResolvedCharacter();
       const resp = await fetch("/api/top4", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -2369,6 +2521,7 @@ async function runQuery() {
           character, mode: calendarMode, global_only: globalOnly, owned,
           min_aptitude: minAptitude, debug: debugCheckbox.checked,
           independent_training_threshold: itThreshold,
+          aptitude_override: getAptitudeOverride(),
         }),
       });
       const data = await resp.json();
@@ -2588,6 +2741,7 @@ async function restoreFromSave(save) {
   savePersistedSettings();
 
   if (controls.character) characterSelect.value = controls.character;
+  buildAptitudeOverridePanel();  // override mai salvato/ripristinato (temporaneo per definizione): riparte vuoto per il personaggio ripristinato
   if (Array.isArray(controls.must_include)) {
     controls.must_include.forEach((name, i) => {
       if (mustIncludeSelects[i]) mustIncludeSelects[i].value = name;

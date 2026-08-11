@@ -22,7 +22,7 @@ import pdf_export
 
 from config import (
     META_PARENTS, MIN_APTITUDE, app_dir, validate_min_aptitude,
-    validate_independent_training_threshold,
+    validate_independent_training_threshold, validate_aptitude_override,
 )
 from independent_training import compute_race_probabilities
 from naming import base_character, resolve_character_input
@@ -34,7 +34,7 @@ from data_loader import (
 )
 from loop_search import (
     build_score_matrix, top_n_by_field, best_loop, shortlist_candidates,
-    best_loop_with_fixed, shortlist_candidates_for_fixed,
+    best_loop_with_fixed, shortlist_candidates_for_fixed, recompute_character_row,
 )
 from cycle_analysis import (
     one_hop_exploration, first_cycle_shared_races, all_cycles_shared_races,
@@ -163,12 +163,18 @@ def restrict_to_owned(characters, owned):
     return [c for c in characters if c in owned_set]
 
 
-def independent_training_for(child, mode, it_threshold):
+def independent_training_for(child, mode, it_threshold, aptitudes_source=None):
     """Wrapper di compute_race_probabilities che aggiunge l'etichetta di
     visualizzazione della gara (display_names.format_race_name) -- il modulo
     independent_training resta puro/agnostico sul formato testuale, stesso
-    principio per cui affinity.py/cycle_analysis.py non formattano nomi."""
-    entries = compute_race_probabilities(child, races, aptitudes, calendar, mode, it_threshold)
+    principio per cui affinity.py/cycle_analysis.py non formattano nomi.
+    aptitudes_source: dict alternativo (es. con l'override temporaneo del
+    personaggio selezionato in Top-4 applicato) -- default il dict globale
+    caricato all'avvio, se non specificato."""
+    entries = compute_race_probabilities(
+        child, races, aptitudes_source if aptitudes_source is not None else aptitudes,
+        calendar, mode, it_threshold,
+    )
     for entry in entries:
         entry["race_label"] = format_race_name(entry["race"])
     return entries
@@ -273,6 +279,7 @@ def api_characters():
             "character": c,
             "base": base_character(c),
             "global_release_date": (releases.get(c) or {}).get("global_release_date"),
+            "aptitudes": aptitudes.get(c, {}),
         }
         for c in ALL_CHARACTERS
     ]
@@ -287,6 +294,7 @@ def api_top4():
     global_only = bool(payload.get("global_only", False))
     owned = payload.get("owned", [])
     debug = bool(payload.get("debug", False))
+    aptitude_override_by_character = payload.get("aptitude_override") or {}
     try:
         min_aptitude = validate_min_aptitude(payload.get("min_aptitude"))
         it_threshold = validate_independent_training_threshold(
@@ -309,11 +317,36 @@ def api_top4():
 
     results = []
     for target in targets:
-        top4 = top_n_by_field(target, candidate_pool, matrix, n=4)
+        # Override temporaneo (mai persistito) delle aptitude del SOLO
+        # target -- "una volta selezionato il personaggio" in Top-4, diverso
+        # dal piano pink spark v3 (per posizione nel ciclo, su tutto il
+        # loop). Ricalcola SOLO la riga di matrice di questo personaggio
+        # (recompute_character_row), non l'intera matrice globale condivisa
+        # tra tutte le richieste, che resta invariata per le altre coppie.
+        try:
+            target_aptitude_values = validate_aptitude_override(
+                aptitudes.get(target, {}), aptitude_override_by_character.get(target),
+            )
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        if target_aptitude_values != aptitudes.get(target, {}):
+            target_aptitudes = {**aptitudes, target: target_aptitude_values}
+            target_matrix = {
+                **matrix,
+                **recompute_character_row(
+                    target, candidate_pool, name_map, character_ids, id_weights,
+                    calendar, races, target_aptitudes, min_aptitude, mode,
+                ),
+            }
+        else:
+            target_aptitudes = aptitudes
+            target_matrix = matrix
+
+        top4 = top_n_by_field(target, candidate_pool, target_matrix, n=4)
         entries = []
         for other, score in top4:
             key = (target, other) if target < other else (other, target)
-            detail = matrix[key]
+            detail = target_matrix[key]
             entries.append({
                 "character": other,
                 "total": detail["total"],
@@ -331,13 +364,13 @@ def api_top4():
         if len(entries) == 4:
             group_members = [target] + [e["character"] for e in entries]
             result["calendar_matrix"] = build_calendar_matrix(
-                group_members, races, aptitudes, calendar, mode, min_aptitude,
+                group_members, races, target_aptitudes, calendar, mode, min_aptitude,
             )
-            result["group_aptitudes"] = {m: aptitudes[m] for m in group_members}
+            result["group_aptitudes"] = {m: target_aptitudes[m] for m in group_members}
             one_hop = one_hop_exploration(
-                target, [e["character"] for e in entries], matrix,
+                target, [e["character"] for e in entries], target_matrix,
                 name_map, character_ids, id_weights,
-                calendar, races, aptitudes, mode, min_aptitude,
+                calendar, races, target_aptitudes, mode, min_aptitude,
             )
             resolved_per_member = one_hop.pop("_resolved_per_member")
             one_hop["first_cycle_races"] = first_cycle_shared_races(
@@ -351,7 +384,9 @@ def api_top4():
             # calcolati) -- una probabilita' di vittoria per gara, per il
             # figlio di ciascuno dei 5 cicli.
             for cycle in one_hop["cycles"]:
-                cycle["independent_training"] = independent_training_for(cycle["child"], mode, it_threshold)
+                cycle["independent_training"] = independent_training_for(
+                    cycle["child"], mode, it_threshold, target_aptitudes,
+                )
             result["one_hop"] = one_hop
         else:
             result["one_hop_error"] = (
@@ -362,9 +397,9 @@ def api_top4():
         # modalita' debug: SOLO le liste top-10 aggiuntive restano dietro il
         # flag (dettaglio diagnostico, non serve al piano spark).
         if debug:
-            top10_base = top_n_by_field(target, candidate_pool, matrix, "base", n=10)
-            top10_race = top_n_by_field(target, candidate_pool, matrix, "race", n=10)
-            top10_total = top_n_by_field(target, candidate_pool, matrix, "total", n=10)
+            top10_base = top_n_by_field(target, candidate_pool, target_matrix, "base", n=10)
+            top10_race = top_n_by_field(target, candidate_pool, target_matrix, "race", n=10)
+            top10_total = top_n_by_field(target, candidate_pool, target_matrix, "total", n=10)
             result["top10_base"] = [
                 {"character": c, "value": v} for c, v in top10_base
             ]
@@ -374,8 +409,8 @@ def api_top4():
             result["top10_total"] = [
                 {
                     "character": c,
-                    "base": matrix[(target, c) if target < c else (c, target)]["base"],
-                    "race": matrix[(target, c) if target < c else (c, target)]["race"],
+                    "base": target_matrix[(target, c) if target < c else (c, target)]["base"],
+                    "race": target_matrix[(target, c) if target < c else (c, target)]["race"],
                     "value": v,
                 }
                 for c, v in top10_total

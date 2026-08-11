@@ -549,6 +549,61 @@ button:disabled {
   text-align: center;
 }
 
+#aptitude-override-panel {
+  margin-top: 0.6rem;
+}
+
+#aptitude-override-panel:empty {
+  display: none;
+}
+
+.aptitude-override-block {
+  margin-top: 0.4rem;
+}
+
+.character-variant-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+.character-variant-row label {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.aptitude-override-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.aptitude-override-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.aptitude-override-row > span:first-child {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.aptitude-override-static {
+  width: 3.6rem;
+  text-align: center;
+  font-weight: 700;
+}
+
+.aptitude-override-select {
+  width: 3.6rem;
+  padding: 0.35rem 0.3rem;
+  text-align: center;
+}
+
 .gp-suggestions-table {
   /* NON width:100% -- il contenuto e' corto (rank/nome/numero), stirarla a
      riempire tutta la card lascia un vuoto assurdo tra le due meta'. Larga
@@ -1461,6 +1516,22 @@ details.collapsible-list summary {
 
 .info-popover-panel p {
   margin: 0 0 0.4rem;
+}
+
+/* Domanda del popover come titoletto interno invece che tooltip nativo
+   (title): i due si sovrapponevano al hover, il nativo compariva SOPRA il
+   popover coprendone le prime righe (segnalato dall'utente). Larghezza
+   leggermente maggiore (info-popover-panel-wide) per compensare la riga in
+   piu' e ridurre quante righe occupa il testo sottostante. */
+.info-popover-title {
+  margin: 0 0 0.4rem;
+  font-weight: 700;
+  color: var(--primary-text);
+  font-size: var(--fs-sm);
+}
+
+.info-popover-panel-wide {
+  width: 260px;
 }
 
 .info-aptitude-table {

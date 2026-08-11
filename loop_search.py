@@ -39,6 +39,37 @@ def build_score_matrix(characters, name_map, character_ids, id_weights,
     return matrix
 
 
+def recompute_character_row(character, others, name_map, character_ids, id_weights,
+                             calendar, races, aptitudes, min_aptitude, mode="career"):
+    """
+    Come build_score_matrix, ma calcola SOLO le coppie (character, o) per o in
+    others -- usato quando l'aptitude di un solo personaggio viene sovrascritta
+    temporaneamente (override manuale in Top-4, mai persistito): ricalcolare
+    l'intera matrice globale (condivisa tra tutte le richieste) sarebbe uno
+    spreco enorme e comunque sbagliato, serve solo la riga di questo
+    personaggio con la SUA aptitude modificata -- le coppie tra gli altri
+    personaggi (non toccati dall'override) restano quelle della matrice
+    globale invariata. Stesso formato chiave (a,b) con a<b, cosi' il
+    chiamante puo' unire il risultato sopra una copia della matrice globale.
+    """
+    achievable_character = achievable_races_for(character, races, aptitudes, calendar, mode, min_aptitude)
+    row = {}
+    for other in others:
+        if other == character:
+            continue
+        achievable_other = achievable_races_for(other, races, aptitudes, calendar, mode, min_aptitude)
+        common = achievable_character & achievable_other
+        resolved_a = resolve_achievable(character, common, races, aptitudes, calendar, mode)
+        resolved_b = resolve_achievable(other, common, races, aptitudes, calendar, mode)
+        shared = resolved_a & resolved_b
+        race_score = len(shared) * RACE_SHARED_WIN_POINTS
+        base = base_affinity(character, other, name_map, character_ids, id_weights)
+        total = base + race_score
+        key = (character, other) if character < other else (other, character)
+        row[key] = {"base": base, "race": race_score, "total": total}
+    return row
+
+
 def pair_score(a, b, matrix):
     key = (a, b) if a < b else (b, a)
     return matrix[key]["total"]

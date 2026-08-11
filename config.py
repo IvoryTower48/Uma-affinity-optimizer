@@ -123,6 +123,38 @@ def validate_independent_training_threshold(value) -> int:
     return int(value)
 
 
+def validate_aptitude_override(base_aptitudes: dict, override: dict) -> dict:
+    """
+    Override temporaneo (solo per la sessione/richiesta corrente, mai
+    persistito) delle aptitude di UN personaggio -- Top-4, "una volta
+    selezionato il personaggio": SOLO in meglio rispetto al voto base (mai
+    peggio) e MAI oltre 'A' (mai 'S', quello resta irraggiungibile con
+    questo meccanismo, stesso tetto del piano pink spark v3). Diverso da
+    validate_min_aptitude: qui la validita' di un voto dipende dal voto BASE
+    di quello specifico personaggio/categoria, non da una regola fissa.
+    Ritorna il dict aptitude completo del personaggio con l'override
+    applicato (categorie non menzionate restano al voto base).
+    """
+    result = dict(base_aptitudes)
+    cap_rank = GRADE_RANK["A"]
+    for category, grade in (override or {}).items():
+        if category not in base_aptitudes:
+            raise ValueError(f"Categoria aptitude sconosciuta: {category}")
+        if grade not in GRADE_RANK:
+            raise ValueError(f"Voto aptitude non valido per {category}: {grade}")
+        base_rank = GRADE_RANK[base_aptitudes[category]]
+        new_rank = GRADE_RANK[grade]
+        if new_rank > base_rank:
+            raise ValueError(
+                f"L'override di {category} ({grade}) non può essere peggiore "
+                f"del voto base ({base_aptitudes[category]})."
+            )
+        if new_rank < cap_rank:
+            raise ValueError(f"L'override di {category} non può superare 'A'.")
+        result[category] = grade
+    return result
+
+
 def validate_min_aptitude(payload_dict: dict) -> dict:
     """
     Merge di un dict parziale (es. da un payload JSON) sopra i default di

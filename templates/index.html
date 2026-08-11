@@ -126,8 +126,9 @@
               <div><label for="min-apt-long" data-i18n="label_apt_long">Long</label><select id="min-apt-long" class="min-aptitude-select" data-category="long"></select></div>
             </div>
             <div class="independent-training-threshold-field">
-              <label for="independent-training-threshold" data-i18n="label_it_threshold">Soglia consigliata independent training (%)</label>
+              <label for="independent-training-threshold" data-i18n="label_it_threshold">Soglia consigliata independent training:</label>
               <input type="number" id="independent-training-threshold" min="1" max="100" value="80">
+              <span>%</span>
             </div>
           </div>
         </div>
@@ -169,6 +170,7 @@
                 <option value="{{ name.id }}">{{ name.display }}</option>
                 {% endfor %}
               </select>
+              <div id="aptitude-override-panel"></div>
             </div>
 
             <div id="loop-field" class="loop-field control-card">
@@ -219,8 +221,9 @@
       <div class="timeline-heading-row">
         <h2 data-i18n="heading_timeline">Timeline delle carriere</h2>
         <div class="info-popover">
-          <button type="button" class="info-icon" data-i18n-title="info_aptitude_title" title="Quando una gara è vincibile?">i</button>
-          <div class="info-popover-panel">
+          <button type="button" class="info-icon">i</button>
+          <div class="info-popover-panel info-popover-panel-wide">
+            <p class="info-popover-title" data-i18n="info_aptitude_title">Quando una gara è vincibile?</p>
             <p data-i18n="info_aptitude_text">Vincibile solo se l'aptitude soddisfa ENTRAMBE le soglie minime (superficie e distanza):</p>
             <table id="info-aptitude-table" class="info-aptitude-table"></table>
             <p class="info-aptitude-note" data-i18n="info_aptitude_note">Voto minimo o migliore (scala S migliore di A, ..., G peggiore).</p>
