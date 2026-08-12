@@ -301,6 +301,30 @@ select, input[type="number"], input[type="text"] {
   font-size: var(--fs-sm);
 }
 
+#rental-spark-panel:not(:empty) {
+  margin-top: 0.8rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+
+.rental-spark-preview-title {
+  margin: 0.5rem 0 0.2rem;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--primary-text);
+}
+
+.rental-spark-preview-note {
+  margin: 0.5rem 0 0;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.rental-spark-preview-line {
+  margin: 0.2rem 0;
+  font-size: var(--fs-xs);
+}
+
 /* Le label di anchor/nonni/membri fissi sono didascalie di picklist, non
    intestazioni: stesso trattamento compatto delle label min-aptitude. */
 #rental-field .rental-column > label {

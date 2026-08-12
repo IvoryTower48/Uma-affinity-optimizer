@@ -8,8 +8,14 @@ top-4 compatibili con un personaggio, miglior loop a 5, loop con genitore
 in prestito (rental loop: ruotano solo 3 personaggi posseduti attorno a un
 "anchor" sempre affittato), pianificazione delle pink spark (Aptitude
 Inheritance, con anteprima live dell'effetto sul loop), timeline delle
-carriere, salvataggio/caricamento di un'intera sessione, ed esportazione
-PDF illustrata.
+carriere, salvataggio/caricamento di un'intera sessione, esportazione PDF
+illustrata, una tabella di probabilità di vittoria per l'independent
+training (un'indicazione aggiuntiva, non autoritativa, per ogni gara — il
+calcolo dell'affinità resta deterministico), e un potenziamento temporaneo
+delle aptitude che puoi provare per il solo personaggio scelto in Top-4
+(questo invece incide davvero sul punteggio di quella ricerca), e, per il
+loop con genitore in prestito, una pink spark "firma" per l'anchor e i suoi
+nonni (fissa per tutta la rotazione, dato che l'anchor non cambia mai).
 
 La UI è disponibile sia in italiano che in inglese, con tema chiaro/scuro
 e layout moderno/classico: cambia queste impostazioni dall'icona

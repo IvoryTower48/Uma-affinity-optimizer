@@ -116,6 +116,13 @@ const I18N = {
     label_rental_gp_a: "Nonno/a 1 (opzionale)",
     label_rental_gp_b: "Nonno/a 2 (opzionale)",
     label_rental_fixed: "Personaggi posseduti gia' scelti per la rotazione (fino a 3, opzionale)",
+    rental_spark_title: "Pink spark del genitore preso in prestito (opzionale)",
+    rental_spark_intro: "Sempre la stessa in ogni step della rotazione. Conta doppio per il genitore (è sia genitore diretto che nonno, tramite il membro precedente).",
+    label_rental_spark_anchor: "Genitore",
+    label_rental_spark_gp_a: "Nonno/a 1",
+    label_rental_spark_gp_b: "Nonno/a 2",
+    rental_spark_preview_title: "Anteprima aptitude (personaggi già scelti per la rotazione)",
+    rental_spark_no_preview: "Scegli almeno un personaggio nella rotazione per vedere l'anteprima.",
     unknown_ancestor: "N/D",
     rental_heading: "Rental loop con {name}",
     rental_total_label: "Total Loop Affinity",
@@ -290,6 +297,13 @@ const I18N = {
     label_rental_gp_a: "Grandparent 1 (optional)",
     label_rental_gp_b: "Grandparent 2 (optional)",
     label_rental_fixed: "Owned characters already chosen for the rotation (up to 3, optional)",
+    rental_spark_title: "Rented parent's pink spark (optional)",
+    rental_spark_intro: "Always the same at every step of the rotation. Counts double for the parent (it's both the direct parent and a grandparent, via the previous member).",
+    label_rental_spark_anchor: "Parent",
+    label_rental_spark_gp_a: "Grandparent 1",
+    label_rental_spark_gp_b: "Grandparent 2",
+    rental_spark_preview_title: "Aptitude preview (characters already chosen for the rotation)",
+    rental_spark_no_preview: "Pick at least one character in the rotation to see the preview.",
     unknown_ancestor: "N/A",
     rental_heading: "Rental loop with {name}",
     rental_total_label: "Total Loop Affinity",
@@ -552,6 +566,7 @@ const langToggle = makeToggleControl(
     currentLang = lang;
     applyStaticTranslations();
     populateMustIncludeSelects();
+    buildRentalSparkPanel();
     rerenderLastRun();
   },
 );
@@ -944,6 +959,7 @@ globalOnlyCheckbox.addEventListener("change", () => {
   renderOwnedList();
   populateMustIncludeSelects();
   renderCharacterSelect();
+  buildRentalSparkPanel();
   savePersistedSettings();
 });
 debugCheckbox.addEventListener("change", savePersistedSettings);
@@ -965,6 +981,7 @@ async function loadCharacters() {
   renderOwnedList();
   populateMustIncludeSelects();
   renderCharacterSelect();
+  buildRentalSparkPanel();
 }
 const charactersLoadedPromise = loadCharacters();  // await-abile dal ripristino di un salvataggio (vedi restoreFromSave)
 
@@ -1255,6 +1272,175 @@ function getAptitudeOverride() {
 
 characterSelect.addEventListener("change", buildAptitudeOverridePanel);
 
+// --- Rental loop: pink spark "firma" del genitore preso in prestito -------
+// (2026-08-12) -- simile alla Modalita' B del loop a 5 (personaggio +
+// categoria + stelle, 1-3), ma qui il conteggio e' FISSO (il genitore vale
+// sempre doppio, i nonni sempre singolo) invece di dipendere dal ciclo,
+// perche' l'anchor e' sempre lo stesso in ogni step della rotazione --
+// vedi cycle_analysis.anchor_signature_spark_plan, stessa logica qui
+// duplicata in JS SOLO per l'anteprima locale (il calcolo autoritativo
+// resta quello del server in /api/rental_loop). Solo le 6 categorie
+// superficie/distanza (mai lo stile, ininfluente per le gare/l'affinita').
+const RACE_APTITUDE_CATEGORY_OPTIONS = SPARK_CATEGORY_OPTIONS.filter(o => APTITUDE_CATEGORIES.includes(o.value));
+const RENTAL_SPARK_SLOT_MULTIPLIER = { anchor: 2, gp_a: 1, gp_b: 1 };
+
+function collectRentalSparkRowValues(container) {
+  // Valori delle righe ATTUALMENTE nel DOM prima di un rebuild -- cosi'
+  // cambiare quale nonno e' selezionato (che fa apparire/scomparire righe)
+  // non perde l'input gia' inserito per le righe che restano, stesso bug
+  // preso e corretto per il selettore di variante Top-4.
+  const values = {};
+  if (!container) return values;
+  container.querySelectorAll(".rental-spark-row").forEach(row => {
+    const category = row.querySelector(".rental-spark-category-select").value;
+    const stars = Number(row.querySelector(".rental-spark-star-input").value);
+    if (category && stars >= 1) values[row.dataset.slot] = { category, stars };
+  });
+  return values;
+}
+
+function buildRentalSparkRow(slot, previousValues) {
+  const row = document.createElement("div");
+  row.className = "spark-row rental-spark-row";  // spark-row: riusa lo stile esistente (allineamento select/input)
+  row.dataset.slot = slot;
+
+  const label = document.createElement("label");
+  label.textContent = t(`label_rental_spark_${slot}`);
+  row.appendChild(label);
+
+  const categorySelect = document.createElement("select");
+  categorySelect.className = "rental-spark-category-select";
+  const emptyOpt = document.createElement("option");
+  emptyOpt.value = "";
+  emptyOpt.textContent = t("opt_none");
+  categorySelect.appendChild(emptyOpt);
+  RACE_APTITUDE_CATEGORY_OPTIONS.forEach(({ value, label: catLabel }) => {
+    const opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = catLabel;
+    categorySelect.appendChild(opt);
+  });
+
+  const starInput = document.createElement("input");
+  starInput.type = "number";
+  starInput.className = "rental-spark-star-input";
+  starInput.min = "1";
+  starInput.max = "3";
+  starInput.disabled = true;
+
+  const previous = previousValues[slot];
+  if (previous) {
+    categorySelect.value = previous.category;
+    starInput.value = previous.stars;
+    starInput.disabled = false;
+  }
+
+  categorySelect.addEventListener("change", () => {
+    starInput.disabled = !categorySelect.value;
+    starInput.value = categorySelect.value ? (starInput.value || "1") : "";
+    refreshRentalSparkPreview();
+  });
+  starInput.addEventListener("input", refreshRentalSparkPreview);
+
+  row.appendChild(categorySelect);
+  row.appendChild(starInput);
+  const starSuffix = document.createElement("span");
+  starSuffix.className = "spark-star-suffix";
+  starSuffix.textContent = "★";
+  row.appendChild(starSuffix);
+  return row;
+}
+
+function buildRentalSparkPanel() {
+  const container = document.getElementById("rental-spark-panel");
+  if (!container) return;
+  const previousValues = collectRentalSparkRowValues(container);
+  container.innerHTML = "";
+
+  const title = document.createElement("p");
+  title.className = "field-section-title";
+  title.textContent = t("rental_spark_title");
+  container.appendChild(title);
+  const intro = document.createElement("p");
+  intro.className = "field-intro";
+  intro.textContent = t("rental_spark_intro");
+  container.appendChild(intro);
+
+  const rows = document.createElement("div");
+  rows.className = "spark-rows";
+  rows.appendChild(buildRentalSparkRow("anchor", previousValues));
+  if (rentalGpASelect.value) rows.appendChild(buildRentalSparkRow("gp_a", previousValues));
+  if (rentalGpBSelect.value) rows.appendChild(buildRentalSparkRow("gp_b", previousValues));
+  container.appendChild(rows);
+
+  const preview = document.createElement("div");
+  preview.id = "rental-spark-preview";
+  container.appendChild(preview);
+
+  refreshRentalSparkPreview();
+}
+
+function getRentalSparkPlan() {
+  const plan = {};
+  document.querySelectorAll("#rental-spark-panel .rental-spark-row").forEach(row => {
+    const category = row.querySelector(".rental-spark-category-select").value;
+    const stars = Number(row.querySelector(".rental-spark-star-input").value);
+    if (!category || !stars) return;
+    plan[category] = (plan[category] || 0) + stars * RENTAL_SPARK_SLOT_MULTIPLIER[row.dataset.slot];
+  });
+  return plan;
+}
+
+// {slot: {categoria: stelle}} -- shape atteso dal payload /api/rental_loop
+// (anchor_spark_plan), stesso formato della spark "firma" di Modalita' B
+// (character -> {categoria: stelle}), solo indicizzato per slot invece che
+// per nome.
+function getRentalSparkInput() {
+  const input = {};
+  document.querySelectorAll("#rental-spark-panel .rental-spark-row").forEach(row => {
+    const category = row.querySelector(".rental-spark-category-select").value;
+    const stars = Number(row.querySelector(".rental-spark-star-input").value);
+    if (category && stars >= 1) input[row.dataset.slot] = { [category]: stars };
+  });
+  return input;
+}
+
+function refreshRentalSparkPreview() {
+  const preview = document.getElementById("rental-spark-preview");
+  if (!preview) return;
+  const plan = getRentalSparkPlan();
+  const fixedCharacters = getRentalFixedMembers();
+  preview.innerHTML = "";
+  if (!Object.keys(plan).length) return;  // nessuna spark scelta: niente da mostrare
+
+  if (!fixedCharacters.length) {
+    const note = document.createElement("p");
+    note.className = "rental-spark-preview-note";
+    note.textContent = t("rental_spark_no_preview");
+    preview.appendChild(note);
+    return;
+  }
+
+  const title = document.createElement("p");
+  title.className = "rental-spark-preview-title";
+  title.textContent = t("rental_spark_preview_title");
+  preview.appendChild(title);
+  fixedCharacters.forEach(character => {
+    const data = allCharactersData.find(c => c.character === character);
+    if (!data || !data.aptitudes) return;
+    const line = document.createElement("p");
+    line.className = "rental-spark-preview-line";
+    line.innerHTML = `<strong>${formatCharacterName(character)}</strong>: ` +
+      renderAptitudePreviewLine(data.aptitudes, plan, RACE_APTITUDE_CATEGORY_OPTIONS);
+    preview.appendChild(line);
+  });
+}
+
+rentalAnchorSelect.addEventListener("change", buildRentalSparkPanel);
+rentalGpASelect.addEventListener("change", buildRentalSparkPanel);
+rentalGpBSelect.addEventListener("change", buildRentalSparkPanel);
+rentalFixedSelects.forEach(select => select.addEventListener("change", refreshRentalSparkPreview));
+
 function starsToLevelsJs(totalStars) {
   if (totalStars >= 10) return 4;
   if (totalStars >= 7) return 3;
@@ -1425,9 +1611,9 @@ function collectCycleSparkStars(cycleBox) {
   return categories;
 }
 
-function renderAptitudePreviewLine(baseAptitudes, starsByCategory) {
+function renderAptitudePreviewLine(baseAptitudes, starsByCategory, categoryOptions = SPARK_CATEGORY_OPTIONS) {
   const modified = applyPinkSparksJs(baseAptitudes, starsByCategory);
-  return SPARK_CATEGORY_OPTIONS.map(({ value, label }) => {
+  return categoryOptions.map(({ value, label }) => {
     const before = baseAptitudes[value];
     const after = modified[value];
     const text = before === after ? before : `${before} → <strong>${after}</strong>`;
@@ -2550,6 +2736,7 @@ async function runQuery() {
           anchor_gp_a: rentalGpASelect.value, anchor_gp_b: rentalGpBSelect.value,
           fixed_members: getRentalFixedMembers(),
           independent_training_threshold: itThreshold,
+          anchor_spark_plan: getRentalSparkInput(),
         }),
       });
       const data = await resp.json();
@@ -2763,6 +2950,7 @@ async function restoreFromSave(save) {
       if (rentalFixedSelects[i]) rentalFixedSelects[i].value = name;
     });
   }
+  buildRentalSparkPanel();  // piano spark mai salvato/ripristinato (temporaneo per definizione): riparte vuoto
 
   if (save.last_run && save.last_run.type === "top4") {
     renderTop4(save.last_run.data);

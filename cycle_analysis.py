@@ -75,11 +75,12 @@ anche se non e' quella "vincente" per il gruppo nel suo complesso.
 from itertools import combinations
 from affinity import base_affinity_three, achievable_races_for, resolve_achievable
 from display_names import format_character_name, format_race_name
-from config import RACE_SHARED_WIN_POINTS, RACE_PRIORITY_OVERRIDE, ANCHOR_LOOP_SIZE
+from config import RACE_SHARED_WIN_POINTS, RACE_PRIORITY_OVERRIDE, ANCHOR_LOOP_SIZE, MIN_APTITUDE
 from loop_search import has_duplicate_base, shortlist_candidates_for_fixed
 from naming import base_character
 from aptitude_inheritance import (
     apply_character_spark_plan, validate_spark_plan, validate_signature_spark, spark_plan_warning,
+    apply_pink_sparks,
 )
 
 
@@ -431,6 +432,68 @@ def build_anchor_loop_schedule(anchor, members, gp_a=None, gp_b=None):
     if gp_a is not None or gp_b is not None:
         established[anchor] = (gp_a, gp_b)
     return established
+
+
+# --- Rental loop: pink spark "firma" del genitore preso in prestito -------
+#
+# Richiesta dell'utente (2026-08-12): dato che l'anchor e' SEMPRE lo stesso
+# in ogni ciclo della rotazione, la sua pink spark (e quella dei suoi
+# nonni, se noti) e' un dato COSTANTE per l'intero loop -- diverso dalla
+# Modalita' B del loop a 5 (dove la spark si propaga per conteggio-slot,
+# diverso per ciclo): qui il conteggio e' fisso e identico in ogni ciclo,
+# per costruzione della genealogia sopra:
+#   - members[i] ha SEMPRE parent1=anchor (genitore diretto);
+#   - members[i] ha SEMPRE gp2a=anchor anche (i "nonni via parent2" di
+#     members[i] sono i genitori di members[i-1], che sono anch'essi
+#     (anchor, members[i-2]) -- l'anchor ricompare quindi come nonno).
+# Di conseguenza la spark dell'anchor conta SEMPRE 2 volte, quella di
+# ciascun nonno noto (gp1a/gp1b, sempre "via anchor") SEMPRE 1 volta -- per
+# QUALUNQUE figlio della rotazione, non serve un piano per-ciclo.
+
+def anchor_signature_spark_plan(anchor_spark: dict, gp_a_spark: dict, gp_b_spark: dict) -> dict:
+    """
+    Piano aggregato {categoria: stelle totali}, uniforme per tutti i cicli
+    della rotazione (vedi sopra per il perche'). Ciascuno dei tre argomenti
+    e' None (nessuna spark scelta per quello slot) o un dict a UNA sola
+    categoria. Valida ogni spark presente (validate_signature_spark: una
+    sola categoria, 1-3 stelle) e restringe le categorie ammesse alle 6
+    rilevanti per le gare -- MIN_APTITUDE, superficie+distanza (le categorie
+    di stile non influenzano l'aptitude usata per le gare/l'affinita', su
+    richiesta esplicita dell'utente). Solleva ValueError se violato.
+    Ritorna {} se nessuno slot ha una spark.
+    """
+    plan = {}
+    for spark, multiplier in ((anchor_spark, 2), (gp_a_spark, 1), (gp_b_spark, 1)):
+        if not spark:
+            continue
+        validate_signature_spark(spark)
+        for category, stars in spark.items():
+            if category not in MIN_APTITUDE:
+                raise ValueError(
+                    f"Categoria non valida per la spark del genitore preso in prestito: "
+                    f"'{category}' (solo le 6 categorie di superficie/distanza contano "
+                    f"per l'affinità, non lo stile di corsa)."
+                )
+            plan[category] = plan.get(category, 0) + stars * multiplier
+    return plan
+
+
+def apply_anchor_spark_plan(plan: dict, aptitudes: dict, excluded_characters) -> dict:
+    """
+    Applica 'plan' (vedi anchor_signature_spark_plan) alle aptitude di TUTTI
+    i personaggi TRANNE quelli in excluded_characters (l'anchor stesso e i
+    suoi nonni noti: la spark rappresenta cio' che la loro carta, gia'
+    "finita", trasmette in eredita' -- non un cambiamento retroattivo sulla
+    carta stessa). Ritorna 'aptitudes' invariato (stesso oggetto, nessuna
+    copia) se il piano e' vuoto.
+    """
+    if not plan:
+        return aptitudes
+    excluded = set(excluded_characters)
+    return {
+        character: (grades if character in excluded else apply_pink_sparks(grades, plan))
+        for character, grades in aptitudes.items()
+    }
 
 
 def best_anchor_loop(anchor, gp_a, gp_b, fixed_members, candidate_pool, matrix,

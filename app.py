@@ -40,6 +40,7 @@ from cycle_analysis import (
     one_hop_exploration, first_cycle_shared_races, all_cycles_shared_races,
     one_hop_exploration_with_sparks, find_best_substitution, best_anchor_loop,
     suggest_anchor_grandparents, suggest_anchor_grandparent_pairs,
+    anchor_signature_spark_plan, apply_anchor_spark_plan,
 )
 from timeline import build_calendar_matrix
 import data_updater
@@ -673,6 +674,39 @@ def api_rental_loop():
             return error
     gp_known = gp_a is not None and gp_b is not None
 
+    # Pink spark "firma" del genitore preso in prestito (e dei suoi nonni,
+    # se noti) -- COSTANTE per tutta la rotazione (vedi
+    # cycle_analysis.anchor_signature_spark_plan), mai richiesta per una
+    # gara/nonno non selezionato. Opzionale: payload assente o vuoto =
+    # nessun cambiamento, stesso comportamento di sempre.
+    spark_input = payload.get("anchor_spark_plan") or {}
+    try:
+        anchor_spark = spark_input.get("anchor")
+        gp_a_spark = spark_input.get("gp_a") if gp_a is not None else None
+        gp_b_spark = spark_input.get("gp_b") if gp_b is not None else None
+        spark_plan = anchor_signature_spark_plan(anchor_spark, gp_a_spark, gp_b_spark)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+    # Se un piano e' attivo, TUTTI i personaggi (tranne l'anchor e i suoi
+    # nonni noti: la spark rappresenta cio' che la loro carta gia' finita
+    # trasmette, non un cambiamento su se stessi) ricevono la stessa
+    # aptitude potenziata -- qualunque candidato, se scelto per la
+    # rotazione, la erediterebbe allo stesso modo. Richiede ricalcolare
+    # l'intera matrice (non solo una riga come per l'override Top-4, qui
+    # cambiano potenzialmente TUTTE le coppie) -- verificato: ~0.3s per il
+    # dataset completo, costo accettabile e solo quando il piano e' attivo.
+    if spark_plan:
+        excluded = {anchor} | ({gp_a} if gp_a else set()) | ({gp_b} if gp_b else set())
+        rental_aptitudes = apply_anchor_spark_plan(spark_plan, aptitudes, excluded)
+        rental_matrix = build_score_matrix(
+            list(rental_aptitudes.keys()), name_map, character_ids, id_weights,
+            calendar, races, rental_aptitudes, min_aptitude, mode,
+        )
+    else:
+        rental_aptitudes = aptitudes
+        rental_matrix = matrix
+
     candidate_pool = restrict_to_owned(universe, owned)
     if len(candidate_pool) < 3:
         return jsonify({
@@ -700,8 +734,8 @@ def api_rental_loop():
 
     try:
         result = best_anchor_loop(
-            anchor, gp_a, gp_b, fixed_members, candidate_pool, matrix,
-            name_map, character_ids, id_weights, races, aptitudes, calendar, mode, min_aptitude,
+            anchor, gp_a, gp_b, fixed_members, candidate_pool, rental_matrix,
+            name_map, character_ids, id_weights, races, rental_aptitudes, calendar, mode, min_aptitude,
         )
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
@@ -718,8 +752,8 @@ def api_rental_loop():
     if not gp_known:
         used_bases = {base_character(c) for c in [anchor, *members] + ([gp_a] if gp_a else []) + ([gp_b] if gp_b else [])}
         ranked = suggest_anchor_grandparents(
-            anchor, members, candidate_pool, matrix, name_map, character_ids, id_weights, used_bases,
-            races, aptitudes, calendar, mode, min_aptitude,
+            anchor, members, candidate_pool, rental_matrix, name_map, character_ids, id_weights, used_bases,
+            races, rental_aptitudes, calendar, mode, min_aptitude,
         )
         gp_suggestions = [{"character": c, "affinities": steps} for c, steps in ranked]
 
@@ -729,8 +763,8 @@ def api_rental_loop():
         # non aggiungerebbe informazione, solo confusione).
         if gp_a is None and gp_b is None:
             pairs = suggest_anchor_grandparent_pairs(
-                anchor, members, candidate_pool, matrix, name_map, character_ids, id_weights, used_bases,
-                races, aptitudes, calendar, mode, min_aptitude, result["cycles"],
+                anchor, members, candidate_pool, rental_matrix, name_map, character_ids, id_weights, used_bases,
+                races, rental_aptitudes, calendar, mode, min_aptitude, result["cycles"],
             )
             gp_pair_suggestions = [
                 {"gp_a": p["gp_a"], "gp_b": p["gp_b"], "total_delta": p["total_delta"], "deltas": p["deltas"]}
@@ -739,7 +773,7 @@ def api_rental_loop():
 
     known_gps = [g for g in (gp_a, gp_b) if g is not None]
     full_group = [anchor] + members + known_gps
-    calendar_matrix = build_calendar_matrix(full_group, races, aptitudes, calendar, mode, min_aptitude)
+    calendar_matrix = build_calendar_matrix(full_group, races, rental_aptitudes, calendar, mode, min_aptitude)
     display_members = set(members) | {anchor}
     for row in calendar_matrix:
         row["cells"] = {c: v for c, v in row["cells"].items() if c in display_members}
@@ -748,7 +782,7 @@ def api_rental_loop():
     # /api/top4), una probabilita' di vittoria per gara per il figlio di
     # ciascuno dei 3 cicli del rental loop.
     for cycle in result["cycles"]:
-        cycle["independent_training"] = independent_training_for(cycle["child"], mode, it_threshold)
+        cycle["independent_training"] = independent_training_for(cycle["child"], mode, it_threshold, rental_aptitudes)
 
     return jsonify({
         "anchor": anchor, "anchor_gp_a": gp_a, "anchor_gp_b": gp_b,

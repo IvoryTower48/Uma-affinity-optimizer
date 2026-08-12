@@ -16,7 +16,13 @@ There are three main modes:
 This tool also features pink spark planning (Aptitude Inheritance: simulate
 the aptitude boost from pink sparks and preview its effect on the loop live),
 a table that summarizes the career timeline of the loop, save/load of a
-full session, and an illustrated PDF export of the finished loop.
+full session, an illustrated PDF export of the finished loop, an independent
+training win-probability table (an additional, non-authoritative estimate
+per race — the affinity/loop search itself stays deterministic), and a
+temporary aptitude boost you can preview for the Top-4 target character
+alone (this one does affect that search's ranking), and, for the rental
+loop, a signature pink spark plan for the rented anchor parent and its
+grandparents (fixed for the whole rotation, since the anchor never changes).
 
 The UI is available in both English and Italian, with a light/dark theme
 and a modern/classic layout: change these from the gear icon (Settings)

@@ -19,7 +19,18 @@ This tool also features:
 - a table that summarizes the career timeline of the loop;
 - an illustrated PDF export of the finished loop (character portraits,
   real race plaques, genealogy trees);
-- save/load of a full session (search results, spark plan, filters) as JSON.
+- save/load of a full session (search results, spark plan, filters) as JSON;
+- independent training win probability: an additional, non-authoritative
+  per-race win chance based on aptitude and race-turn fatigue (the
+  affinity/loop search itself stays fully deterministic), with an
+  adjustable recommendation threshold;
+- a temporary, session-only aptitude boost for the Top-4 target character
+  only (never worse than its real grade, never past "A") — this one DOES
+  affect that search's ranking, unlike the read-only feature above;
+- for the rental loop: plan a signature pink spark for the rented anchor
+  parent and its two grandparents (fixed for the whole rotation, since the
+  anchor is always the same character in every cycle), with a live
+  aptitude preview and the same effect on that search's ranking.
 
 All of the above is configurable from the in-app Settings panel: UI language
 (English/Italian), light/dark theme, modern/classic layout, per-category
@@ -69,6 +80,9 @@ cycle_analysis.py        full description of a parent cycle, affinity score brea
 aptitude_inheritance.py  pink spark (Aptitude Inheritance) planning
 inspiration.py           pink spark inspiration-chance formulas (category/stars -> % base
                          rates); calculation-only module, no UI yet
+independent_training.py  pure win-probability formula (aptitude + consecutive-race
+                         fatigue) and exhaustive occurrence search for recurring
+                         races; additive only, never changes the affinity/loop score
 timeline.py              race caledndar/timeline for the looping characters
 pdf_export.py            illustrated PDF export of the finished loop (character portraits,
                          race plaques, genealogy trees)
@@ -131,6 +145,25 @@ python main.py --data-dir data --loop --global-only
 - The **minimum threshold for each aptitude** (`MIN_APTITUDE` in `config.py`) is the
   default value; it can be adjusted per-category from the UI for the current
   session (not persisted between restarts), without touching the underlying logic.
+- **Independent training** (UI only, Top-4 and rental loop): a per-race win
+  probability table shown alongside a result, using ALL races as candidates
+  (not gated by `MIN_APTITUDE`) and an adjustable recommendation threshold
+  (`MIN_INDEPENDENT_TRAINING_PROBABILITY` in `config.py`, default 80%,
+  session-only). Purely additive — it never feeds back into the affinity or
+  loop-search calculation.
+- **Aptitude override** (UI only, Top-4 target character): lets you preview
+  a temporary aptitude boost for the selected character alone (never worse,
+  never past grade "A"), and it DOES affect that search's ranking — unlike
+  independent training above, or the min-aptitude threshold, this one is
+  scoped to a single character rather than the whole candidate pool.
+- **Rented-parent signature spark** (UI only, rental loop): since the
+  anchor is the same character in every cycle, its pink spark (and its
+  grandparents', if known) is a constant for the whole rotation instead of
+  a per-cycle plan — it counts double for the anchor itself (both the
+  direct parent and, through the previous rotation member, a grandparent
+  too). Boosts every candidate character except the anchor/grandparents
+  themselves (they pass the spark down, they don't receive it), and feeds
+  into the rotation search.
 
 ## Credits
 
