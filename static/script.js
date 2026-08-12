@@ -16,6 +16,12 @@ const ownedSortSelect = document.getElementById("owned-sort-select");
 const ownedSortDirectionButton = document.getElementById("owned-sort-direction-button");
 const selectAllButton = document.getElementById("select-all-button");
 const selectNoneButton = document.getElementById("select-none-button");
+const gametoraExportButton = document.getElementById("gametora-export-button");
+const gametoraImportButton = document.getElementById("gametora-import-button");
+const gametoraImportFileInput = document.getElementById("gametora-import-file-input");
+const gametoraImportStatus = document.getElementById("gametora-import-status");
+const gametoraImportSkipped = document.getElementById("gametora-import-skipped");
+const gametoraImportSkippedList = document.getElementById("gametora-import-skipped-list");
 const loopField = document.getElementById("loop-field");
 const mustIncludeSelects = Array.from(document.querySelectorAll(".must-include-select"));
 const rentalField = document.getElementById("rental-field");
@@ -106,6 +112,11 @@ const I18N = {
     btn_sort_direction_title: "Inverti ordine",
     sort_ascending: "↑ Ascendente",
     sort_descending: "↓ Discendente",
+    btn_gametora_export: "Esporta per Gametora",
+    btn_gametora_import: "Importa da Gametora",
+    gametora_import_error: "Import fallito: {message}",
+    gametora_import_success: "{count} personaggi posseduti importati da Gametora ({unmatched} non riconosciuti, ignorati).",
+    gametora_skipped_note: "Nella maggior parte dei casi si tratta di varianti che questo tool non traccia separatamente, perché condividono le stesse aptitude e la stessa carriera del personaggio base ai fini del looping:",
     label_character: "Personaggio",
     label_loop_include: "Personaggi da includere nel loop (fino a 5, opzionale)",
     opt_none: "-- nessuno --",
@@ -287,6 +298,11 @@ const I18N = {
     btn_sort_direction_title: "Reverse order",
     sort_ascending: "↑ Ascending",
     sort_descending: "↓ Descending",
+    btn_gametora_export: "Export for Gametora",
+    btn_gametora_import: "Import from Gametora",
+    gametora_import_error: "Import failed: {message}",
+    gametora_import_success: "{count} owned characters imported from Gametora ({unmatched} unrecognized, skipped).",
+    gametora_skipped_note: "Most of the time these are variants this tool doesn't track separately, since they share the same aptitudes and career as the base character for looping purposes:",
     label_character: "Character",
     label_loop_include: "Characters to include in the loop (up to 5, optional)",
     opt_none: "-- none --",
@@ -588,8 +604,10 @@ const layoutToggle = makeToggleControl(
     layoutMode = mode;
     document.documentElement.dataset.layout = mode;
     // Top-4/genealogia hanno markup DIVERSO tra i due layout (card vs tabella):
-    // ri-renderizza l'ultimo risultato per riflettere subito il cambio.
+    // ri-renderizza l'ultimo risultato per riflettere subito il cambio. Stessa
+    // cosa per i posseduti (griglia ritratti vs lista checkbox).
     rerenderLastRun();
+    renderOwnedList();
   },
 );
 const setLayoutMode = layoutToggle.set;
@@ -910,6 +928,11 @@ function visibleItems() {
 }
 
 function renderOwnedList() {
+  if (layoutMode === "classic") renderOwnedListClassic();
+  else renderOwnedListModern();
+}
+
+function renderOwnedListClassic() {
   const items = visibleItems();
   ownedList.innerHTML = "";
   items.forEach(c => {
@@ -938,6 +961,52 @@ function renderOwnedList() {
   });
 }
 
+// Griglia di ritratti selezionabili (layout moderno) -- riusa buildPortraitWrap
+// (stesso ritratto/fallback delle card Top-4 e degli alberi genealogici, vedi
+// sopra) invece di una lista testuale a checkbox. Ogni chip resta una <label>
+// con la checkbox reale nascosta dentro (per submit/stato nativi), cliccabile
+// per intero; lo stato selezionato e' riflesso da una classe sul chip stesso.
+function renderOwnedListModern() {
+  const items = visibleItems();
+  ownedList.innerHTML = "";
+  items.forEach(c => {
+    const id = `owned-cb-${c.character}`;
+    const selected = ownedSelection.has(c.character);
+
+    const chip = document.createElement("label");
+    chip.className = "owned-chip" + (selected ? " owned-chip-selected" : "");
+    chip.setAttribute("for", id);
+    chip.title = c.global_release_date
+      ? `${formatCharacterName(c.character)} (${c.global_release_date})`
+      : formatCharacterName(c.character);
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.id = id;
+    checkbox.value = c.character;
+    checkbox.hidden = true;
+    checkbox.checked = selected;
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) ownedSelection.add(c.character);
+      else ownedSelection.delete(c.character);
+      chip.classList.toggle("owned-chip-selected", checkbox.checked);
+      savePersistedSettings();
+    });
+
+    const portrait = buildPortraitWrap(c.character);
+    portrait.classList.add("owned-chip-portrait");
+
+    const name = document.createElement("span");
+    name.className = "owned-chip-name";
+    name.textContent = formatCharacterName(c.character);
+
+    chip.appendChild(checkbox);
+    chip.appendChild(portrait);
+    chip.appendChild(name);
+    ownedList.appendChild(chip);
+  });
+}
+
 function selectAllOwned() {
   // come se l'utente spuntasse ogni checkbox attualmente visibile
   visibleItems().forEach(c => ownedSelection.add(c.character));
@@ -954,6 +1023,14 @@ function selectNoneOwned() {
 
 selectAllButton.addEventListener("click", selectAllOwned);
 selectNoneButton.addEventListener("click", selectNoneOwned);
+
+gametoraExportButton.addEventListener("click", handleGametoraExportClick);
+gametoraImportButton.addEventListener("click", () => gametoraImportFileInput.click());
+gametoraImportFileInput.addEventListener("change", () => {
+  const file = gametoraImportFileInput.files[0];
+  if (file) handleGametoraImportFile(file);
+  gametoraImportFileInput.value = "";  // permette di reimportare lo stesso file una seconda volta
+});
 
 globalOnlyCheckbox.addEventListener("change", () => {
   renderOwnedList();
@@ -2984,6 +3061,134 @@ function handleLoadFile(file) {
   };
   reader.onerror = () => {
     results.innerHTML = `<p class="placeholder">${t("load_error", { message: reader.error })}</p>`;
+  };
+  reader.readAsText(file);
+}
+
+// Import/export della selezione posseduti compatibile col Collection
+// Tracker di Gametora (gametora.com/umamusume/collection-tracker, "Backup" >
+// Export/Import, formato verificato dal vivo il 2026-08-12). Le mappe
+// tid <-> nostro ID interno arrivano da data_updater (Fonte 5), rigenerate
+// insieme al resto dei dati ogni 24 ore -- crescono da sole man mano che il
+// tool traccia piu' personaggi/varianti.
+// gametoraTidMap: abbinamento ESATTO (stessa variante/costume tracciata).
+// gametoraTidFallbackMap: SOLO per tid assenti da gametoraTidMap ma il cui
+//   personaggio e' comunque tracciato sotto un'altra variante -- caso reale
+//   segnalato dall'utente: possedere su Gametora solo "Rice Shower
+//   Halloween" (non tracciata separatamente da questo tool) non faceva
+//   risultare posseduta nemmeno "Rice Shower" base, pur essendo la STESSA
+//   umamusume ai fini di aptitude/carriera del looping.
+// gametoraTidNames: nome leggibile per OGNI tid conosciuto, usato solo per
+//   mostrare all'utente le carte rimaste comunque irrisolte (vedi
+//   handleGametoraImportFile).
+let gametoraTidMap = {};
+let gametoraTidFallbackMap = {};
+let gametoraTidNames = {};
+let gametoraIdToTid = {};   // inverso di gametoraTidMap, per l'export
+
+async function loadGametoraTidMap() {
+  try {
+    const [mapResp, fallbackResp, namesResp] = await Promise.all([
+      fetch("/api/gametora_tid_map"),
+      fetch("/api/gametora_tid_fallback_map"),
+      fetch("/api/gametora_tid_names"),
+    ]);
+    gametoraTidMap = await mapResp.json();
+    gametoraTidFallbackMap = await fallbackResp.json();
+    gametoraTidNames = await namesResp.json();
+  } catch (err) {
+    // rete assente: import/export restano no-op, mai un errore bloccante all'avvio
+    gametoraTidMap = {};
+    gametoraTidFallbackMap = {};
+    gametoraTidNames = {};
+  }
+  gametoraIdToTid = {};
+  Object.entries(gametoraTidMap).forEach(([tid, id]) => { gametoraIdToTid[id] = tid; });
+}
+const gametoraTidMapLoadedPromise = loadGametoraTidMap();
+
+function handleGametoraExportClick() {
+  const charCards = {};
+  ownedSelection.forEach(id => {
+    const tid = gametoraIdToTid[id];
+    // Le stelle (limit break) non sono un concetto tracciato da questo tool:
+    // valore fisso, ignorato sia da noi in lettura sia (verificato) da
+    // Gametora per un import "Trainees" -- conta solo la presenza della chiave.
+    if (tid) charCards[tid] = 3;
+  });
+  const payload = {
+    app: "gametora", game: "umamusume", type: "collection", version: 4,
+    timestamp: new Date().toISOString(),
+    servers: { en: { charCards } },
+  };
+  const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "gametora_collection_export.json";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function showGametoraImportStatus(message) {
+  gametoraImportStatus.textContent = message;
+  gametoraImportStatus.hidden = false;
+}
+
+// Elenco puntato multicolonna delle carte Gametora rimaste irrisolte anche
+// dopo il fallback (nessuna riga tracciata, nemmeno di un'altra variante,
+// per quel personaggio) -- richiesto dall'utente per capire A COLPO D'OCCHIO
+// cosa e' stato ignorato, invece di un semplice conteggio.
+function renderGametoraSkippedList(skippedTids) {
+  if (skippedTids.length === 0) {
+    gametoraImportSkipped.hidden = true;
+    gametoraImportSkippedList.innerHTML = "";
+    return;
+  }
+  gametoraImportSkippedList.innerHTML = "";
+  skippedTids.forEach(tid => {
+    const li = document.createElement("li");
+    li.textContent = gametoraTidNames[tid] || tid;
+    gametoraImportSkippedList.appendChild(li);
+  });
+  gametoraImportSkipped.hidden = false;
+}
+
+async function handleGametoraImportFile(file) {
+  await gametoraTidMapLoadedPromise;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      const charCards = data && data.servers && data.servers.en && data.servers.en.charCards;
+      if (!charCards || typeof charCards !== "object") {
+        throw new Error("formato non riconosciuto (atteso un export \"Trainees\" del Collection Tracker di Gametora)");
+      }
+      const tids = Object.keys(charCards);
+      const matched = new Set();
+      const skippedTids = [];
+      tids.forEach(tid => {
+        // abbinamento esatto prima, poi il fallback (stessa umamusume sotto
+        // un'altra variante non tracciata separatamente) -- solo se nessuno
+        // dei due risolve, la carta resta davvero irrisolta.
+        const id = gametoraTidMap[tid] || gametoraTidFallbackMap[tid];
+        if (id) matched.add(id);
+        else skippedTids.push(tid);
+      });
+      ownedSelection = matched;  // SOSTITUISCE la selezione attuale (scelta confermata dall'utente)
+      renderOwnedList();
+      savePersistedSettings();
+      renderGametoraSkippedList(skippedTids);
+      showGametoraImportStatus(t("gametora_import_success", { count: matched.size, unmatched: skippedTids.length }));
+    } catch (err) {
+      showGametoraImportStatus(t("gametora_import_error", { message: err.message }));
+      renderGametoraSkippedList([]);
+    }
+  };
+  reader.onerror = () => {
+    showGametoraImportStatus(t("gametora_import_error", { message: reader.error }));
   };
   reader.readAsText(file);
 }

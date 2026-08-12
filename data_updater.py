@@ -4,7 +4,9 @@ Aggiornamento automatico dei dati da internet, senza input dell'utente,
 al massimo una volta ogni 24 ore (vedi maybe_run_update, chiamata da app.py
 all'avvio del server).
 
-Quattro fonti, quattro scopi diversi:
+Quattro fonti, quattro scopi diversi (la Fonte 4, umapyoi.net, e' stata
+RIMOSSA il 2026-08-12: non ha mai esposto una data di rilascio utilizzabile,
+vedi "STATO NOTO" in fondo):
 
 1. GitHub (mee1080/umaishow, Source.kt) -- ID di affinita' e relativi pesi
    (character_ids.csv / id_weights.csv). Formato testuale stabile:
@@ -21,57 +23,85 @@ Quattro fonti, quattro scopi diversi:
    l'inglese. Nessuna chiave richiesta.
 
 3. Gametora (gametora.com/umamusume/characters/<slug>) -- pagina per-
-   personaggio, renderizzata lato server (verificato: contiene in chiaro nome
-   giapponese, data di rilascio Global, aptitude, ed eventuali "Character
-   versions" collegate). Usata per:
-   - confermare che il nome inglese trovato via Wikipedia sia quello giusto
-     (confronto sulla stringa del nome giapponese mostrata dalla pagina);
-   - ottenere la data di rilascio Global per personaggi NON ancora rilasciati
-     (vedi punto 4 sotto per quali, esattamente, vengono ricontrollati);
-   - rilevare nuove varianti/costumi per personaggi GIA' rilasciati su Global
-     (vedi REGOLA CHIAVE sotto per la frequenza, diversa dal resto).
+   personaggio, un tempo renderizzata lato server con nome giapponese, data
+   di rilascio Global, aptitude e "Character versions" collegate in chiaro
+   nell'HTML. **ROTTA dal 2026-08-12 (confermato, non solo sospettata)**:
+   Gametora ha spostato questi dati al rendering client-side (li carica ora
+   da character-cards.json, vedi fonte 5) -- l'HTML servito da requests.get
+   non contiene piu' ne' l'etichetta "Release date" ne' le icone aptitude
+   (verificato su gold-ship: 0 icone trovate), quindi fetch_gametora_character
+   ritorna sempre None. check_pending_global_releases e' stata MIGRATA sulla
+   fonte 5 (sotto) e non usa piu' questa fonte. check_new_variants e la
+   conferma dei personaggi nuovi (righe piu' sotto in run_update) usano
+   ANCORA fetch_gametora_character e sono quindi anch'esse non funzionanti
+   al momento -- falliscono in modo sicuro (nessuna scrittura), ma non
+   trovano piu' nulla. Migrarle a character-cards.json e' lavoro futuro,
+   segnalato ma non fatto qui (fuori scope per la correzione del
+   2026-08-12, che riguardava le date di rilascio mancanti).
 
-4. umapyoi.net -- date di rilascio sul server GIAPPONESE per tutti i
-   personaggi, usate SOLO per stabilire l'ORDINE in cui i personaggi ancora
-   privi di data Global usciranno (il rilascio Global segue circa l'ordine
-   cronologico JP). Schema JSON non documentato pubblicamente: si prova un
-   elenco di nomi di campo plausibili (vedi _JP_NAME_FIELD_CANDIDATES /
-   _RELEASE_DATE_FIELD_CANDIDATES), fallback sicuro (dict vuoto) se non
-   corrisponde nulla.
+4. Gametora (data/umamusume/character-cards.<hash>.json, lo stesso file JSON
+   che alimenta il loro Collection Tracker E il rendering client-side della
+   pagina per-personaggio, vedi fonte 3) -- fonte UNICA e affidabile per
+   nome giapponese, data di rilascio Global e aptitude di ogni carta (10
+   valori nello stesso ordine di APTITUDE_COLUMNS, verificato identico
+   byte-per-byte a un'aptitude gia' salvata). Usata per due scopi, un solo
+   fetch condiviso per esecuzione (vedi run_update):
+   - `check_pending_global_releases`: trova la data di rilascio Global per i
+     personaggi ancora privi (vedi commento dedicato sopra quella funzione
+     per la storia completa del perche' e' cambiata).
+   - costruisce `data/gametora_tid_map.json`: dict[tid_gametora] =
+     nostro_id_interno. Il "tid" e' l'ID compatto usato nell'export/import
+     "Backup" del Collection Tracker (gametora.com/umamusume/collection-
+     tracker), verificato dal vivo (2026-08-12): esporta
+     {"servers":{"en":{"charCards":{"<tid>":<stelle>}}}}. Serve per
+     l'import/export della selezione posseduti compatibile con Gametora
+     (vedi static/script.js, sezione "Personaggi posseduti"). L'hash nel
+     nome del file cambia ad ogni deploy del sito: si risolve prima via
+     data/manifests/umamusume.json (chiave "character-cards"), stesso
+     pattern con cui il sito stesso carica i propri dati.
+     IMPORTANTE -- l'abbinamento tid -> nostro ID NON si basa sul suffisso di
+     variante (es. "_xmas"): un caso reale (Oguri Cap) mostra che il suffisso
+     registrato in questo repository non riflette sempre il vero costume
+     Gametora (vedi build_gametora_tid_map per il dettaglio). Si usa invece
+     (nome giapponese, data di rilascio Global) come chiave, con match
+     OBBLIGATORIAMENTE univoco -- se ambiguo o assente, quella carta viene
+     ignorata (mai un abbinamento indovinato). Un fallback separato
+     (`build_gametora_tid_fallback_map`) riconduce le carte SENZA
+     abbinamento esatto al personaggio tracciato piu' vicino (stesso nome
+     giapponese, costume piu' antico), cosi' possedere solo una variante non
+     tracciata separatamente conta comunque come possedere il personaggio.
 
-REGOLA CHIAVE su COSA si ricontrolla e QUANDO (**due gate separati**, non
-confonderli):
+REGOLA CHIAVE su QUANDO si ricontrolla cosa:
 - La RICERCA DELLA DATA DI RILASCIO GLOBAL (check_pending_global_releases)
   riguarda SOLO i personaggi ANCORA PRIVI di data Global: una volta trovata,
   quel personaggio esce per sempre dalla lista dei "pending" e non viene mai
-  piu' ricontrollato PER QUESTO SCOPO. Gate: 24 ore (lo stesso di tutto il
-  resto di run_update), ma si controllano solo i prossimi 5 in ordine
-  cronologico JP (fonte 4), non tutti i pending (spreco: molti usciranno tra
-  mesi).
+  piu' ricontrollato PER QUESTO SCOPO. Nessun campionamento: dal 2026-08-12
+  si controllano TUTTI i pending ad ogni esecuzione (character-cards.json da'
+  gia' tutte le date in un colpo solo, non servono piu' richieste
+  per-personaggio ne' un ordine di priorita').
 - Il RILEVAMENTO DI NUOVE VARIANTI/COSTUMI (check_new_variants) riguarda
   invece SOLO i personaggi GIA' rilasciati su Global (e' proprio per loro
   che ha senso chiedersi se e' uscito un nuovo costume, dato che il
-  giocatore puo' gia' usare quel personaggio) -- ATTENZIONE, questo era
-  stato scambiato per errore in una versione precedente ("una volta
-  rilasciato non serve piu' controllare nulla", confondendo rilascio JP con
-  rilascio Global e rimuovendo per sbaglio questo controllo). Gate SEPARATO
-  e piu' lento: **7+ giorni** (vedi VARIANT_CHECK_INTERVAL_DAYS), non 24 ore,
-  perche' scansiona TUTTI i personaggi base gia' rilasciati (~60-90 richieste
-  a Gametora per giro) -- troppo per farlo ogni volta che si controllano i
-  prossimi 5 pending.
+  giocatore puo' gia' usare quel personaggio). Gate SEPARATO e piu' lento:
+  **7+ giorni** (vedi VARIANT_CHECK_INTERVAL_DAYS) -- ATTUALMENTE INEFFICACE
+  comunque, perche' dipende dalla fonte 3 rotta (vedi sopra): non trova mai
+  nulla finche' non viene migrata a character-cards.json.
 
-LIMITE IMPORTANTE E NOTO: le fonti 2/3/4 (Wikipedia/Gametora/umapyoi.net) non
-sono raggiungibili dalla rete sandbox usata in sviluppo (solo alcuni domini
-sono autorizzati, vedi rete del container) -- la fonte 1/2/3 sono state
-validate MANUALMENTE con un caso reale (personaggio "Rulership", ID nuovo
-trovato nella fonte 1 il 27/07/2026); la fonte 4 (umapyoi.net) NON e' stata
-verificabile nemmeno manualmente (il sito blocca le richieste automatiche
-dei miei stessi strumenti di ricerca) -- lo schema JSON usato in
-fetch_jp_release_dates() e' un'ipotesi ragionevole ma NON confermata contro
-dati reali, verificare al primo utilizzo vero. In ogni caso il meccanismo
-fallisce SEMPRE in modo sicuro (nessuna scrittura, nessun dato inventato) se
-una pagina/risposta non e' raggiungibile o il parsing non torna un risultato
-affidabile.
+STATO NOTO (2026-08-12): la fonte 4 (umapyoi.net, ex "Fonte 4" di questo
+file) e' stata RIMOSSA -- indagando su un caso reale segnalato dall'utente
+(Gold Ship, rilasciato al lancio Global ma senza global_release_date nei
+dati) e' emerso che umapyoi.net/api/v1/character/list (e l'endpoint di
+dettaglio per-personaggio) non hanno MAI esposto un campo data di rilascio,
+in nessuna delle due risposte (verificato leggendo lo schema reale): la
+fonte non ha mai funzionato, l'euristica sui nomi di campo falliva sempre in
+modo silenzioso (fallback sicuro, ma di fatto muta). La fonte 3 (scraping
+HTML per-personaggio) e' risultata SEPARATAMENTE rotta per lo stesso motivo
+di fondo (il sito ora carica quei dati via JS da character-cards.json) --
+entrambi i problemi sono stati scoperti insieme mentre si indagava sul
+sintomo di Gold Ship. Il meccanismo fallisce SEMPRE in modo sicuro (nessuna
+scrittura, nessun dato inventato) se una pagina/risposta non e' raggiungibile
+o il parsing non torna un risultato affidabile -- questo e' il motivo per
+cui il problema e' rimasto silenzioso cosi' a lungo invece di dare errore.
 """
 import csv
 import json
@@ -93,7 +123,6 @@ SOURCE_KT_URL = (
 )
 WIKIPEDIA_JA_API = "https://ja.wikipedia.org/w/api.php"
 GAMETORA_CHARACTER_URL = "https://gametora.com/umamusume/characters/{slug}"
-UPDATE_INTERVAL_HOURS = 24
 REQUEST_TIMEOUT = 15
 # Budget di tempo COMPLESSIVO per una singola esecuzione di run_update, oltre
 # al timeout per singola richiesta (REQUEST_TIMEOUT): protegge da un caso in
@@ -372,104 +401,105 @@ def _register_new_suffix(data_dir, suffix: str):
 
 
 # ---------------------------------------------------------------------------
-# Fonte 4: umapyoi.net -- date di rilascio JP (per ordinare i "non ancora Global")
+# Personaggi NON ancora su Global: cerca la data di rilascio in
+# character-cards.json (Fonte 5, vedi fetch_gametora_character_cards)
 # ---------------------------------------------------------------------------
+# STORIA (2026-08-12): la versione precedente controllava solo i prossimi 5
+# personaggi per volta, ordinati per data di rilascio JP presa da
+# umapyoi.net (una "Fonte 4" a se stante, rimossa qui). Indagando su un caso
+# reale segnalato dall'utente (Gold Ship, rilasciato al lancio Global ma
+# ancora senza global_release_date nei dati), sono emersi DUE problemi reali,
+# non uno solo:
+# 1. umapyoi.net/api/v1/character/list NON ha mai avuto un campo data di
+#    rilascio (verificato sia sull'elenco che sul dettaglio per-personaggio):
+#    l'euristica sui nomi di campo (_JP_NAME_FIELD_CANDIDATES/
+#    _RELEASE_DATE_FIELD_CANDIDATES) non ha mai potuto trovare nulla, quindi
+#    l'ordinamento per data JP e' sempre stato un no-op silenzioso (fallback
+#    sicuro, ma di fatto la fonte non ha MAI funzionato).
+# 2. fetch_gametora_character (scraping HTML della pagina per-personaggio) e'
+#    ROTTO: la pagina non contiene piu', nell'HTML servito lato server, ne'
+#    l'etichetta "Release date" ne' le icone aptitude (verificato su
+#    gold-ship: 0 "rank_alts" trovati) -- Gametora ha evidentemente spostato
+#    questi dati al rendering client-side, alimentato dagli stessi JSON
+#    (character-cards.json) gia' usati per la Fonte 5. Senza aptitude
+#    riconosciute, fetch_gametora_character ritorna sempre None per QUALSIASI
+#    personaggio ora, quindi anche i pochi controllati per data JP non
+#    trovavano mai nulla (verificato: max_check=87, tutti i pending, zero
+#    date aggiornate).
+# FIX: character-cards.json (Fonte 5) da' GIA' la data di rilascio Global
+# (release_en) per OGNI personaggio in UNA SOLA chiamata di rete -- non serve
+# piu' ne' un ordinamento per priorita' ne' richieste per-personaggio: si
+# controllano TUTTI i pending in un colpo solo, a costo pressoche' zero
+# (nessuna richiesta aggiuntiva: 'cards' e' lo stesso elenco gia' scaricato
+# per la Fonte 5 in run_update). Verificato: aptitude di gold_ship in
+# character-cards.json identica byte-per-byte a quella gia' salvata in
+# aptitudes.xlsx, quindi la fonte e' affidabile anche per questo scopo.
+# check_new_variants (sotto) e la conferma di personaggi nuovi in run_update
+# usano ANCORA fetch_gametora_character (quindi sono anch'essi rotti allo
+# stesso modo) -- non migrati qui, fuori scope per questa correzione, vedi
+# HANDOFF.md.
 
-UMAPYOI_CHARACTER_LIST_URL = "https://umapyoi.net/api/v1/character/list"
-
-# Nomi di campo plausibili per nome giapponese / data di rilascio nella
-# risposta JSON di umapyoi.net -- lo schema esatto non e' documentato
-# pubblicamente (la documentazione elenca solo gli endpoint, non i campi),
-# quindi si prova un elenco di alternative comuni, in modo difensivo: se
-# nessuna corrisponde si torna un dict vuoto (fallback sicuro, vedi
-# check_pending_global_releases).
-_JP_NAME_FIELD_CANDIDATES = ("name_jp", "jp_name", "name", "chara_name")
-_RELEASE_DATE_FIELD_CANDIDATES = ("release_date", "release", "start_date", "debut_date", "date")
-
-
-def fetch_jp_release_dates() -> dict:
-    """dict[nome_jp] = data di rilascio JP (stringa 'YYYY-MM-DD') per TUTTI i
-    personaggi noti a umapyoi.net (dati del server giapponese). Ritorna un
-    dict vuoto se la richiesta fallisce o lo schema JSON non e' quello atteso
-    (fallback sicuro: la fase successiva si limita a non poter ordinare per
-    data JP e salta il controllo, senza rompere nulla)."""
-    try:
-        resp = requests.get(UMAPYOI_CHARACTER_LIST_URL, headers=HEADERS, timeout=REQUEST_TIMEOUT)
-        resp.raise_for_status()
-        data = resp.json()
-    except (requests.RequestException, ValueError):
-        return {}
-
-    entries = data if isinstance(data, list) else data.get("characters", data.get("data", []))
-    result = {}
-    for entry in entries or []:
-        if not isinstance(entry, dict):
-            continue
-        jp_name = next((entry[k] for k in _JP_NAME_FIELD_CANDIDATES if entry.get(k)), None)
-        release = next((entry[k] for k in _RELEASE_DATE_FIELD_CANDIDATES if entry.get(k)), None)
-        if jp_name and release and re.match(r"^\d{4}-\d{2}-\d{2}", str(release)):
-            result[jp_name] = str(release)[:10]
-    return result
-
-
-# ---------------------------------------------------------------------------
-# Personaggi NON ancora su Global: controlla solo i prossimi 5 per data JP
-# ---------------------------------------------------------------------------
-
-def check_pending_global_releases(character_info: pd.DataFrame, max_check: int = 5,
-                                   deadline: float | None = None) -> dict:
+def check_pending_global_releases(character_info: pd.DataFrame, cards: list) -> dict:
     """
     I dati di un personaggio (aptitude, ecc.) NON cambiano una volta che ha
     una data di rilascio Global: per quelli con `global_release_date` gia'
-    valorizzata NON si controlla piu' nulla (regola esplicita dell'utente) --
-    a differenza di una versione precedente, che ri-controllava OGNI
-    personaggio base ad ogni esecuzione (~130 richieste a gametora.com).
+    valorizzata NON si controlla piu' nulla (regola esplicita dell'utente).
 
-    Per i personaggi ANCORA SENZA data Global, non ha senso controllarli
-    tutti ad ogni esecuzione: il rilascio su Global segue (circa) l'ordine
-    cronologico di rilascio JP, quindi si ottengono le date di rilascio JP
-    (fonte 4, umapyoi.net) per ordinarli, e si controlla su Gametora SOLO
-    quelli con data JP piu' vicina (i prossimi `max_check`, default 5) --
-    quelli molto piu' in la' nella coda JP non usciranno su Global a breve,
-    controllarli ora sarebbe uno spreco di richieste.
-    Personaggi con data JP sconosciuta finiscono in fondo alla coda (non
-    prioritari, ma comunque controllati se restano tra i primi `max_check`).
+    Per i personaggi ANCORA SENZA data Global, cerca tra 'cards' (l'intero
+    catalogo Gametora, Fonte 5) quelle che condividono lo stesso nome
+    giapponese e hanno gia' una 'release_en'.
 
-    deadline: time.monotonic() limite oltre il quale interrompere i
-    controlli restanti (vedi MAX_UPDATE_SECONDS/_budget_exceeded); None =
-    nessun limite. Se superato a meta', i personaggi non ancora controllati
-    vengono ripresi al prossimo avvio (nessun dato perso, solo rimandato).
+    **Bug reale trovato e corretto (2026-08-12), stesso giorno in cui e'
+    stata scritta la prima versione**: una prima versione usava la data PIU'
+    ANTICA tra le carte Gametora con quel nome giapponese per QUALSIASI riga
+    pending con quel nome -- ma un nome giapponese puo' avere PIU' carte
+    Gametora (costume base + varianti) con date DIVERSE, e altrettante righe
+    NOSTRE distinte. Risultato reale: a `oguri_cap_anime` (variante
+    "Anime Collab", NON ancora uscita su Global secondo Gametora stesso,
+    nessuna 'release_en') veniva assegnata per errore la data del costume
+    BASE (2025-06-26, un'carta DIVERSA) solo perche' condivide lo stesso
+    nome giapponese -- 11 righe su 13 risolte in quel giro erano sbagliate
+    allo stesso modo (dati scritti nel repository e poi ripristinati da
+    backup). **Fix**: l'abbinamento automatico si applica SOLO quando il
+    nostro dataset ha ESATTAMENTE UNA riga per quel nome giapponese (nessuna
+    variante gia' tracciata) -- in quel caso non c'e' ambiguita' su quale
+    carta Gametora corrisponda alla nostra riga, e si usa la PIU' ANTICA
+    'release_en' tra tutte le carte Gametora con quel nome (il momento in
+    cui il personaggio e' diventato disponibile, a prescindere dal costume).
+    Per i nomi giapponesi con PIU' righe nostre (varianti gia' tracciate),
+    non c'e' modo affidabile di sapere quale riga corrisponde a quale carta
+    SENZA il suffisso (dimostrato inaffidabile altrove in questo file, vedi
+    build_gametora_tid_map) -- restano pending, mai un abbinamento indovinato.
+
+    Nessuna richiesta di rete propria: 'cards' va gia' scaricato dal
+    chiamante (vedi run_update, Fonte 5).
 
     Ritorna un dict con le date aggiornate trovate (non scrive nulla: la
     scrittura resta centralizzata in run_update).
     """
-    result = {"release_dates_updated": [], "checked": 0, "errors": [], "stopped_early": False}
+    result = {"release_dates_updated": []}
 
     pending = character_info[character_info["global_release_date"] == ""]
     if pending.empty:
         return result
 
-    jp_dates = fetch_jp_release_dates()
-    pending = pending.copy()
-    pending["_jp_date"] = pending["jp_name"].map(lambda n: jp_dates.get(n, "9999-99-99"))
-    pending = pending.sort_values("_jp_date").head(max_check)
+    jp_name_row_counts = character_info["jp_name"].value_counts()
+
+    earliest_release_by_jp = {}
+    for card in cards:
+        jp_name, release_en = card.get("name_jp"), card.get("release_en")
+        if not jp_name or not release_en:
+            continue
+        current = earliest_release_by_jp.get(jp_name)
+        if current is None or release_en < current:
+            earliest_release_by_jp[jp_name] = release_en
 
     for _, row in pending.iterrows():
-        if _budget_exceeded(deadline):
-            result["stopped_early"] = True
-            break
-        character = row["character"]
-        slug_gt = gametora_slug(base_character_slug(character).replace("_", " "))
-        gt_data = fetch_gametora_character(slug_gt)
-        time.sleep(0.3)  # non sovraccaricare gametora.com con richieste consecutive
-        result["checked"] += 1
-        if not gt_data or gt_data["jp_name"] != row["jp_name"]:
-            continue  # pagina non raggiungibile o slug corrisponde a un personaggio diverso: si salta
-
-        if not gt_data["not_on_global"] and gt_data["release_date"]:
-            result["release_dates_updated"].append({
-                "character": character, "new_date": gt_data["release_date"],
-            })
+        if jp_name_row_counts.get(row["jp_name"], 0) != 1:
+            continue  # nome giapponese con piu' righe nostre: ambiguo, non si indovina
+        release = earliest_release_by_jp.get(row["jp_name"])
+        if release:
+            result["release_dates_updated"].append({"character": row["character"], "new_date": release})
 
     return result
 
@@ -572,6 +602,158 @@ def check_new_variants(character_info: pd.DataFrame, aptitudes_df: pd.DataFrame,
             break
 
     return result
+
+
+# ---------------------------------------------------------------------------
+# Fonte 5: Gametora character-cards.json -- mappa tid -> nostro ID interno
+# (per import/export della selezione posseduti compatibile col Collection
+# Tracker di Gametora, vedi static/script.js)
+# ---------------------------------------------------------------------------
+
+GAMETORA_MANIFEST_URL = "https://gametora.com/data/manifests/umamusume.json"
+GAMETORA_DATA_BASE_URL = "https://gametora.com/data/umamusume/"
+
+
+def fetch_gametora_character_cards() -> list | None:
+    """Scarica l'elenco completo delle carte-personaggio (tutte le
+    varianti/costumi) usato dal Collection Tracker di Gametora. Il nome del
+    file include un hash che cambia ad ogni deploy del sito: si risolve prima
+    via il manifest pubblico (stesso meccanismo con cui il sito carica i
+    propri dati). Ritorna None (mai una lista parziale/sporca) se manifest o
+    file non sono raggiungibili o non hanno il formato atteso."""
+    try:
+        manifest_resp = requests.get(GAMETORA_MANIFEST_URL, headers=HEADERS, timeout=REQUEST_TIMEOUT)
+        manifest_resp.raise_for_status()
+        file_hash = manifest_resp.json()["character-cards"]
+
+        cards_resp = requests.get(
+            f"{GAMETORA_DATA_BASE_URL}character-cards.{file_hash}.json",
+            headers=HEADERS, timeout=REQUEST_TIMEOUT,
+        )
+        cards_resp.raise_for_status()
+        cards = cards_resp.json()
+        return cards if isinstance(cards, list) else None
+    except (requests.RequestException, ValueError, KeyError):
+        return None
+
+
+def build_gametora_tid_map(character_info: pd.DataFrame, cards: list) -> dict:
+    """dict[tid] = nostro_id_interno, per ogni carta Gametora che trova un
+    abbinamento UNIVOCO in character_info.csv.
+
+    NON usa il suffisso di variante (es. "_xmas") per l'abbinamento: un caso
+    reale (Oguri Cap) mostra che il suffisso registrato in questo repository
+    non riflette sempre il vero costume Gametora --
+    "oguri_cap_og_xmas" ha in realta' la data di rilascio del costume BASE
+    (2025-06-26), non quella del vero costume natalizio Gametora (2026-01-05,
+    non ancora presente come riga separata in questo repository) -- probabile
+    refuso storico di una precedente rilevazione varianti, non toccato qui
+    (fuori scope). L'abbinamento usa invece (nome giapponese, data di
+    rilascio Global): entrambi i campi sono gia' tracciati e affidabili, e il
+    match dev'essere univoco -- se una carta non trova ESATTAMENTE una riga
+    corrispondente, viene ignorata silenziosamente (mai un abbinamento
+    indovinato). Le carte non ancora rilasciate su Global (senza
+    'release_en') sono escluse a monte: non possono comunque comparire in un
+    export reale del Collection Tracker."""
+    rows_by_key = {}
+    for _, row in character_info.iterrows():
+        rows_by_key.setdefault((row["jp_name"], row["global_release_date"]), []).append(row["character"])
+
+    tid_map = {}
+    for card in cards:
+        tid = card.get("tid")
+        jp_name = card.get("name_jp")
+        release_en = card.get("release_en")
+        if not tid or not jp_name or not release_en:
+            continue
+        candidates = rows_by_key.get((jp_name, release_en), [])
+        if len(candidates) == 1:
+            tid_map[tid] = candidates[0]
+    return tid_map
+
+
+def build_gametora_tid_fallback_map(character_info: pd.DataFrame, cards: list, tid_map: dict) -> dict:
+    """dict[tid] = nostro_id_interno, SOLO per carte Gametora che
+    build_gametora_tid_map non ha gia' risolto ma il cui personaggio (stesso
+    nome giapponese) e' comunque tracciato da questo tool sotto ALMENO una
+    variante -- caso reale segnalato dall'utente: possedere su Gametora solo
+    "Rice Shower Halloween" (che questo tool non traccia come riga separata)
+    non faceva risultare posseduta nemmeno "Rice Shower" base, pur essendo
+    la STESSA umamusume ai fini di aptitude/carriera del looping. Si punta
+    alla riga tracciata con la data di rilascio Global PIU' ANTICA per quel
+    nome giapponese (in pratica il costume 'originale') -- se nessuna riga
+    per quel nome giapponese ha una data nota, non c'e' un fallback
+    affidabile e la carta resta non risolta (mai un abbinamento indovinato,
+    stesso principio di build_gametora_tid_map)."""
+    earliest_by_jp = {}
+    for _, row in character_info.iterrows():
+        jp_name, date = row["jp_name"], row["global_release_date"]
+        if not date:
+            continue
+        current = earliest_by_jp.get(jp_name)
+        if current is None or date < current[0]:
+            earliest_by_jp[jp_name] = (date, row["character"])
+
+    fallback_map = {}
+    for card in cards:
+        tid = card.get("tid")
+        jp_name = card.get("name_jp")
+        if not tid or not jp_name or tid in tid_map:
+            continue
+        entry = earliest_by_jp.get(jp_name)
+        if entry:
+            fallback_map[tid] = entry[1]
+    return fallback_map
+
+
+def build_gametora_tid_names(cards: list) -> dict:
+    """dict[tid] = nome leggibile Gametora ("Special Week", "Special Week
+    (Summer)", ...), per TUTTE le carte con un tid (comprese quelle SENZA un
+    abbinamento in build_gametora_tid_map) -- serve solo per mostrare
+    all'utente QUALI carte di un import sono state ignorate (vedi
+    static/script.js), non per la logica di import/export in se'."""
+    names = {}
+    for card in cards:
+        tid = card.get("tid")
+        name_en = card.get("name_en")
+        if not tid or not name_en:
+            continue
+        version = card.get("version")
+        if version:
+            names[tid] = f"{name_en} ({version.replace('_', ' ').title()})"
+        else:
+            names[tid] = name_en
+    return names
+
+
+def _gametora_tid_map_path(data_dir) -> Path:
+    return Path(data_dir) / "gametora_tid_map.json"
+
+
+def _gametora_tid_fallback_map_path(data_dir) -> Path:
+    return Path(data_dir) / "gametora_tid_fallback_map.json"
+
+
+def _gametora_tid_names_path(data_dir) -> Path:
+    return Path(data_dir) / "gametora_tid_names.json"
+
+
+def get_gametora_tid_map(data_dir) -> dict:
+    """dict[tid] = nostro_id_interno, cosi' come salvato dall'ultimo
+    aggiornamento riuscito (dict vuoto se non ancora generato)."""
+    return _read_json(_gametora_tid_map_path(data_dir), {})
+
+
+def get_gametora_tid_fallback_map(data_dir) -> dict:
+    """dict[tid] = nostro_id_interno "di ripiego" (vedi
+    build_gametora_tid_fallback_map), dict vuoto se non ancora generato."""
+    return _read_json(_gametora_tid_fallback_map_path(data_dir), {})
+
+
+def get_gametora_tid_names(data_dir) -> dict:
+    """dict[tid] = nome leggibile Gametora, per ogni carta conosciuta (dict
+    vuoto se non ancora generato). Vedi build_gametora_tid_names."""
+    return _read_json(_gametora_tid_names_path(data_dir), {})
 
 
 def _load_character_info(path: Path) -> pd.DataFrame:
@@ -717,24 +899,29 @@ def run_update(data_dir: str) -> dict:
         )
         aptitudes_df.to_excel(aptitudes_path, index=False)
 
-    # --- Personaggi NON ancora su Global: controlla solo i prossimi 5 per
-    # data di rilascio JP (fonte 4). I personaggi GIA' su Global non vengono
-    # piu' ricontrollati per nulla (i loro dati non cambiano una volta
-    # rilasciati -- regola esplicita dell'utente, sostituisce la precedente
-    # scansione esaustiva di TUTTI i personaggi base ad ogni esecuzione).
+    # --- Fonte 5: character-cards.json, scaricato UNA VOLTA e riusato sia per
+    # le date di rilascio mancanti (sotto) sia per le mappe tid Gametora (in
+    # fondo) -- una singola chiamata di rete economica, non piu' N richieste
+    # per-personaggio come nella versione precedente (vedi commento sopra
+    # check_pending_global_releases per il perche' del cambio).
+    cards = fetch_gametora_character_cards() if not _budget_exceeded(deadline) else None
+
+    # --- Personaggi NON ancora su Global: cerca la data di rilascio in
+    # 'cards' (Fonte 5). I personaggi GIA' su Global non vengono piu'
+    # ricontrollati per nulla (i loro dati non cambiano una volta rilasciati
+    # -- regola esplicita dell'utente).
     # (rilegge da disco cosi' da includere i personaggi appena aggiunti sopra)
     character_info = _load_character_info(character_info_path)
-    pending_check = check_pending_global_releases(character_info, deadline=deadline)
-    report["release_dates_updated"] = pending_check["release_dates_updated"]
-    report["errors"].extend(pending_check["errors"])
-    report["stopped_early"] = report["stopped_early"] or pending_check["stopped_early"]
+    if cards is not None:
+        pending_check = check_pending_global_releases(character_info, cards)
+        report["release_dates_updated"] = pending_check["release_dates_updated"]
 
-    if pending_check["release_dates_updated"]:
-        by_character = {r["character"]: r["new_date"] for r in pending_check["release_dates_updated"]}
-        character_info["global_release_date"] = character_info.apply(
-            lambda r: by_character.get(r["character"], r["global_release_date"]), axis=1,
-        )
-        character_info.to_csv(character_info_path, index=False)
+        if pending_check["release_dates_updated"]:
+            by_character = {r["character"]: r["new_date"] for r in pending_check["release_dates_updated"]}
+            character_info["global_release_date"] = character_info.apply(
+                lambda r: by_character.get(r["character"], r["global_release_date"]), axis=1,
+            )
+            character_info.to_csv(character_info_path, index=False)
 
     # --- Nuove varianti/costumi: SOLO ogni 7+ giorni (gate separato dalle 24
     # ore del resto di run_update, vedi _variant_check_due/_variant_state_path
@@ -774,6 +961,30 @@ def run_update(data_dir: str) -> dict:
         # se interrotto per budget: NON si marca come fatto, cosi' viene
         # ritentato al prossimo avvio (24h) invece di aspettare altri 7
         # giorni per una scansione rimasta incompleta.
+
+    # --- Fonte 5 (continua): mappe tid Gametora -> nostro ID interno
+    # (import/export posseduti compatibile col Collection Tracker), costruite
+    # dallo stesso 'cards' gia' scaricato sopra -- nessuna richiesta di rete
+    # aggiuntiva. Fallisce in modo sicuro (nessuna scrittura) se Gametora non
+    # era raggiungibile ('cards' None).
+    report["gametora_tid_map_updated"] = False
+    if cards is not None:
+        character_info = _load_character_info(character_info_path)  # rilegge per includere eventuali variant/date aggiunte sopra
+        tid_map = build_gametora_tid_map(character_info, cards)
+        tid_map_path = _gametora_tid_map_path(data_dir)
+        if tid_map != get_gametora_tid_map(data_dir):
+            tid_map_path.write_text(json.dumps(tid_map, ensure_ascii=False, indent=2, sort_keys=True))
+            report["gametora_tid_map_updated"] = True
+
+        fallback_map = build_gametora_tid_fallback_map(character_info, cards, tid_map)
+        fallback_map_path = _gametora_tid_fallback_map_path(data_dir)
+        if fallback_map != get_gametora_tid_fallback_map(data_dir):
+            fallback_map_path.write_text(json.dumps(fallback_map, ensure_ascii=False, indent=2, sort_keys=True))
+
+        tid_names = build_gametora_tid_names(cards)
+        tid_names_path = _gametora_tid_names_path(data_dir)
+        if tid_names != get_gametora_tid_names(data_dir):
+            tid_names_path.write_text(json.dumps(tid_names, ensure_ascii=False, indent=2, sort_keys=True))
 
     return report
 
@@ -889,41 +1100,36 @@ def _backup_data_files(data_dir: str):
             (backup_dir / name).write_bytes(src.read_bytes())
 
 
-def maybe_run_update(data_dir: str, force: bool = False) -> dict | None:
-    """Controlla se sono passate piu' di 24 ore dall'ultimo aggiornamento
-    riuscito; in tal caso lo esegue e aggiorna il timestamp. Pensato per
-    essere chiamato all'AVVIO dell'app (non serve un processo sempre attivo).
-    Non solleva mai eccezioni verso il chiamante: un problema di rete non
-    deve impedire l'avvio dell'app con i dati gia' presenti. Un budget di
-    tempo complessivo (MAX_UPDATE_SECONDS) protegge comunque da un'attesa
-    troppo lunga anche in caso di rete molto lenta (vedi run_update).
+def maybe_run_update(data_dir: str) -> dict | None:
+    """Esegue un aggiornamento SEMPRE, se l'aggiornamento automatico e'
+    abilitato (vedi is_auto_update_enabled/set_auto_update_enabled) --
+    nessun gate a 24 ore (rimosso il 2026-08-12, su richiesta esplicita
+    dell'utente, in preparazione al passaggio da .exe a sito web sempre
+    aggiornato: un tool usato saltuariamente non deve aspettare un giorno
+    intero per recuperare dati mancanti, es. una data di rilascio). Pensato
+    per essere chiamato all'AVVIO dell'app (non serve un processo sempre
+    attivo). Non solleva mai eccezioni verso il chiamante: un problema di
+    rete non deve impedire l'avvio dell'app con i dati gia' presenti. Un
+    budget di tempo complessivo (MAX_UPDATE_SECONDS) protegge comunque da
+    un'attesa troppo lunga anche in caso di rete molto lenta (vedi
+    run_update); il controllo varianti (fonte 3, comunque non funzionante al
+    momento, vedi in cima al file) resta dietro il proprio gate separato a
+    7+ giorni, non toccato da questo cambiamento.
 
-    Se l'utente ha disattivato l'aggiornamento automatico (vedi
-    is_auto_update_enabled/set_auto_update_enabled), non fa nulla e ritorna
-    None immediatamente, anche con force=True (la disattivazione e'
-    esplicita e ha sempre la precedenza).
+    Se l'utente ha disattivato l'aggiornamento automatico, non fa nulla e
+    ritorna None immediatamente.
 
     Ritorna il report se l'aggiornamento e' stato eseguito, altrimenti None.
     """
     if not is_auto_update_enabled(data_dir):
         return None
 
-    state_path = _state_path(data_dir)
-    if not force:
-        state = _read_json(state_path, {})
-        try:
-            last = datetime.fromisoformat(state["last_update_utc"])
-            if (datetime.now(timezone.utc) - last).total_seconds() < UPDATE_INTERVAL_HOURS * 3600:
-                return None
-        except (KeyError, ValueError):
-            pass  # stato illeggibile/assente: procede come se non fosse mai stato eseguito
-
     try:
         report = run_update(data_dir)
     except Exception as exc:
         report = {"timestamp": datetime.now(timezone.utc).isoformat(), "errors": [str(exc)]}
 
-    state_path.write_text(json.dumps({"last_update_utc": datetime.now(timezone.utc).isoformat()}))
+    _state_path(data_dir).write_text(json.dumps({"last_update_utc": datetime.now(timezone.utc).isoformat()}))
 
     report_path = Path(data_dir) / "last_update_report.json"
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2))

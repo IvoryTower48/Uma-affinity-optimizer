@@ -752,6 +752,16 @@ button:disabled {
   margin: 0 0 0.8rem;
 }
 
+.gametora-skipped-list {
+  columns: 2;
+  column-gap: 1.2rem;
+  margin: 0.4rem 0 0;
+  padding-left: 1.1rem;
+}
+.gametora-skipped-list li {
+  break-inside: avoid;
+}
+
 h2, h3 {
   color: var(--primary-text);
   font-size: var(--fs-md);
@@ -878,6 +888,81 @@ details.collapsible-list summary {
   color: #2a2a2a;
   background: #ffffff;
 }
+
+/* =============================================================================
+   Griglia personaggi posseduti (ritratti) -- layout moderno
+   Vedi renderOwnedListModern in script.js. Il layout classico ignora queste
+   regole (selettore [data-layout="modern"]) e mantiene la vecchia lista a
+   checkbox tramite l'override [data-layout="classic"] .owned-list piu' sotto.
+   ========================================================================= */
+
+[data-layout="modern"] #owned-list {
+  display: grid;
+  /* Numero di colonne fisso (invece di auto-fill/minmax): garantisce sempre
+     9 per riga a prescindere dalla larghezza del pannello, come richiesto,
+     senza dover indovinare una larghezza minima per colonna. */
+  grid-template-columns: repeat(9, 1fr);
+  gap: 0.6rem;
+  max-height: 340px;
+  overflow-x: hidden;
+}
+
+/* Specificita' #owned-list .owned-chip (non solo .owned-chip): il chip e'
+   una <label> dentro #owned-list.owned-list, quindi la vecchia regola
+   ".owned-list label" (lista classica, vedi sopra) altrimenti vince per
+   specificita' e impone white-space:nowrap, ereditato dai figli -- e'
+   proprio quello che impediva al nome di andare a capo. */
+#owned-list .owned-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.2rem;
+  margin: 0;
+  min-width: 0; /* senza questo, un nome lungo forza la colonna oltre
+                   minmax() e sballa la griglia (nomi sovrapposti,
+                   scrollbar orizzontale) */
+  white-space: normal;
+  border-radius: var(--radius-sm);
+  border: 2px solid transparent;
+  cursor: pointer;
+  text-align: center;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.owned-chip:hover { background: var(--bg-elevated); }
+
+.owned-chip-selected {
+  border-color: var(--primary-fill);
+  background: var(--bg-elevated);
+}
+
+.owned-chip-portrait {
+  width: 48px;
+  height: 48px;
+  font-size: var(--fs-xs);
+  opacity: 0.5;
+}
+
+.owned-chip-selected .owned-chip-portrait { opacity: 1; }
+
+.owned-chip-name {
+  /* Senza width:100% il testo si dimensiona sul proprio contenuto (il
+     flex-parent ha align-items:center, non stretch) e trabocca oltre il
+     bordo del chip invece di andare a capo al suo interno. Clamp a 2 righe
+     con ellissi per i nomi che non ci stanno comunque. */
+  width: 100%;
+  font-size: var(--fs-xs);
+  line-height: 1.15;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.owned-chip-selected .owned-chip-name { color: var(--text); font-weight: 600; }
 
 /* =============================================================================
    Card candidati Top-4 -- layout moderno
@@ -1322,6 +1407,16 @@ details.collapsible-list summary {
   gap: 1rem;
 }
 
+/* .controls-row (mode/calendar a sinistra + #min-aptitude-field a destra) non
+   va mai a capo di suo (nessun flex-wrap nella regola base, corretto in
+   moderno perche' le due card si dividono la riga con flex:1 1 0). In
+   classico #min-aptitude-field torna un box vero (vedi sotto) invece di
+   essere spalmato piatto nella riga: senza wrap qui, quel box viene spinto
+   fuori dalla colonna sinistra invece di andare a capo. */
+[data-layout="classic"] .controls-row {
+  flex-wrap: wrap;
+}
+
 [data-layout="classic"] .control-card {
   display: contents;
 }
@@ -1339,15 +1434,20 @@ details.collapsible-list summary {
   display: flex;
 }
 
-/* #owned-field/#character-field/#loop-field erano gia' dei raggruppamenti
-   indipendenti nel layout originale (non solo campi sciolti come mode/
-   calendar/checkbox sopra) -- restano tali anche in classico, la regola
-   "contents" generica sopra si applicherebbe altrimenti anche a loro. */
+/* #owned-field/#character-field/#loop-field/#min-aptitude-field erano gia'
+   dei raggruppamenti indipendenti nel layout originale (non solo campi
+   sciolti come mode/calendar/checkbox sopra) -- restano tali anche in
+   classico, la regola "contents" generica sopra si applicherebbe altrimenti
+   anche a loro. #min-aptitude-field mancava da questa eccezione: appiattito
+   nella riga flessibile, i suoi 6 select (Turf/Dirt/Sprint/Mile/Medium/Long)
+   sfondavano fuori dalla colonna sinistra, sovrapponendosi al pannello
+   Timeline a destra. */
 [data-layout="classic"] #character-field {
   display: block;
 }
 [data-layout="classic"] #owned-field,
-[data-layout="classic"] #loop-field {
+[data-layout="classic"] #loop-field,
+[data-layout="classic"] #min-aptitude-field {
   display: flex;
   flex-direction: column;
   min-width: 260px;

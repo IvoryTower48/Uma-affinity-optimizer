@@ -12,6 +12,12 @@ There are three main modes:
   parent: only 3 owned characters need to rotate instead of 5.
 
 This tool also features:
+- owned-character selection with a portrait grid (modern layout) or
+  checklist (classic layout), and export/import of that selection in a
+  format compatible with Gametora's
+  [Collection Tracker](https://gametora.com/umamusume/collection-tracker) —
+  a variant costume this tool doesn't track separately still counts as
+  owning the character, via a fallback to its tracked base costume;
 - pink spark planning (Aptitude Inheritance): simulate the aptitude boost
   from pink sparks across the whole loop, preview the resulting career
   timeline live, and get a suggested single-member substitution if another
@@ -70,8 +76,9 @@ config.py                constants (suffixes related to uma variants, aptitude t
 naming.py                mapping from uma variant name -> uma base name
 display_names.py         Name format for the UI
 data_loader.py           loading and normalization of all datasets
-data_updater.py          data update from gametora.com/GitHub/Wikipedia/umapyoi.net
-                         (optional, turned off by default; toggle also in the UI)
+data_updater.py          data update from gametora.com/GitHub/Wikipedia (optional, turned
+                         off by default; toggle also in the UI; runs on every startup
+                         while enabled, not just once a day)
 affinity.py              base affinity, achievable races, calendar conflict resolution,
                          regular aptitude requirements for a win
 loop_search.py           searches the top-4 compatible characters or searches the best 5-loop
@@ -101,6 +108,9 @@ data/                    dataset (see below)
 - `races.xlsx`, `race_gametora_ids.json` — race metadata
 - `mandatory_races.xlsx` — mandatory career races for each character
 - `character_info.csv` — mapping variant → japanese name + Global server release date
+- `gametora_tid_map.json`, `gametora_tid_fallback_map.json`, `gametora_tid_names.json` —
+  mapping between Gametora Collection Tracker card IDs and this tool's character IDs,
+  used by the owned-character import/export feature
 
 `data/image_cache/` (character portraits and race plaques) are not included
 in the repository: this folder will fill itself the first time it's requested
@@ -156,6 +166,15 @@ python main.py --data-dir data --loop --global-only
   never past grade "A"), and it DOES affect that search's ranking — unlike
   independent training above, or the min-aptitude threshold, this one is
   scoped to a single character rather than the whole candidate pool.
+- **Owned-character import/export** (UI only): matches Gametora Collection
+  Tracker card IDs to this tool's characters by (Japanese name, Global
+  release date), never by variant suffix — a real case (Oguri Cap) showed
+  the suffix recorded here doesn't always match the real Gametora costume.
+  A card with no exact match still counts as owned if this tool tracks the
+  same character under a different costume (falls back to the earliest
+  tracked release for that name), since an untracked variant shares the
+  same aptitudes/career for looping purposes; anything left over is listed,
+  not just counted, since it's almost always such an untracked variant.
 - **Rented-parent signature spark** (UI only, rental loop): since the
   anchor is the same character in every cycle, its pink spark (and its
   grandparents', if known) is a constant for the whole rotation instead of
@@ -175,9 +194,6 @@ affinity computation clarification, and downloadable illustrations.
 
 [uma.guide](https://uma.guide) for the race plaque illustrations used in the
 timeline grid and in the PDF export.
-
-[umapyoi.net](https://umapyoi.net) for Japanese-server release dates, used to
-order characters still pending a Global release.
 
 Each line of Python code has been written by an AI, supervised and micromanaged by IvoryTower48 (in game: Arnit, Trainer ID 600 621 108 642).
 

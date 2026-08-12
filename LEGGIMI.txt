@@ -16,6 +16,8 @@ delle aptitude che puoi provare per il solo personaggio scelto in Top-4
 (questo invece incide davvero sul punteggio di quella ricerca), e, per il
 loop con genitore in prestito, una pink spark "firma" per l'anchor e i suoi
 nonni (fissa per tutta la rotazione, dato che l'anchor non cambia mai).
+La selezione dei personaggi posseduti può essere esportata e importata in
+un formato compatibile col Collection Tracker di Gametora.
 
 La UI è disponibile sia in italiano che in inglese, con tema chiaro/scuro
 e layout moderno/classico: cambia queste impostazioni dall'icona
@@ -57,7 +59,5 @@ mee1080 (https://github.com/mee1080) e la sua repository Umaishow per mantenere 
 Gametora e il suo server Discord per aver fornito supporto, spiegazioni sul calcolo delle affinità e le illustrazioni.
 
 uma.guide (https://uma.guide) per le targhe delle gare usate nella griglia timeline e nel PDF esportato.
-
-umapyoi.net (https://umapyoi.net) per le date di rilascio sul server giapponese, usate per ordinare i personaggi ancora in attesa del rilascio Global.
 
 Ogni riga di questo codice è stata scritta da una IA, supervisionata e gestita passo dopo passo da IvoryTower48 (in game: Arnit, Trainer ID 600 621 108 642).

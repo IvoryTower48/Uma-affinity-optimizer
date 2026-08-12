@@ -238,6 +238,40 @@ def api_meta_parents():
     return jsonify({"characters": data_updater.get_meta_parents(DATA_DIR)})
 
 
+@app.route("/api/gametora_tid_map")
+def api_gametora_tid_map():
+    """
+    dict[tid] = nostro_id_interno, generato da data_updater (Fonte 5) e
+    aggiornato con lo stesso gate a 24 ore del resto. Usato dal frontend per
+    l'import/export della selezione posseduti compatibile col Collection
+    Tracker di Gametora (gametora.com/umamusume/collection-tracker).
+    """
+    return jsonify(data_updater.get_gametora_tid_map(DATA_DIR))
+
+
+@app.route("/api/gametora_tid_fallback_map")
+def api_gametora_tid_fallback_map():
+    """
+    dict[tid] = nostro_id_interno "di ripiego": usato dal frontend SOLO per i
+    tid assenti da /api/gametora_tid_map, per ricondurre una variante non
+    tracciata separatamente (stesse aptitude/carriera del looping) al
+    personaggio tracciato piu' vicino (vedi
+    data_updater.build_gametora_tid_fallback_map per il criterio esatto).
+    """
+    return jsonify(data_updater.get_gametora_tid_fallback_map(DATA_DIR))
+
+
+@app.route("/api/gametora_tid_names")
+def api_gametora_tid_names():
+    """
+    dict[tid] = nome leggibile Gametora, per OGNI carta conosciuta (comprese
+    quelle senza un abbinamento nel nostro dataset). Usato dal frontend solo
+    per mostrare all'utente quali carte di un import sono state ignorate
+    (vedi /api/gametora_tid_map per la mappa usata dall'import vero e proprio).
+    """
+    return jsonify(data_updater.get_gametora_tid_names(DATA_DIR))
+
+
 @app.route("/api/portrait/<path:character>")
 def api_portrait(character):
     """

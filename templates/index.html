@@ -140,6 +140,16 @@
             <button type="button" id="select-all-button" data-i18n="btn_select_all">Seleziona tutti</button>
             <button type="button" id="select-none-button" data-i18n="btn_select_none">Deseleziona tutti</button>
           </div>
+          <div class="owned-select-buttons">
+            <button type="button" id="gametora-export-button" data-i18n="btn_gametora_export">Esporta per Gametora</button>
+            <button type="button" id="gametora-import-button" data-i18n="btn_gametora_import">Importa da Gametora</button>
+            <input type="file" id="gametora-import-file-input" accept="application/json" style="display:none">
+          </div>
+          <p id="gametora-import-status" class="warning" hidden></p>
+          <div id="gametora-import-skipped" class="warning" hidden>
+            <p data-i18n="gametora_skipped_note">Nella maggior parte dei casi si tratta di varianti che questo tool non traccia separatamente, perché condividono le stesse aptitude e la stessa carriera del personaggio base ai fini del looping.</p>
+            <ul id="gametora-import-skipped-list" class="gametora-skipped-list"></ul>
+          </div>
           <label for="owned-sort-select" class="owned-sort-label" data-i18n="label_owned_sort">Ordina per</label>
           <div class="owned-sort-row">
             <select id="owned-sort-select">
