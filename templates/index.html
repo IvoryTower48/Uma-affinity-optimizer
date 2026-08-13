@@ -85,16 +85,31 @@
       <section class="controls">
         <div class="controls-row">
           <div class="control-card">
-            <label for="mode-select" data-i18n="label_mode">Modalità di utilizzo</label>
-            <select id="mode-select">
+            <label data-i18n="label_mode">Modalità di utilizzo</label>
+            <div class="mode-tabs" id="mode-tabs">
+              <button type="button" class="mode-tab-button" data-mode-choice="top4" data-i18n="opt_mode_top4">Top-4 compatibili con un personaggio</button>
+              <button type="button" class="mode-tab-button" data-mode-choice="loop" data-i18n="opt_mode_loop">Miglior loop a 5</button>
+              <button type="button" class="mode-tab-button" data-mode-choice="rental" data-i18n="opt_mode_rental">Loop con genitore in prestito</button>
+            </div>
+            <!-- Il <select> resta nel DOM (solo nascosto): tutta la logica esistente
+                 (updateFieldVisibility, salvataggio/caricamento, payload verso il
+                 server) legge/scrive modeSelect.value, non serve toccarla altrove.
+                 I tab sopra si limitano a pilotarlo. -->
+            <select id="mode-select" hidden>
               <option value="top4" data-i18n="opt_mode_top4">Top-4 compatibili con un personaggio</option>
               <option value="loop" data-i18n="opt_mode_loop">Miglior loop a 5</option>
               <option value="rental" data-i18n="opt_mode_rental">Loop con genitore in prestito</option>
             </select>
 
             <div>
-              <label for="calendar-select" data-i18n="label_calendar">Vincolo di calendario</label>
-              <select id="calendar-select">
+              <label data-i18n="label_calendar">Vincolo di calendario</label>
+              <div class="mode-tabs" id="calendar-tabs">
+                <button type="button" class="mode-tab-button" data-calendar-choice="career" data-i18n="opt_calendar_career">Con vincoli di carriera normale</button>
+                <button type="button" class="mode-tab-button" data-calendar-choice="mant" data-i18n="opt_calendar_mant">Nessun vincolo (Make A New Track)</button>
+              </div>
+              <!-- Stesso schema di #mode-tabs sopra: il <select> resta la fonte di
+                   verita' (letto/scritto ovunque altrove), solo nascosto. -->
+              <select id="calendar-select" hidden>
                 <option value="career" data-i18n="opt_calendar_career">Con vincoli di carriera normale</option>
                 <option value="mant" data-i18n="opt_calendar_mant">Nessun vincolo (Make A New Track)</option>
               </select>
@@ -134,21 +149,12 @@
         </div>
 
         <div id="owned-field" class="owned-field control-card">
-          <label data-i18n="label_owned">Personaggi posseduti (vuoto = considera tutti)</label>
+          <p class="field-section-title" data-i18n="label_owned_title">Personaggi posseduti</p>
+          <p class="field-intro" data-i18n="label_owned_intro">Vuoto = verranno considerati tutti i personaggi.</p>
           <div id="owned-list" class="owned-list"></div>
           <div class="owned-select-buttons">
             <button type="button" id="select-all-button" data-i18n="btn_select_all">Seleziona tutti</button>
             <button type="button" id="select-none-button" data-i18n="btn_select_none">Deseleziona tutti</button>
-          </div>
-          <div class="owned-select-buttons">
-            <button type="button" id="gametora-export-button" data-i18n="btn_gametora_export">Esporta per Gametora</button>
-            <button type="button" id="gametora-import-button" data-i18n="btn_gametora_import">Importa da Gametora</button>
-            <input type="file" id="gametora-import-file-input" accept="application/json" style="display:none">
-          </div>
-          <p id="gametora-import-status" class="warning" hidden></p>
-          <div id="gametora-import-skipped" class="warning" hidden>
-            <p data-i18n="gametora_skipped_note">Nella maggior parte dei casi si tratta di varianti che questo tool non traccia separatamente, perché condividono le stesse aptitude e la stessa carriera del personaggio base ai fini del looping.</p>
-            <ul id="gametora-import-skipped-list" class="gametora-skipped-list"></ul>
           </div>
           <label for="owned-sort-select" class="owned-sort-label" data-i18n="label_owned_sort">Ordina per</label>
           <div class="owned-sort-row">
@@ -158,16 +164,36 @@
             </select>
             <button type="button" id="owned-sort-direction-button" data-i18n-title="btn_sort_direction_title" data-i18n="sort_ascending" title="Inverti ordine">↑ Ascendente</button>
           </div>
+
+          <!-- Interscambio con Gametora: usato saltuariamente (sincronizzazione con
+               uno strumento esterno), non un controllo che si tocca ad ogni ricerca
+               come select/deselect/ordina sopra -- volutamente in fondo alla card e
+               con lo stile "secondario" (.save-load-buttons, stesso di Salva/Carica)
+               invece che i bottoni pieni di select/deselect. -->
+          <div class="save-load-buttons owned-gametora-buttons">
+            <button type="button" id="gametora-export-button" data-i18n="btn_gametora_export">Esporta per Gametora</button>
+            <button type="button" id="gametora-import-button" data-i18n="btn_gametora_import">Importa da Gametora</button>
+            <input type="file" id="gametora-import-file-input" accept="application/json" style="display:none">
+          </div>
+          <p id="gametora-import-status" class="warning" hidden></p>
+          <div id="gametora-import-skipped" class="warning" hidden>
+            <p data-i18n="gametora_skipped_note">Nella maggior parte dei casi si tratta di varianti che questo tool non traccia separatamente, perché condividono le stesse aptitude e la stessa carriera del personaggio base ai fini del looping.</p>
+            <ul id="gametora-import-skipped-list" class="gametora-skipped-list"></ul>
+          </div>
         </div>
 
         <div class="action-row">
           <div class="control-card control-actions">
+            <!-- Salva/Carica riguardano l'INTERO setup (non solo i posseduti), non
+                 l'esecuzione in se': bottoni "secondari" (stesso stile piu' piccolo
+                 di prima), separati da Esegui che resta il CTA grande e isolato.
+                 Genera PDF NON sta piu' qui: esporta i RISULTATI di una ricerca gia'
+                 fatta (per questo resta disabilitato finche' non ce ne sono), quindi
+                 ora vive accanto a #results invece che qui vicino all'input. -->
             <div class="save-load-buttons">
               <button type="button" id="save-button" data-i18n="btn_save">Salva</button>
               <button type="button" id="load-button" data-i18n="btn_load">Carica</button>
               <input type="file" id="load-file-input" accept="application/json" style="display:none">
-              <button type="button" id="pdf-button" data-i18n="btn_generate_pdf" disabled>Genera PDF</button>
-              <span id="pdf-status" class="pdf-export-status"></span>
             </div>
             <button id="run-button" class="run-button-large" data-i18n="btn_run">Esegui</button>
           </div>
@@ -224,9 +250,22 @@
         </div>
       </section>
 
+      <!-- Genera PDF esporta i RISULTATI della ricerca corrente (per questo resta
+           disabilitato finche' non ce ne sono, vedi disablePdfButton/enablePdfButton
+           in script.js) -- vive qui accanto a #results, non piu' vicino a Salva/
+           Carica/Esegui (quelli riguardano l'input, non l'output). -->
+      <div class="results-toolbar">
+        <button type="button" id="pdf-button" data-i18n="btn_generate_pdf" disabled>Genera PDF</button>
+        <span id="pdf-status" class="pdf-export-status"></span>
+      </div>
       <section id="results" aria-live="polite">
         <p class="placeholder" data-i18n="placeholder_results">I risultati compariranno qui.</p>
       </section>
+
+      <!-- Popolata solo in modalita' debug (vedi renderTop4 in script.js): tenuta
+           fuori da #results cosi' i risultati restano leggibili anche con debug
+           attivo, invece di allungarsi con le tabelle diagnostiche in mezzo. -->
+      <section id="debug-panel" class="debug-panel" aria-live="polite" hidden></section>
     </div>
 
     <div class="right-panel">

@@ -1,7 +1,9 @@
 const modeSelect = document.getElementById("mode-select");
+const modeTabs = document.getElementById("mode-tabs");
 const characterField = document.getElementById("character-field");
 const characterSelect = document.getElementById("character-select");
 const calendarSelect = document.getElementById("calendar-select");
+const calendarTabs = document.getElementById("calendar-tabs");
 const globalOnlyCheckbox = document.getElementById("global-only-checkbox");
 const minAptitudeSelects = Array.from(document.querySelectorAll(".min-aptitude-select"));
 const independentTrainingThresholdInput = document.getElementById("independent-training-threshold");
@@ -40,6 +42,7 @@ const settingsPanel = document.getElementById("settings-panel");
 const themeSwitch = document.getElementById("theme-switch");
 const layoutSwitch = document.getElementById("layout-switch");
 const results = document.getElementById("results");
+const debugPanel = document.getElementById("debug-panel");
 const timelinePanel = document.getElementById("timeline-panel");
 const langSwitch = document.getElementById("lang-switch");
 const metaParentsOpenButton = document.getElementById("meta-parents-open-button");
@@ -103,7 +106,8 @@ const I18N = {
     th_streak: "Posizione in serie",
     th_win_probability: "Probabilità di vittoria",
     it_mandatory_badge: "obbligatoria",
-    label_owned: "Personaggi posseduti (vuoto = considera tutti)",
+    label_owned_title: "Personaggi posseduti",
+    label_owned_intro: "Vuoto = verranno considerati tutti i personaggi.",
     btn_select_all: "Seleziona tutti",
     btn_select_none: "Deseleziona tutti",
     label_owned_sort: "Ordina per",
@@ -289,7 +293,8 @@ const I18N = {
     th_streak: "Streak position",
     th_win_probability: "Win probability",
     it_mandatory_badge: "mandatory",
-    label_owned: "Owned characters (empty = consider all)",
+    label_owned_title: "Owned characters",
+    label_owned_intro: "Empty = every character will be considered.",
     btn_select_all: "Select all",
     btn_select_none: "Deselect all",
     label_owned_sort: "Sort by",
@@ -796,9 +801,48 @@ function updateFieldVisibility() {
   characterField.style.display = mode === "top4" ? "" : "none";
   loopField.style.display = mode === "loop" ? "" : "none";
   rentalField.style.display = mode === "rental" ? "" : "none";
+  applyModeTabButtons();
 }
 modeSelect.addEventListener("change", updateFieldVisibility);
+
+// Tab della modalita' d'uso: il <select> nascosto resta la fonte di verita'
+// (letto/scritto ovunque altrove nel file), i tab si limitano a pilotarlo e
+// a specchiarne lo stato attivo -- stesso schema di lang/theme/layout-switch,
+// ma senza persistenza in localStorage (il modo non lo era nemmeno prima).
+function applyModeTabButtons() {
+  modeTabs.querySelectorAll(".mode-tab-button").forEach(btn => {
+    btn.classList.toggle("mode-tab-active", btn.dataset.modeChoice === modeSelect.value);
+  });
+}
+modeTabs.querySelectorAll(".mode-tab-button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    if (btn.dataset.modeChoice === modeSelect.value) return;
+    modeSelect.value = btn.dataset.modeChoice;
+    modeSelect.dispatchEvent(new Event("change"));
+  });
+});
 updateFieldVisibility();
+
+// Tab del vincolo di calendario: stesso identico schema dei tab di modalita'
+// sopra (stessa classe .mode-tab-button/-active, resa "identica" su
+// richiesta esplicita). Nessun listener "change" preesistente su
+// calendarSelect da preservare (il suo valore viene solo letto al bisogno),
+// quindi qui basta pilotare il <select> nascosto e specchiare lo stato
+// attivo -- niente updateFieldVisibility-like da richiamare.
+function applyCalendarTabButtons() {
+  calendarTabs.querySelectorAll(".mode-tab-button").forEach(btn => {
+    btn.classList.toggle("mode-tab-active", btn.dataset.calendarChoice === calendarSelect.value);
+  });
+}
+calendarSelect.addEventListener("change", applyCalendarTabButtons);
+calendarTabs.querySelectorAll(".mode-tab-button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    if (btn.dataset.calendarChoice === calendarSelect.value) return;
+    calendarSelect.value = btn.dataset.calendarChoice;
+    calendarSelect.dispatchEvent(new Event("change"));
+  });
+});
+applyCalendarTabButtons();
 
 function populateMinAptitudeSelects() {
   const defaultsEl = document.getElementById("min-aptitude-default");
@@ -2524,6 +2568,7 @@ function renderTop4(data) {
   lastRun = { type: "top4", data };
   disablePdfButton();  // riabilitato da renderPinkSparkPanel se un one_hop produce un pannello
   results.innerHTML = renderWarning(data.warning);
+  debugPanel.innerHTML = "";
   resetTimelineTabs();
   let timelineRendered = false;
   data.results.forEach(({
@@ -2574,8 +2619,16 @@ function renderTop4(data) {
       results.appendChild(p);
     }
 
-    // modalita' debug: SOLO le liste top-10 aggiuntive restano qui dentro.
+    // modalita' debug: le liste top-10 aggiuntive vanno in #debug-panel, NON
+    // in #results -- cosi' i risultati restano leggibili anche con debug
+    // attivo invece di allungarsi con le tabelle diagnostiche in mezzo (vedi
+    // il tag <section id="debug-panel"> in index.html).
     if (top10_base || top10_race || top10_total) {
+      if (data.results.length > 1) {
+        const targetHeading = document.createElement("h3");
+        targetHeading.textContent = formatCharacterName(target);
+        debugPanel.appendChild(targetHeading);
+      }
       const debugBox = document.createElement("details");
       debugBox.className = "debug-box";
       debugBox.open = true;
@@ -2588,7 +2641,7 @@ function renderTop4(data) {
       if (top10_base) renderTop10List(t("top10_base_title", { name: formatCharacterName(target) }), top10_base, debugBox);
       if (top10_race) renderTop10List(t("top10_race_title", { name: formatCharacterName(target) }), top10_race, debugBox);
 
-      results.appendChild(debugBox);
+      debugPanel.appendChild(debugBox);
     }
 
     if (!timelineRendered && calendar_matrix) {
@@ -2596,12 +2649,15 @@ function renderTop4(data) {
       timelineRendered = true;
     }
   });
+  debugPanel.hidden = debugPanel.childElementCount === 0;
 }
 
 function renderLoop(data) {
   lastRun = { type: "loop", data };
   disablePdfButton();  // modalita' "Miglior loop a 5" non produce la struttura cycles richiesta dal PDF
   results.innerHTML = renderWarning(data.warning);
+  debugPanel.innerHTML = "";
+  debugPanel.hidden = true;
   const h2 = document.createElement("h2");
   h2.textContent = t("loop_heading", { value: data.total_score });
   results.appendChild(h2);
@@ -2704,6 +2760,8 @@ function renderRentalResult(data) {
   lastRun = { type: "rental", data };
   disablePdfButton();  // il rental loop non produce la struttura richiesta dal PDF (fuori scope)
   results.innerHTML = renderWarning(data.warning);
+  debugPanel.innerHTML = "";
+  debugPanel.hidden = true;
 
   const headingRow = document.createElement("div");
   headingRow.className = "section-heading-row";
@@ -2998,6 +3056,7 @@ async function restoreFromSave(save) {
   await charactersLoadedPromise;  // le select dei personaggi devono essere popolate prima di assegnare i loro valori
 
   updateFieldVisibility();
+  applyCalendarTabButtons();
   applyStaticTranslations();
   renderOwnedList();
   populateMustIncludeSelects();

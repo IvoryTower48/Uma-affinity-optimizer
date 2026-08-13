@@ -360,6 +360,35 @@ select, input[type="number"], input[type="text"] {
   color: var(--primary-contrast);
 }
 
+/* Tab della modalita' d'uso (top4/loop/rental) -- stesso schema pulsante
+   lang/theme/layout sopra, ma con etichette lunghe (frasi intere) invece di
+   sigle: padding maggiore, testo non-xs, a-capo libero su schermi stretti. */
+.mode-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.mode-tab-button {
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.9rem;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-align: center;
+}
+
+.mode-tab-button:hover { color: var(--primary-text); }
+
+.mode-tab-active {
+  background: var(--primary-fill);
+  border-color: var(--primary-fill);
+  color: var(--primary-contrast);
+}
+
 /* =============================================================================
    Layout a due colonne
    ========================================================================= */
@@ -696,6 +725,15 @@ button:disabled {
   gap: 0.5rem;
 }
 
+/* Separatore leggero sopra Esporta/Importa Gametora: segnala che e' un
+   gruppetto a se' (interscambio con uno strumento esterno), non la
+   prosecuzione naturale di "Ordina per" appena sopra. */
+.owned-gametora-buttons {
+  margin-top: 0.2rem;
+  padding-top: 0.7rem;
+  border-top: 1px dashed var(--border);
+}
+
 .save-load-buttons {
   display: flex;
   align-items: center;
@@ -727,6 +765,31 @@ button:disabled {
    Area risultati
    ========================================================================= */
 
+/* Genera PDF: esporta i risultati correnti, non fa parte dell'input --
+   riga sottile subito sopra #results, allineata a destra (stessa area
+   visiva del suo output), invece che vicino a Salva/Carica/Esegui. */
+.results-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.results-toolbar #pdf-button {
+  background: var(--bg-sunken);
+  color: var(--primary-text);
+  border: 1px solid var(--border-strong);
+  padding: 0.45rem 0.9rem;
+  font-size: var(--fs-sm);
+}
+
+.results-toolbar #pdf-button:disabled {
+  background: var(--bg-sunken);
+  border-color: var(--border);
+  color: var(--text-faint);
+}
+
 #results {
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -742,6 +805,13 @@ button:disabled {
   color: var(--text-faint);
   font-style: italic;
 }
+
+/* Contenitore dei box .debug-box (bordo tratteggiato, gia' "diverso" di suo):
+   qui serve solo a staccarlo da #results, che sta subito sopra. */
+.debug-panel {
+  margin-top: 1.3rem;
+}
+.debug-panel > h3:first-child { margin-top: 0; }
 
 .warning {
   color: var(--warning-text);
@@ -841,6 +911,16 @@ details.collapsible-list summary {
   color: var(--primary-text);
   font-size: var(--fs-base);
   font-weight: 700;
+}
+
+/* Rientro per le sotto-sezioni REALMENTE annidate dentro le due "macro"
+   sezioni (Independent training / Debug mode details) -- solo i figli
+   diretti, cosi' non tocca ".debug-box.spark-panel" (Piano spark, sorella
+   di Independent training in #results, non sua figlia) ne' "Races won in
+   common" (idem, vedi ispezione DOM 2026-08-12). */
+.independent-training-section > .collapsible-list,
+#debug-panel > .debug-box > .collapsible-list {
+  margin-left: 1.1rem;
 }
 
 /* =============================================================================
