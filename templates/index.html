@@ -63,6 +63,40 @@
     </div>
   </header>
 
+  <div id="veterans-modal" class="modal-overlay" hidden>
+    <div class="modal-box veterans-modal-box">
+      <p class="modal-title" data-i18n="veterans_modal_title">Veterani</p>
+      <p class="modal-intro" data-i18n="veterans_modal_intro">Genitori/nonni già allevati, con le loro spark: si riusano su più piani. Permanenti, salvati sul tuo PC.</p>
+
+      <div class="veterans-add-row">
+        <select id="veteran-add-character-select"></select>
+        <button type="button" id="veteran-add-button" data-i18n="btn_veteran_add">Aggiungi veterano</button>
+      </div>
+
+      <!-- Lista laterale (icona + nome) + pannello di dettaglio per UN SOLO
+           veterano alla volta (mai piu' righe identiche ripetute in fila,
+           bug segnalato dall'utente 2026-08-15 con screenshot). -->
+      <div class="veterans-layout">
+        <div id="veterans-list" class="veterans-side-list"></div>
+        <div id="veteran-detail" class="veteran-detail-panel"></div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" id="veterans-close-button" class="modal-button-secondary" data-i18n="btn_close">Chiudi</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="veteran-import-modal" class="modal-overlay" hidden>
+    <div class="modal-box">
+      <p class="modal-title" data-i18n="veteran_import_modal_title">Importa veterano</p>
+      <div id="veteran-import-list" class="veterans-list"></div>
+      <div class="modal-actions">
+        <button type="button" id="veteran-import-cancel-button" class="modal-button-secondary" data-i18n="btn_cancel">Annulla</button>
+      </div>
+    </div>
+  </div>
+
   <div id="meta-parents-modal" class="modal-overlay" hidden>
     <div class="modal-box">
       <p class="modal-title" data-i18n="meta_parents_modal_title">Genitori meta</p>
@@ -253,6 +287,10 @@
               <p class="field-section-title" data-i18n="ace_section_title">Pianifica ace (PvP)</p>
               <p class="field-intro" data-i18n="ace_intro">Fino a 3 ace (i veterani schierabili in PvP): scegli genitori/nonni manualmente per una spark importante, lascia "(automatico)" per farli suggerire. Se piu' ace condividono lo stesso stile di corsa, puoi condividere lo stesso genitore tra loro invece di allevarne uno per ciascuno.</p>
 
+              <div class="ace-veterans-row">
+                <button type="button" id="veterans-open-button" data-i18n="btn_manage_veterans">Gestisci veterani…</button>
+              </div>
+
               <div class="ace-slots">
                 {% for i in range(1, 4) %}
                 <div class="ace-slot-block" data-ace-index="{{ i }}">
@@ -260,12 +298,37 @@
                   <select class="ace-character-select" data-ace-index="{{ i }}"></select>
 
                   <div class="ace-ancestor-grid">
-                    <div><label data-i18n="label_ace_parent1">Genitore 1</label><select class="ace-slot-select" data-ace-index="{{ i }}" data-role="parent1"></select></div>
-                    <div><label data-i18n="label_ace_parent2">Genitore 2</label><select class="ace-slot-select" data-ace-index="{{ i }}" data-role="parent2"></select></div>
-                    <div><label data-i18n="label_ace_gp1a">Nonno/a 1a</label><select class="ace-slot-select" data-ace-index="{{ i }}" data-role="gp1a"></select></div>
-                    <div><label data-i18n="label_ace_gp1b">Nonno/a 1b</label><select class="ace-slot-select" data-ace-index="{{ i }}" data-role="gp1b"></select></div>
-                    <div><label data-i18n="label_ace_gp2a">Nonno/a 2a</label><select class="ace-slot-select" data-ace-index="{{ i }}" data-role="gp2a"></select></div>
-                    <div><label data-i18n="label_ace_gp2b">Nonno/a 2b</label><select class="ace-slot-select" data-ace-index="{{ i }}" data-role="gp2b"></select></div>
+                    {% for role, label_key, label_text in [
+                      ("parent1", "label_ace_parent1", "Genitore 1"),
+                      ("parent2", "label_ace_parent2", "Genitore 2"),
+                      ("gp1a", "label_ace_gp1a", "Nonno/a 1a"),
+                      ("gp1b", "label_ace_gp1b", "Nonno/a 1b"),
+                      ("gp2a", "label_ace_gp2a", "Nonno/a 2a"),
+                      ("gp2b", "label_ace_gp2b", "Nonno/a 2b"),
+                    ] %}
+                    <div class="ace-slot-cell">
+                      <label data-i18n="{{ label_key }}">{{ label_text }}</label>
+                      <select class="ace-slot-select" data-ace-index="{{ i }}" data-role="{{ role }}"></select>
+
+                      <div class="ace-slot-veteran-row">
+                        <button type="button" class="ace-slot-veteran-import-button" data-ace-index="{{ i }}" data-role="{{ role }}" data-i18n="btn_import_veteran">Importa</button>
+                      </div>
+
+                      <div class="ace-slot-sparks" data-ace-index="{{ i }}" data-role="{{ role }}"></div>
+
+                      <div class="ace-slot-spark-add-row">
+                        <select class="ace-slot-spark-picker" data-ace-index="{{ i }}" data-role="{{ role }}">
+                          <option value="" data-i18n="opt_spark_picker_placeholder">-- scegli una spark --</option>
+                        </select>
+                        <select class="ace-slot-spark-stars" data-ace-index="{{ i }}" data-role="{{ role }}">
+                          <option value="1">1★</option>
+                          <option value="2">2★</option>
+                          <option value="3">3★</option>
+                        </select>
+                        <button type="button" class="ace-slot-spark-add-button" data-ace-index="{{ i }}" data-role="{{ role }}" data-i18n="btn_add">Aggiungi</button>
+                      </div>
+                    </div>
+                    {% endfor %}
                   </div>
                 </div>
                 {% endfor %}

@@ -45,6 +45,7 @@ from cycle_analysis import (
 from ace_planner import plan_ace_group
 from timeline import build_calendar_matrix
 import data_updater
+import veterans as veterans_store
 
 def resource_path(*parts):
     """
@@ -294,6 +295,128 @@ def api_spark_skill():
     data_updater.fetch_gametora_factors).
     """
     return jsonify(data_updater.get_spark_skill_list(DATA_DIR))
+
+
+@app.route("/api/veterans", methods=["GET", "POST"])
+def api_veterans():
+    """
+    Libreria permanente dei veterani (genitori/nonni allevati, con le
+    proprie spark) -- vedi veterans.py. GET ritorna l'elenco completo; POST
+    ne crea uno nuovo, vuoto (nessuna spark ancora), per il personaggio dato.
+    """
+    if request.method == "POST":
+        payload = request.get_json() or {}
+        character = payload.get("character", "")
+        if character not in ALL_CHARACTERS:
+            return jsonify({"error": f"Personaggio non trovato: '{character}'."}), 400
+        record = veterans_store.add_veteran(DATA_DIR, character)
+        return jsonify(record), 201
+    return jsonify(veterans_store.get_veterans(DATA_DIR))
+
+
+@app.route("/api/veterans/<veteran_id>", methods=["DELETE"])
+def api_veteran_delete(veteran_id):
+    if not veterans_store.delete_veteran(DATA_DIR, veteran_id):
+        return jsonify({"error": "Veterano non trovato."}), 404
+    return jsonify({"deleted": veteran_id})
+
+
+@app.route("/api/veterans/<veteran_id>/name", methods=["PUT"])
+def api_veteran_rename(veteran_id):
+    """Rinomina un veterano (vedi veterans.rename_veteran) -- distingue le
+    "copie" dello stesso personaggio, che di default hanno gia' un nome
+    numerato ma restano rinominabili in qualsiasi momento."""
+    payload = request.get_json() or {}
+    try:
+        updated = veterans_store.rename_veteran(DATA_DIR, veteran_id, payload.get("name", ""))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify(updated)
+
+
+@app.route("/api/veterans/<veteran_id>/sparks", methods=["PUT"])
+def api_veteran_sparks(veteran_id):
+    """
+    Sostituisce per intero le spark PROPRIE di un veterano (vedi
+    veterans.set_veteran_sparks) -- sostituisce la vecchia
+    /api/veterans/apply_spark "applica a piu' veterani insieme", rimossa su
+    richiesta esplicita dell'utente (2026-08-15): con piu' veterani dello
+    stesso personaggio (copie diverse), quel flusso bulk rendeva facile
+    applicare la spark alla copia sbagliata.
+
+    Payload: white_sparks, race_sparks (liste di {spark_id, stars}, validate
+    contro i cataloghi gia' scaricati, stesso principio di
+    /api/veterans/<id>/parent/<slot>).
+    """
+    payload = request.get_json() or {}
+    try:
+        white_sparks = _validate_spark_entries(
+            payload.get("white_sparks") or [], data_updater.get_spark_skill_list(DATA_DIR),
+        )
+        race_sparks = _validate_spark_entries(
+            payload.get("race_sparks") or [], data_updater.get_spark_race_list(DATA_DIR),
+        )
+        updated = veterans_store.set_veteran_sparks(DATA_DIR, veteran_id, white_sparks, race_sparks)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify(updated)
+
+
+def _validate_spark_entries(entries, catalog):
+    """Valida una lista di {spark_id, stars} contro un catalogo gia'
+    scaricato (data_updater.get_spark_skill_list/get_spark_race_list) --
+    stesso principio di api_veterans_apply_spark (mai un id/nome inventato
+    dal client), qui per una LISTA invece di una singola spark. Ritorna la
+    lista normalizzata (name_en ripreso dal catalogo, non da quanto mandato
+    dal client). Solleva ValueError sulla prima voce non valida."""
+    catalog_by_id = {s["id"]: s for s in catalog}
+    validated = []
+    for entry in entries:
+        spark_id = entry.get("spark_id")
+        stars = entry.get("stars")
+        spark = catalog_by_id.get(spark_id)
+        if spark is None:
+            raise ValueError(f"Spark non trovata nel catalogo aggiornato: '{spark_id}'.")
+        if not isinstance(stars, int) or not (1 <= stars <= 3):
+            raise ValueError(f"Stelle non valide per '{spark_id}': {stars} (atteso 1-3).")
+        validated.append({"spark_id": spark_id, "name_en": spark["name_en"], "stars": stars})
+    return validated
+
+
+@app.route("/api/veterans/<veteran_id>/parent/<slot>", methods=["PUT"])
+def api_veteran_parent(veteran_id, slot):
+    """
+    Imposta (o cancella) un genitore NOTO di un veterano -- diventera' il
+    nonno dell'ace quando questo veterano viene importato come genitore
+    diretto in un piano ace (vedi veterans.set_veteran_parent). Sostituzione
+    PIENA dello slot ad ogni chiamata (il frontend manda sempre lo stato
+    completo desiderato: personaggio + entrambe le liste spark), coerente
+    con come il resto del modal Veterani salva subito ad ogni azione,
+    nessun pulsante "Salva" separato.
+
+    Payload: character (str o null per cancellare lo slot), white_sparks,
+    race_sparks (liste di {spark_id, stars}, validate contro i cataloghi
+    gia' scaricati).
+    """
+    payload = request.get_json() or {}
+    character = payload.get("character") or None
+    if character is not None and character not in ALL_CHARACTERS:
+        return jsonify({"error": f"Personaggio non trovato: '{character}'."}), 400
+
+    try:
+        white_sparks = _validate_spark_entries(
+            payload.get("white_sparks") or [], data_updater.get_spark_skill_list(DATA_DIR),
+        )
+        race_sparks = _validate_spark_entries(
+            payload.get("race_sparks") or [], data_updater.get_spark_race_list(DATA_DIR),
+        )
+        updated = veterans_store.set_veteran_parent(
+            DATA_DIR, veteran_id, slot, character, white_sparks, race_sparks,
+        )
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+    return jsonify(updated)
 
 
 @app.route("/api/portrait/<path:character>")

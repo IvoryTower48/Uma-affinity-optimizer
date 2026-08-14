@@ -57,6 +57,19 @@ const metaParentsSelectNoneButton = document.getElementById("meta-parents-select
 const metaParentsCancelButton = document.getElementById("meta-parents-cancel-button");
 const metaParentsSaveButton = document.getElementById("meta-parents-save-button");
 const metaParentsError = document.getElementById("meta-parents-error");
+const veteransOpenButton = document.getElementById("veterans-open-button");
+const veteransModal = document.getElementById("veterans-modal");
+const veteransCloseButton = document.getElementById("veterans-close-button");
+const veteranAddCharacterSelect = document.getElementById("veteran-add-character-select");
+const veteranAddButton = document.getElementById("veteran-add-button");
+const veteransListEl = document.getElementById("veterans-list");
+const veteranDetailEl = document.getElementById("veteran-detail");
+const aceSlotVeteranImportButtons = Array.from(document.querySelectorAll(".ace-slot-veteran-import-button"));
+const aceSlotSparkPickers = Array.from(document.querySelectorAll(".ace-slot-spark-picker"));
+const aceSlotSparkAddButtons = Array.from(document.querySelectorAll(".ace-slot-spark-add-button"));
+const veteranImportModal = document.getElementById("veteran-import-modal");
+const veteranImportListEl = document.getElementById("veteran-import-list");
+const veteranImportCancelButton = document.getElementById("veteran-import-cancel-button");
 
 // Tiene aperta una connessione verso il server per tutta la vita di QUESTA
 // scheda (vedi app.py, /api/heartbeat): quando la scheda si chiude il
@@ -120,8 +133,8 @@ const I18N = {
     btn_sort_direction_title: "Inverti ordine",
     sort_ascending: "↑ Ascendente",
     sort_descending: "↓ Discendente",
-    btn_gametora_export: "Esporta per Gametora",
-    btn_gametora_import: "Importa da Gametora",
+    btn_gametora_export: "Esporta collezione per Gametora",
+    btn_gametora_import: "Importa collezione da Gametora",
     gametora_import_error: "Import fallito: {message}",
     gametora_import_success: "{count} personaggi posseduti importati da Gametora ({unmatched} non riconosciuti, ignorati).",
     gametora_skipped_note: "Nella maggior parte dei casi si tratta di varianti che questo tool non traccia separatamente, perché condividono le stesse aptitude e la stessa carriera del personaggio base ai fini del looping:",
@@ -172,6 +185,19 @@ const I18N = {
     btn_manage_meta_parents: "Gestisci genitori meta…",
     meta_parents_modal_title: "Genitori meta",
     meta_parents_modal_intro: "Personaggi mostrati con il badge \"META\" nei risultati. La modifica ha effetto subito, su tutti i risultati futuri.",
+    btn_manage_veterans: "Gestisci veterani…",
+    veterans_modal_title: "Veterani",
+    veterans_modal_intro: "Genitori/nonni già allevati, con le loro spark: si riusano su più piani. Permanenti, salvati sul tuo PC.",
+    btn_veteran_add: "Aggiungi veterano",
+    opt_spark_picker_placeholder: "-- scegli una spark --",
+    opt_group_race_spark: "Race spark",
+    opt_group_white_spark: "White spark",
+    btn_close: "Chiudi",
+    veterans_empty: "Nessun veterano salvato ancora.",
+    btn_import_veteran: "Importa",
+    veteran_import_modal_title: "Importa veterano",
+    ace_slot_spark_remove_title: "Rimuovi",
+    veteran_parents_title: "Genitori del veterano (diventeranno i nonni, una volta importato come genitore)",
     btn_load: "Carica",
     save_filename_prompt: "Nome del file di salvataggio (lascia vuoto per il nome predefinito):",
     load_error: "Impossibile caricare il file: {message}",
@@ -321,8 +347,8 @@ const I18N = {
     btn_sort_direction_title: "Reverse order",
     sort_ascending: "↑ Ascending",
     sort_descending: "↓ Descending",
-    btn_gametora_export: "Export for Gametora",
-    btn_gametora_import: "Import from Gametora",
+    btn_gametora_export: "Export collection to Gametora",
+    btn_gametora_import: "Import collection from Gametora",
     gametora_import_error: "Import failed: {message}",
     gametora_import_success: "{count} owned characters imported from Gametora ({unmatched} unrecognized, skipped).",
     gametora_skipped_note: "Most of the time these are variants this tool doesn't track separately, since they share the same aptitudes and career as the base character for looping purposes:",
@@ -373,6 +399,19 @@ const I18N = {
     btn_manage_meta_parents: "Manage meta parents…",
     meta_parents_modal_title: "Meta parents",
     meta_parents_modal_intro: "Characters shown with the \"META\" badge in results. The change takes effect immediately, on all future results.",
+    btn_manage_veterans: "Manage veterans…",
+    veterans_modal_title: "Veterans",
+    veterans_modal_intro: "Already-bred parents/grandparents, with their sparks: reused across multiple plans. Permanent, saved on your PC.",
+    btn_veteran_add: "Add veteran",
+    opt_spark_picker_placeholder: "-- choose a spark --",
+    opt_group_race_spark: "Race spark",
+    opt_group_white_spark: "White spark",
+    btn_close: "Close",
+    veterans_empty: "No veterans saved yet.",
+    btn_import_veteran: "Import",
+    veteran_import_modal_title: "Import veteran",
+    ace_slot_spark_remove_title: "Remove",
+    veteran_parents_title: "Veteran's parents (become grandparents once imported as a parent)",
     btn_load: "Load",
     save_filename_prompt: "Save file name (leave empty for the default name):",
     load_error: "Could not load the file: {message}",
@@ -950,12 +989,38 @@ function renderMinAptitudeTable() {
     .join("");
 }
 
-function populateMustIncludeSelects() {
-  const globalOnly = globalOnlyCheckbox.checked;
-  const sortedNames = allCharactersData
-    .filter(c => !globalOnly || !!c.global_release_date)
+// Nome base per il filtro "solo Global" -- riusato ovunque un personaggio
+// possa essere scelto, VETERANI COMPRESI (bug segnalato dall'utente,
+// 2026-08-14: un veterano creato con un personaggio non-Global mentre il
+// filtro era attivo su ALTRI menu restava comunque selezionabile per il
+// veterano stesso, ma poi lo slot ace corrispondente -- gia' filtrato --
+// non aveva quell'opzione: il <select> risultava vuoto invece di mostrare
+// il personaggio importato).
+function characterPassesGlobalFilter(character) {
+  if (!globalOnlyCheckbox.checked) return true;
+  const info = allCharactersData.find(c => c.character === character);
+  return !!(info && info.global_release_date);
+}
+
+function globalFilteredCharacterNames() {
+  return allCharactersData
+    .filter(c => characterPassesGlobalFilter(c.character))
     .map(c => c.character)
     .sort((a, b) => a.localeCompare(b));
+}
+
+// Un veterano e' selezionabile per l'import solo se TUTTI i personaggi che
+// porta con se' (se stesso + i suoi genitori noti, che diventerebbero nonni)
+// passano il filtro -- altrimenti l'import cadrebbe nello stesso bug per lo
+// slot nonno anche quando il veterano stesso e' Global.
+function veteranPassesGlobalFilter(veteran) {
+  const characters = [veteran.character, veteran.parent1 && veteran.parent1.character,
+    veteran.parent2 && veteran.parent2.character].filter(Boolean);
+  return characters.every(characterPassesGlobalFilter);
+}
+
+function populateMustIncludeSelects() {
+  const sortedNames = globalFilteredCharacterNames();
 
   const fillWithNone = select => {
     const current = select.value;
@@ -1236,6 +1301,7 @@ async function loadCharacters() {
   populateMustIncludeSelects();
   renderCharacterSelect();
   buildRentalSparkPanel();
+  await initAceSlotAuxiliaryUI();
 }
 const charactersLoadedPromise = loadCharacters();  // await-abile dal ripristino di un salvataggio (vedi restoreFromSave)
 
@@ -3515,6 +3581,699 @@ metaParentsSaveButton.addEventListener("click", async () => {
 metaParentsModal.addEventListener("click", event => {
   if (event.target === metaParentsModal) closeMetaParentsModal();  // click fuori dal box chiude, come i popover
 });
+
+// --- Veterani (2026-08-14): libreria PERMANENTE di genitori/nonni con le
+// proprie spark (persistita server-side in data/veterans.json, vedi
+// veterans.py/app.py), riusabile su più piani ace/loop diversi -- diversa
+// dal piano spark v3 (aptitude_inheritance.py), che è per-ciclo e transiente.
+// Flusso di selezione spark richiesto esplicitamente dall'utente: si sceglie
+// la spark UNA volta (menu diviso race/white, alfabetico), poi si applica a
+// più veterani insieme, con le stelle scelte per ciascuno -- non una
+// selezione ripetuta per veterano.
+let veteransCache = [];
+const sparkCatalog = { race: [], white: [] };
+let sparkCatalogLoaded = false;
+
+async function loadSparkCatalog() {
+  if (sparkCatalogLoaded) return;
+  const [race, white] = await Promise.all([
+    fetch("/api/spark_race").then(r => r.json()),
+    fetch("/api/spark_skill").then(r => r.json()),
+  ]);
+  sparkCatalog.race = [...race].sort((a, b) => a.name_en.localeCompare(b.name_en));
+  sparkCatalog.white = [...white].sort((a, b) => a.name_en.localeCompare(b.name_en));
+  sparkCatalogLoaded = true;
+}
+
+// Riempie un <select> con placeholder + due <optgroup> (race/white spark,
+// gia' alfabetiche in sparkCatalog) -- condiviso da ogni punto in cui si
+// aggiunge una spark a UN singolo bersaglio: i 18 selettori per-slot del
+// piano ace, il proprio editor spark di un veterano e quello di ciascuno
+// dei suoi 2 genitori (vedi buildSparkEditor), stessa struttura ovunque.
+function buildSparkPickerOptions(selectEl) {
+  const placeholder = selectEl.querySelector("option[value='']");
+  selectEl.innerHTML = "";
+  if (placeholder) selectEl.appendChild(placeholder);
+
+  const raceGroup = document.createElement("optgroup");
+  raceGroup.label = t("opt_group_race_spark");
+  sparkCatalog.race.forEach(s => {
+    const opt = document.createElement("option");
+    opt.value = `race:${s.id}`;
+    opt.textContent = s.name_en;
+    raceGroup.appendChild(opt);
+  });
+  selectEl.appendChild(raceGroup);
+
+  const whiteGroup = document.createElement("optgroup");
+  whiteGroup.label = t("opt_group_white_spark");
+  sparkCatalog.white.forEach(s => {
+    const opt = document.createElement("option");
+    opt.value = `white:${s.id}`;
+    opt.textContent = s.name_en;
+    whiteGroup.appendChild(opt);
+  });
+  selectEl.appendChild(whiteGroup);
+}
+
+function populateAceSlotSparkPickers() {
+  aceSlotSparkPickers.forEach(buildSparkPickerOptions);
+}
+
+function populateVeteranAddSelect() {
+  const current = veteranAddCharacterSelect.value;
+  const sortedNames = globalFilteredCharacterNames();
+  veteranAddCharacterSelect.innerHTML = "";
+  sortedNames.forEach(name => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = formatCharacterName(name);
+    veteranAddCharacterSelect.appendChild(opt);
+  });
+  veteranAddCharacterSelect.value = sortedNames.includes(current) ? current : (sortedNames[0] || "");
+}
+
+// Salva per intero uno slot genitore di un veterano (PUT, sostituzione
+// piena -- vedi app.py/veterans.set_veteran_parent): ricarica veteransCache
+// dalla risposta e riDisegna, stesso principio "si salva subito, niente
+// bottone Salva a parte" gia' usato ovunque nel modal Veterani.
+async function saveVeteranParent(veteranId, slot, character, whiteSparks, raceSparks) {
+  const resp = await fetch(`/api/veterans/${veteranId}/parent/${slot}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ character: character || null, white_sparks: whiteSparks, race_sparks: raceSparks }),
+  });
+  if (!resp.ok) return;
+  veteransCache = await resp.json();
+  renderVeteransList();
+}
+
+// Sostituisce per intero le spark PROPRIE di un veterano (non quelle di un
+// suo genitore, vedi saveVeteranParent per quelle).
+async function saveVeteranSparks(veteranId, whiteSparks, raceSparks) {
+  const resp = await fetch(`/api/veterans/${veteranId}/sparks`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ white_sparks: whiteSparks, race_sparks: raceSparks }),
+  });
+  if (!resp.ok) return;
+  veteransCache = await resp.json();
+  renderVeteransList();
+}
+
+async function saveVeteranName(veteranId, name) {
+  const resp = await fetch(`/api/veterans/${veteranId}/name`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  if (!resp.ok) return;
+  veteransCache = await resp.json();
+  renderVeteransList();
+}
+
+// Chip (con rimozione) + riga "aggiungi spark", per UN bersaglio (un
+// veterano o un suo genitore, mai piu' di uno alla volta -- l'applicazione
+// "a piu' veterani insieme" e' stata rimossa su richiesta esplicita
+// dell'utente, 2026-08-15: con piu' veterani dello stesso personaggio
+// (copie diverse, vedi 'name' in veterans.py) era troppo facile applicare
+// la spark alla copia sbagliata). onSave(newWhiteSparks, newRaceSparks)
+// riceve la lista GIA' ricalcolata (add o remove), il chiamante decide dove
+// salvarla (saveVeteranSparks per il veterano stesso, saveVeteranParent per
+// un suo genitore).
+function buildSparkEditor(whiteSparks, raceSparks, onSave) {
+  const wrap = document.createElement("div");
+
+  const chipRow = document.createElement("div");
+  chipRow.className = "ace-slot-sparks";
+  const combined = [
+    ...whiteSparks.map(s => ({ ...s, sparkType: "white" })),
+    ...raceSparks.map(s => ({ ...s, sparkType: "race" })),
+  ];
+  combined.forEach(spark => {
+    const chip = document.createElement("span");
+    chip.className = "ace-slot-spark-chip";
+    chip.textContent = `${spark.name_en} ${"★".repeat(spark.stars)}`;
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.title = t("ace_slot_spark_remove_title");
+    removeBtn.textContent = "×";
+    removeBtn.addEventListener("click", () => {
+      const newWhite = spark.sparkType === "white"
+        ? whiteSparks.filter(s => s.spark_id !== spark.spark_id) : whiteSparks;
+      const newRace = spark.sparkType === "race"
+        ? raceSparks.filter(s => s.spark_id !== spark.spark_id) : raceSparks;
+      onSave(newWhite, newRace);
+    });
+    chip.appendChild(removeBtn);
+    chipRow.appendChild(chip);
+  });
+  wrap.appendChild(chipRow);
+
+  const addRow = document.createElement("div");
+  addRow.className = "ace-slot-spark-add-row";
+  const picker = document.createElement("select");
+  picker.innerHTML = `<option value="">${t("opt_spark_picker_placeholder")}</option>`;
+  buildSparkPickerOptions(picker);
+  const starsSelect = document.createElement("select");
+  [1, 2, 3].forEach(n => {
+    const opt = document.createElement("option");
+    opt.value = String(n);
+    opt.textContent = `${n}★`;
+    starsSelect.appendChild(opt);
+  });
+  const addBtn = document.createElement("button");
+  addBtn.type = "button";
+  addBtn.textContent = t("btn_add");
+  addBtn.addEventListener("click", () => {
+    if (!picker.value) return;
+    const [sparkType, sparkId] = picker.value.split(":");
+    const sparkDef = (sparkType === "white" ? sparkCatalog.white : sparkCatalog.race).find(s => s.id === sparkId);
+    if (!sparkDef) return;
+    const stars = Number(starsSelect.value);
+    const targetList = [...(sparkType === "white" ? whiteSparks : raceSparks)];
+    const existing = targetList.find(s => s.spark_id === sparkId);
+    if (existing) existing.stars = stars;
+    else targetList.push({ spark_id: sparkId, name_en: sparkDef.name_en, stars });
+    const newWhite = sparkType === "white" ? targetList : whiteSparks;
+    const newRace = sparkType === "race" ? targetList : raceSparks;
+    onSave(newWhite, newRace);
+  });
+  addRow.append(picker, starsSelect, addBtn);
+  wrap.appendChild(addRow);
+
+  return wrap;
+}
+
+// Un genitore NOTO del veterano (parent1/parent2, vedi veterans.py): scelta
+// del personaggio + le sue spark -- diventera' un NONNO dell'ace quando
+// questo veterano viene importato come genitore diretto (vedi
+// importVeteranIntoSlot).
+function buildVeteranParentEditor(veteran, slot) {
+  const parent = veteran[slot];
+  const wrap = document.createElement("div");
+  wrap.className = "veteran-parent-editor";
+
+  const label = document.createElement("span");
+  label.className = "veteran-parent-label";
+  label.textContent = slot === "parent1" ? t("label_ace_parent1") : t("label_ace_parent2");
+  wrap.appendChild(label);
+
+  const charSelect = document.createElement("select");
+  charSelect.innerHTML = `<option value="">${t("opt_none")}</option>`;
+  // esclude il veterano stesso: non puo' essere suo proprio genitore, stesso
+  // principio del "mai genitore di se stesso" del piano ace (vedi
+  // enforceNoSelfParent piu' sotto in questo file)
+  globalFilteredCharacterNames()
+    .filter(name => name !== veteran.character)
+    .forEach(name => {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = formatCharacterName(name);
+      charSelect.appendChild(opt);
+    });
+  charSelect.value = parent ? parent.character : "";
+  charSelect.addEventListener("change", () => {
+    // cambiare personaggio azzera le spark: appartenevano al personaggio precedente
+    saveVeteranParent(veteran.id, slot, charSelect.value, [], []);
+  });
+  wrap.appendChild(charSelect);
+
+  if (parent) {
+    wrap.appendChild(buildSparkEditor(parent.white_sparks, parent.race_sparks, (newWhite, newRace) => {
+      saveVeteranParent(veteran.id, slot, parent.character, newWhite, newRace);
+    }));
+  }
+
+  return wrap;
+}
+
+// Quale veterano e' mostrato nel pannello di dettaglio (mai piu' di uno --
+// bug segnalato dall'utente 2026-08-15: prima ogni veterano ripeteva
+// l'intera struttura di editing in fila, illeggibile con piu' di 2-3
+// salvati). null = nessuno selezionato (lista vuota).
+let selectedVeteranId = null;
+
+// Lista laterale compatta (icona + nome, click per selezionare) -- il
+// dettaglio vero e proprio e' in renderVeteranDetail, chiamata alla fine.
+function renderVeteransList() {
+  veteransListEl.innerHTML = "";
+  if (veteransCache.length === 0) {
+    const p = document.createElement("p");
+    p.className = "placeholder";
+    p.textContent = t("veterans_empty");
+    veteransListEl.appendChild(p);
+    selectedVeteranId = null;
+    renderVeteranDetail();
+    return;
+  }
+  if (!veteransCache.some(v => v.id === selectedVeteranId)) {
+    selectedVeteranId = veteransCache[0].id;  // selezione assente/rimossa: seleziona il primo
+  }
+  veteransCache.forEach(v => {
+    const item = document.createElement("div");
+    item.className = "veteran-list-item" + (v.id === selectedVeteranId ? " selected" : "");
+    item.appendChild(buildPortraitWrap(v.character));
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "veteran-list-item-name";
+    nameSpan.textContent = v.name;
+    item.appendChild(nameSpan);
+    item.addEventListener("click", () => {
+      selectedVeteranId = v.id;
+      renderVeteransList();
+    });
+    veteransListEl.appendChild(item);
+  });
+  renderVeteranDetail();
+}
+
+// Il dettaglio completo (nome/personaggio/rimuovi, spark proprie, i 2
+// genitori) del SOLO veterano selezionato -- stessa struttura di prima,
+// solo renderizzata una volta invece che ripetuta per ogni veterano.
+function renderVeteranDetail() {
+  veteranDetailEl.innerHTML = "";
+  const v = veteransCache.find(x => x.id === selectedVeteranId);
+  if (!v) return;
+
+  const row = document.createElement("div");
+  row.className = "veteran-row";
+  const nameInput = document.createElement("input");
+  nameInput.type = "text";
+  nameInput.className = "veteran-row-name-input";
+  nameInput.value = v.name;
+  nameInput.addEventListener("change", () => saveVeteranName(v.id, nameInput.value));
+  const charLabel = document.createElement("span");
+  charLabel.className = "veteran-row-counts";
+  charLabel.textContent = formatCharacterName(v.character);
+  const removeBtn = document.createElement("button");
+  removeBtn.type = "button";
+  removeBtn.textContent = t("btn_remove");
+  removeBtn.addEventListener("click", () => deleteVeteran(v.id));
+  row.append(nameInput, charLabel, removeBtn);
+  veteranDetailEl.appendChild(row);
+
+  veteranDetailEl.appendChild(buildSparkEditor(v.white_sparks, v.race_sparks, (newWhite, newRace) => {
+    saveVeteranSparks(v.id, newWhite, newRace);
+  }));
+
+  const parentsTitle = document.createElement("p");
+  parentsTitle.className = "veteran-parents-title";
+  parentsTitle.textContent = t("veteran_parents_title");
+  veteranDetailEl.appendChild(parentsTitle);
+
+  const parentsRow = document.createElement("div");
+  parentsRow.className = "veteran-parents-row";
+  parentsRow.append(buildVeteranParentEditor(v, "parent1"), buildVeteranParentEditor(v, "parent2"));
+  veteranDetailEl.appendChild(parentsRow);
+}
+
+async function loadVeterans() {
+  veteransCache = await fetch("/api/veterans").then(r => r.json());
+  renderVeteransList();
+}
+
+async function openVeteransModal() {
+  await charactersLoadedPromise;
+  await loadSparkCatalog();
+  populateVeteranAddSelect();
+  await loadVeterans();
+  veteransModal.hidden = false;
+}
+
+function closeVeteransModal() {
+  veteransModal.hidden = true;
+}
+
+async function deleteVeteran(id) {
+  await fetch(`/api/veterans/${id}`, { method: "DELETE" });
+  await loadVeterans();
+}
+
+veteransOpenButton.addEventListener("click", openVeteransModal);
+veteransCloseButton.addEventListener("click", closeVeteransModal);
+veteransModal.addEventListener("click", event => {
+  if (event.target === veteransModal) closeVeteransModal();  // click fuori dal box chiude, come i popover
+});
+
+veteranAddButton.addEventListener("click", async () => {
+  const character = veteranAddCharacterSelect.value;
+  if (!character) return;
+  const resp = await fetch("/api/veterans", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ character }),
+  });
+  const record = await resp.json();
+  selectedVeteranId = record.id;  // seleziona subito il nuovo veterano, pronto per essere modificato
+  await loadVeterans();
+});
+
+
+// --- Piano ace, passo 2: spark manuali per slot + import da veterano -------
+// Ogni slot (genitore1/2, nonno1a/1b/2a/2b) di OGNI ace ha una propria lista
+// di spark, tenuta SOLO lato client per ora (nessun consumatore server-side
+// ancora: l'affinita' non usa le spark, servira' per la futura probabilita'
+// di eredita' -- vedi conversazione). Chiave = (ace, ruolo) DELLO SLOT, non
+// del personaggio: coerente con come gia' funziona il resto del piano ace
+// (parent_slots lato server e' anch'esso indicizzato per slot). Lo specchio
+// automatico tra slot condivisi (stesso personaggio E stesse spark su piu'
+// ace) e' il prossimo passo, non ancora implementato qui.
+const aceSlotSparks = {};
+
+function aceSlotKey(aceIndex, role) {
+  return `${aceIndex}|${role}`;
+}
+
+function getAceSlotSparks(aceIndex, role) {
+  const key = aceSlotKey(aceIndex, role);
+  if (!aceSlotSparks[key]) aceSlotSparks[key] = { white_sparks: [], race_sparks: [] };
+  return aceSlotSparks[key];
+}
+
+// Svuota le spark di uno slot (bug segnalato dall'utente, 2026-08-15: dopo
+// aver rimosso/cambiato il personaggio di un genitore/nonno, le sue spark
+// restavano visibili -- appartenevano al personaggio precedente, non hanno
+// piu' senso una volta cambiato chi occupa lo slot).
+function clearAceSlotSparks(aceIndex, role) {
+  aceSlotSparks[aceSlotKey(aceIndex, role)] = { white_sparks: [], race_sparks: [] };
+  renderAceSlotSparks(aceIndex, role);
+}
+
+function renderAceSlotSparks(aceIndex, role) {
+  const container = document.querySelector(
+    `.ace-slot-sparks[data-ace-index="${aceIndex}"][data-role="${role}"]`,
+  );
+  const data = getAceSlotSparks(aceIndex, role);
+  container.innerHTML = "";
+  const combined = [
+    ...data.white_sparks.map(s => ({ ...s, sparkType: "white" })),
+    ...data.race_sparks.map(s => ({ ...s, sparkType: "race" })),
+  ];
+  combined.forEach(spark => {
+    const chip = document.createElement("span");
+    chip.className = "ace-slot-spark-chip";
+    chip.textContent = `${spark.name_en} ${"★".repeat(spark.stars)}`;
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.title = t("ace_slot_spark_remove_title");
+    removeBtn.textContent = "×";
+    removeBtn.addEventListener("click", () => {
+      const list = spark.sparkType === "white" ? data.white_sparks : data.race_sparks;
+      const idx = list.findIndex(s => s.spark_id === spark.spark_id);
+      if (idx >= 0) list.splice(idx, 1);
+      renderAceSlotSparks(aceIndex, role);
+      mirrorIfShared(aceIndex, role);
+    });
+    chip.appendChild(removeBtn);
+    container.appendChild(chip);
+  });
+}
+
+async function initAceSlotAuxiliaryUI() {
+  await loadSparkCatalog();
+  populateAceSlotSparkPickers();
+  await loadVeterans();  // veteransCache pronta per il popup "importa da veterano" (vedi openVeteranImportModal)
+}
+
+aceSlotSparkAddButtons.forEach(btn => {
+  btn.addEventListener("click", () => {
+    const { aceIndex, role } = btn.dataset;
+    const picker = document.querySelector(
+      `.ace-slot-spark-picker[data-ace-index="${aceIndex}"][data-role="${role}"]`,
+    );
+    const starsSelect = document.querySelector(
+      `.ace-slot-spark-stars[data-ace-index="${aceIndex}"][data-role="${role}"]`,
+    );
+    if (!picker.value) return;
+    const [sparkType, sparkId] = picker.value.split(":");
+    const sparkDef = (sparkType === "white" ? sparkCatalog.white : sparkCatalog.race)
+      .find(s => s.id === sparkId);
+    if (!sparkDef) return;
+
+    const data = getAceSlotSparks(aceIndex, role);
+    const list = sparkType === "white" ? data.white_sparks : data.race_sparks;
+    const stars = Number(starsSelect.value);
+    const existing = list.find(s => s.spark_id === sparkId);
+    if (existing) existing.stars = stars;
+    else list.push({ spark_id: sparkId, name_en: sparkDef.name_en, stars });
+
+    picker.value = "";
+    renderAceSlotSparks(aceIndex, role);
+    mirrorIfShared(aceIndex, role);
+  });
+});
+
+// Applica 'veteran' allo slot (aceIndex, role): personaggio + proprie spark,
+// piu' la cascata sui nonni del ramo se importato come genitore diretto
+// (vedi commento sotto). Estratta a parte cosi' da poter essere chiamata sia
+// dal vecchio flusso (rimosso: select inline + bottone) sia dal nuovo popup
+// di selezione (vedi openVeteranImportModal), stessa logica in un solo posto.
+function importVeteranIntoSlot(aceIndex, role, veteran) {
+  // le spark vanno impostate PRIMA di scatenare il "change" sul personaggio:
+  // lo specchio automatico (mirrorIfShared, sotto) legge le spark correnti
+  // dello slot nel momento in cui il "change" scatta -- se arrivassero dopo,
+  // lo specchio copierebbe ancora quelle vecchie.
+  aceSlotSparks[aceSlotKey(aceIndex, role)] = {
+    white_sparks: veteran.white_sparks.map(s => ({ ...s })),  // copia, non riferimento:
+    race_sparks: veteran.race_sparks.map(s => ({ ...s })),    // modificarle dopo non deve toccare il veterano salvato
+  };
+  renderAceSlotSparks(aceIndex, role);
+
+  // Se il veterano viene importato come GENITORE diretto (parent1/parent2,
+  // non un nonno: non esiste un livello "bisnonno" nel piano ace), i SUOI
+  // genitori noti (veterans.py: parent1/parent2 del veterano, se presenti)
+  // diventano i 2 nonni di quel ramo -- gp1a/gp1b se importato in
+  // parent1 (sono i genitori di parent1), gp2a/gp2b se in parent2.
+  // Sostituzione PIENA anche qui: un nonno del veterano ignoto svuota lo
+  // slot nonno corrispondente, non lo lascia con un valore residuo di
+  // un'importazione precedente.
+  if (role === "parent1" || role === "parent2") {
+    const gpRoles = role === "parent1" ? ["gp1a", "gp1b"] : ["gp2a", "gp2b"];
+    const veteranParents = [veteran.parent1, veteran.parent2];
+    gpRoles.forEach((gpRole, i) => {
+      const gpData = veteranParents[i];
+      aceSlotSparks[aceSlotKey(aceIndex, gpRole)] = gpData
+        ? {
+          white_sparks: gpData.white_sparks.map(s => ({ ...s })),
+          race_sparks: gpData.race_sparks.map(s => ({ ...s })),
+        }
+        : { white_sparks: [], race_sparks: [] };
+      renderAceSlotSparks(aceIndex, gpRole);
+      const gpSelect = slotSelect(aceIndex, gpRole);
+      gpSelect.value = gpData ? gpData.character : "";
+      gpSelect.dispatchEvent(new Event("change"));  // innesca lo specchio sul ramo, se condiviso
+    });
+  }
+
+  const characterSelect = slotSelect(aceIndex, role);
+  characterSelect.value = veteran.character;
+  characterSelect.dispatchEvent(new Event("change"));  // innesca anche mirrorIfShared/enforceNoSelfParent
+}
+
+// Popup di selezione veterano (sostituisce il vecchio select inline + bottone
+// "Importa" ridondanti, 2026-08-15): il bottone apre un popup con l'elenco
+// dei veterani (gia' filtrati per il flag Global, vedi veteranPassesGlobalFilter),
+// click su una riga importa e chiude. 'veteranImportTarget' ricorda quale
+// slot ha aperto il popup, azzerato alla chiusura.
+let veteranImportTarget = null;
+
+function renderVeteranImportList() {
+  veteranImportListEl.innerHTML = "";
+  const importable = veteransCache.filter(veteranPassesGlobalFilter);
+  if (importable.length === 0) {
+    const p = document.createElement("p");
+    p.className = "placeholder";
+    p.textContent = t("veterans_empty");
+    veteranImportListEl.appendChild(p);
+    return;
+  }
+  importable.forEach(v => {
+    const row = document.createElement("div");
+    row.className = "veteran-import-row";
+    row.textContent = v.name;  // il nome, non il personaggio: distingue le copie (vedi veterans.py)
+    row.addEventListener("click", () => {
+      importVeteranIntoSlot(veteranImportTarget.aceIndex, veteranImportTarget.role, v);
+      closeVeteranImportModal();
+    });
+    veteranImportListEl.appendChild(row);
+  });
+}
+
+function openVeteranImportModal(aceIndex, role) {
+  veteranImportTarget = { aceIndex, role };
+  renderVeteranImportList();
+  veteranImportModal.hidden = false;
+}
+
+function closeVeteranImportModal() {
+  veteranImportModal.hidden = true;
+  veteranImportTarget = null;
+}
+
+aceSlotVeteranImportButtons.forEach(btn => {
+  btn.addEventListener("click", () => openVeteranImportModal(btn.dataset.aceIndex, btn.dataset.role));
+});
+
+veteranImportCancelButton.addEventListener("click", closeVeteranImportModal);
+veteranImportModal.addEventListener("click", event => {
+  if (event.target === veteranImportModal) closeVeteranImportModal();  // click fuori dal box chiude, come gli altri modal
+});
+
+// --- Piano ace, passo 3: specchio automatico sugli slot condivisi ----------
+// Se "Genitore N condiviso da" e' attivo su piu' ace, scegliere personaggio/
+// spark in UNO di quegli slot li specchia SUBITO negli altri (stesso ruolo)
+// -- niente da reimpostare a mano. La cascata copre anche i nonni del ramo
+// (gp1a/gp1b per genitore1, gp2a/gp2b per genitore2): condividere lo stesso
+// genitore vuol dire condividere anche i SUOI nonni (stessa carta fisica),
+// altrimenti due rami indicati diversi per lo stesso genitore condiviso
+// darebbero un errore in fase di calcolo (vedi ace_planner.build_established
+// lato server, che unifica i nonni per personaggio-genitore).
+//
+// "Sorgente" dello specchio: lo slot appena modificato, se ha un valore;
+// altrimenti il primo membro del gruppo che ne ha gia' uno (serve quando si
+// attiva la spunta "condiviso" DOPO aver gia' scelto qualcosa in uno slot).
+// Il controllo "valore gia' uguale, non ridispatchare" su ogni <select>
+// evita un ping-pong infinito di eventi 'change' tra i membri del gruppo.
+
+function sharedGroupForRole(role) {
+  return aceShareCheckboxes
+    .filter(cb => cb.dataset.role === role && cb.checked)
+    .map(cb => cb.dataset.aceIndex);
+}
+
+function slotSelect(aceIndex, role) {
+  return document.querySelector(`.ace-slot-select[data-ace-index="${aceIndex}"][data-role="${role}"]`);
+}
+
+function pickSyncSource(groupIndexes, role, preferred) {
+  const hasValue = idx => !!(slotSelect(idx, role) && slotSelect(idx, role).value);
+  if (preferred && hasValue(preferred)) return preferred;
+  return groupIndexes.find(hasValue) || null;
+}
+
+function setSlotIfDifferent(aceIndex, role, character) {
+  const select = slotSelect(aceIndex, role);
+  if (select.value !== character) {
+    select.value = character;
+    select.dispatchEvent(new Event("change"));
+  }
+}
+
+function copySlotSparks(fromAceIndex, fromRole, toAceIndex, toRole) {
+  const source = getAceSlotSparks(fromAceIndex, fromRole);
+  aceSlotSparks[aceSlotKey(toAceIndex, toRole)] = {
+    white_sparks: source.white_sparks.map(s => ({ ...s })),
+    race_sparks: source.race_sparks.map(s => ({ ...s })),
+  };
+  renderAceSlotSparks(toAceIndex, toRole);
+}
+
+function mirrorSharedGrandparent(preferredSourceAceIndex, gpRole) {
+  const parentRole = gpRole === "gp1a" || gpRole === "gp1b" ? "parent1" : "parent2";
+  const groupIndexes = sharedGroupForRole(parentRole);
+  if (groupIndexes.length < 2) return;
+  const sourceAceIndex = pickSyncSource(groupIndexes, gpRole, preferredSourceAceIndex);
+  if (!sourceAceIndex) return;  // nessuno ha ancora scelto un nonno su questo ramo: niente da specchiare
+
+  // le spark PRIMA del dispatch del personaggio (setSlotIfDifferent, che puo'
+  // innescare una cascata rientrante sullo stesso ramo condiviso): se il
+  // dispatch arrivasse prima, la cascata rientrante leggerebbe ancora le
+  // spark vecchie del bersaglio invece di quelle appena copiate dalla fonte.
+  groupIndexes.forEach(targetAceIndex => {
+    if (targetAceIndex === sourceAceIndex) return;
+    copySlotSparks(sourceAceIndex, gpRole, targetAceIndex, gpRole);
+    setSlotIfDifferent(targetAceIndex, gpRole, slotSelect(sourceAceIndex, gpRole).value);
+  });
+}
+
+function mirrorSharedSlot(preferredSourceAceIndex, role) {
+  const groupIndexes = sharedGroupForRole(role);
+  if (groupIndexes.length < 2) return;
+  const sourceAceIndex = pickSyncSource(groupIndexes, role, preferredSourceAceIndex);
+  if (!sourceAceIndex) return;
+
+  // stesso ordine spark-prima-del-dispatch di mirrorSharedGrandparent sopra,
+  // stesso motivo (evitare che una cascata rientrante legga spark vecchie).
+  groupIndexes.forEach(targetAceIndex => {
+    if (targetAceIndex === sourceAceIndex) return;
+    copySlotSparks(sourceAceIndex, role, targetAceIndex, role);
+    setSlotIfDifferent(targetAceIndex, role, slotSelect(sourceAceIndex, role).value);
+  });
+
+  const gpRoles = role === "parent1" ? ["gp1a", "gp1b"] : ["gp2a", "gp2b"];
+  gpRoles.forEach(gpRole => mirrorSharedGrandparent(sourceAceIndex, gpRole));
+}
+
+function mirrorIfShared(aceIndex, role) {
+  if (role === "parent1" || role === "parent2") mirrorSharedSlot(aceIndex, role);
+  else mirrorSharedGrandparent(aceIndex, role);
+}
+
+// Mai un personaggio genitore di se' stesso -- puo' esserlo NONNO (permesso,
+// anche se sconsigliato: riduce l'affinita' via la self-affinity=0 gia'
+// gestita da affinity.base_affinity), ma MAI genitore diretto. Vale per
+// ogni coppia figlio/genitore dell'albero: ace<->parent1/2, parent1<->
+// gp1a/gp1b, parent2<->gp2a/gp2b. Un cambio che crea un conflitto viene
+// annullato subito (torna "auto"/vuoto) -- innesca comunque "change" sullo
+// slot svuotato, cosi' l'eventuale specchio (mirrorIfShared) propaga anche
+// l'annullamento ai rami condivisi, invece di lasciarli disallineati.
+function enforceNoSelfParent(aceIndex) {
+  const aceCharSelect = document.querySelector(`.ace-character-select[data-ace-index="${aceIndex}"]`);
+  const aceChar = aceCharSelect ? aceCharSelect.value : "";
+
+  ["parent1", "parent2"].forEach(role => {
+    const sel = slotSelect(aceIndex, role);
+    if (aceChar && sel.value === aceChar) {
+      sel.value = "";
+      clearAceSlotSparks(aceIndex, role);
+      sel.dispatchEvent(new Event("change"));
+    }
+  });
+
+  const parentValue = {
+    parent1: slotSelect(aceIndex, "parent1").value,
+    parent2: slotSelect(aceIndex, "parent2").value,
+  };
+  [["gp1a", "parent1"], ["gp1b", "parent1"], ["gp2a", "parent2"], ["gp2b", "parent2"]].forEach(
+    ([gpRole, parentRole]) => {
+      const parentChar = parentValue[parentRole];
+      const gpSel = slotSelect(aceIndex, gpRole);
+      if (parentChar && gpSel.value === parentChar) {
+        gpSel.value = "";
+        clearAceSlotSparks(aceIndex, gpRole);
+        gpSel.dispatchEvent(new Event("change"));
+      }
+    },
+  );
+}
+
+aceCharacterSelects.forEach(select => {
+  select.addEventListener("change", () => enforceNoSelfParent(select.dataset.aceIndex));
+});
+
+aceSlotSelects.forEach(select => {
+  select.addEventListener("change", event => {
+    const { aceIndex, role } = select.dataset;
+    // Un cambio genuino dell'utente (event.isTrusted) parte da zero: le
+    // vecchie spark appartenevano al personaggio/slot precedente. I nostri
+    // stessi dispatch programmatici (import da veterano, specchio,
+    // enforceNoSelfParent) impostano gia' le spark corrette PRIMA di
+    // dispatchare "change" (isTrusted=false per un Event creato a mano) --
+    // qui non vanno toccate, altrimenti lo specchio automatico
+    // propagherebbe spark vuote invece di quelle appena importate.
+    if (event.isTrusted) clearAceSlotSparks(aceIndex, role);
+    enforceNoSelfParent(aceIndex);
+    mirrorIfShared(aceIndex, role);
+  });
+});
+
+aceShareCheckboxes.forEach(cb => {
+  cb.addEventListener("change", () => {
+    if (!cb.checked) return;  // disattivare la condivisione non "despecchia" nulla di gia' impostato
+    mirrorIfShared(cb.dataset.aceIndex, cb.dataset.role);
+  });
+});
+
 loadFileInput.addEventListener("change", () => {
   const file = loadFileInput.files[0];
   if (file) handleLoadFile(file);
