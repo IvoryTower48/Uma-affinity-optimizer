@@ -90,6 +90,7 @@
               <button type="button" class="mode-tab-button" data-mode-choice="top4" data-i18n="opt_mode_top4">Top-4 compatibili con un personaggio</button>
               <button type="button" class="mode-tab-button" data-mode-choice="loop" data-i18n="opt_mode_loop">Miglior loop a 5</button>
               <button type="button" class="mode-tab-button" data-mode-choice="rental" data-i18n="opt_mode_rental">Loop con genitore in prestito</button>
+              <button type="button" class="mode-tab-button" data-mode-choice="ace" data-i18n="opt_mode_ace">Pianifica ace (PvP)</button>
             </div>
             <!-- Il <select> resta nel DOM (solo nascosto): tutta la logica esistente
                  (updateFieldVisibility, salvataggio/caricamento, payload verso il
@@ -99,6 +100,7 @@
               <option value="top4" data-i18n="opt_mode_top4">Top-4 compatibili con un personaggio</option>
               <option value="loop" data-i18n="opt_mode_loop">Miglior loop a 5</option>
               <option value="rental" data-i18n="opt_mode_rental">Loop con genitore in prestito</option>
+              <option value="ace" data-i18n="opt_mode_ace">Pianifica ace (PvP)</option>
             </select>
 
             <div>
@@ -245,6 +247,44 @@
               </div>
 
               <div id="rental-spark-panel"></div>
+            </div>
+
+            <div id="ace-field" class="ace-field control-card">
+              <p class="field-section-title" data-i18n="ace_section_title">Pianifica ace (PvP)</p>
+              <p class="field-intro" data-i18n="ace_intro">Fino a 3 ace (i veterani schierabili in PvP): scegli genitori/nonni manualmente per una spark importante, lascia "(automatico)" per farli suggerire. Se piu' ace condividono lo stesso stile di corsa, puoi condividere lo stesso genitore tra loro invece di allevarne uno per ciascuno.</p>
+
+              <div class="ace-slots">
+                {% for i in range(1, 4) %}
+                <div class="ace-slot-block" data-ace-index="{{ i }}">
+                  <label class="ace-slot-block-label">Ace {{ i }}</label>
+                  <select class="ace-character-select" data-ace-index="{{ i }}"></select>
+
+                  <div class="ace-ancestor-grid">
+                    <div><label data-i18n="label_ace_parent1">Genitore 1</label><select class="ace-slot-select" data-ace-index="{{ i }}" data-role="parent1"></select></div>
+                    <div><label data-i18n="label_ace_parent2">Genitore 2</label><select class="ace-slot-select" data-ace-index="{{ i }}" data-role="parent2"></select></div>
+                    <div><label data-i18n="label_ace_gp1a">Nonno/a 1a</label><select class="ace-slot-select" data-ace-index="{{ i }}" data-role="gp1a"></select></div>
+                    <div><label data-i18n="label_ace_gp1b">Nonno/a 1b</label><select class="ace-slot-select" data-ace-index="{{ i }}" data-role="gp1b"></select></div>
+                    <div><label data-i18n="label_ace_gp2a">Nonno/a 2a</label><select class="ace-slot-select" data-ace-index="{{ i }}" data-role="gp2a"></select></div>
+                    <div><label data-i18n="label_ace_gp2b">Nonno/a 2b</label><select class="ace-slot-select" data-ace-index="{{ i }}" data-role="gp2b"></select></div>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+
+              <div class="ace-share-row">
+                <div class="ace-share-group" data-role="parent1">
+                  <span data-i18n="label_ace_share_parent1">Genitore 1 condiviso da:</span>
+                  {% for i in range(1, 4) %}
+                  <label><input type="checkbox" class="ace-share-checkbox" data-ace-index="{{ i }}" data-role="parent1"> Ace {{ i }}</label>
+                  {% endfor %}
+                </div>
+                <div class="ace-share-group" data-role="parent2">
+                  <span data-i18n="label_ace_share_parent2">Genitore 2 condiviso da:</span>
+                  {% for i in range(1, 4) %}
+                  <label><input type="checkbox" class="ace-share-checkbox" data-ace-index="{{ i }}" data-role="parent2"> Ace {{ i }}</label>
+                  {% endfor %}
+                </div>
+              </div>
             </div>
           </div>
         </div>

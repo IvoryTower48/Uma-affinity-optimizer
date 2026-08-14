@@ -42,6 +42,7 @@ from cycle_analysis import (
     suggest_anchor_grandparents, suggest_anchor_grandparent_pairs,
     anchor_signature_spark_plan, apply_anchor_spark_plan,
 )
+from ace_planner import plan_ace_group
 from timeline import build_calendar_matrix
 import data_updater
 
@@ -831,6 +832,138 @@ def api_rental_loop():
         # nessuna parte, nemmeno per top4/loop: aggiungere quel badge e' una
         # feature a se', non inclusa qui).
         "meta_parents": [c for c in [anchor, *members] if c in META_PARENTS],
+        "warning": warning,
+    })
+
+
+def _ace_slots_response(aces, parent_slots, grandparent_slots):
+    """Converte parent_slots/grandparent_slots (chiavi interne di
+    ace_planner) nella forma per-ace usata dal payload/risposta JSON:
+    dict[ace] -> dict[ruolo] -> personaggio o None."""
+    out = {}
+    for ace in aces:
+        p1 = parent_slots.get((ace, "parent1"))
+        p2 = parent_slots.get((ace, "parent2"))
+        gp1a = gp1b = gp2a = gp2b = None
+        if p1 is not None:
+            gp1a, gp1b = grandparent_slots.get(p1, [None, None])
+        if p2 is not None:
+            gp2a, gp2b = grandparent_slots.get(p2, [None, None])
+        out[ace] = {
+            "parent1": p1, "parent2": p2,
+            "gp1a": gp1a, "gp1b": gp1b, "gp2a": gp2a, "gp2b": gp2b,
+        }
+    return out
+
+
+@app.route("/api/ace_plan", methods=["POST"])
+def api_ace_plan():
+    """
+    Pianificazione di 1-3 "ace" (i veterani schierabili in PvP): per ciascuno,
+    genitori+nonni scelti manualmente (per una spark verde/unica importante)
+    o suggeriti per massimizzare l'affinita' -- vedi ace_planner.py. Un ace +
+    i suoi 6 antenati e' esattamente un "ciclo" (stessa formula/Bonus del
+    loop a 5), quindi la risposta usa lo STESSO formato di 'cycles' di
+    /api/top4 e /api/rental_loop -- il frontend puo' riusare
+    buildCycleTable/buildGenealogyCards senza modifiche.
+
+    Payload:
+      aces: 1-3 personaggi (base o variante), obbligatorio.
+      mode, global_only, owned, min_aptitude: stessi filtri degli altri endpoint.
+      slots: dict[ace] -> dict[ruolo] -> personaggio o null. Ruoli: parent1,
+        parent2, gp1a, gp1b (nonni via parent1), gp2a, gp2b (via parent2). Un
+        ruolo null/assente viene suggerito automaticamente. Un nonno indicato
+        per un ace il cui genitore risulta condiviso con un altro ace deve
+        coincidere con quanto indicato dall'altro (altrimenti 400) -- il
+        nonno appartiene alla carta genitore, non al singolo ace.
+      shared_groups: lista di gruppi [[ace, ruolo], ...] (ruolo: parent1/
+        parent2) da riempire con lo STESSO personaggio quando ancora liberi
+        in tutti gli ace del gruppo -- usato per riusare la stessa carta
+        genitore su piu' ace (tipicamente con lo stesso stile di corsa)
+        invece di allevarne una per ciascuno.
+    """
+    payload = request.get_json()
+    aces_input = payload.get("aces", [])
+    mode = payload.get("mode", "career")
+    global_only = bool(payload.get("global_only", False))
+    owned = payload.get("owned", [])
+    raw_slots = payload.get("slots", {})
+    raw_shared_groups = payload.get("shared_groups", [])
+    try:
+        min_aptitude = validate_min_aptitude(payload.get("min_aptitude"))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    matrix = get_matrix(mode, min_aptitude)
+
+    universe, warning = get_universe(global_only)
+
+    if not (1 <= len(aces_input) <= 3):
+        return jsonify({"error": "Servono da 1 a 3 ace."}), 400
+
+    aces = []
+    for name_input in aces_input:
+        resolved, candidates = resolve_character_input(name_input, universe)
+        if resolved is None:
+            if candidates:
+                return jsonify({
+                    "error": f"'{name_input}' e' ambiguo tra le varianti: "
+                             f"{candidates}. Specifica quale con il nome completo."
+                }), 400
+            return jsonify({
+                "error": f"'{name_input}' non trovato"
+                         + (" (con il filtro Global attivo)." if global_only else ".")
+            }), 404
+        aces.append(resolved)
+    if len(aces) != len({base_character(a) for a in aces}):
+        return jsonify({"error": "Due ace non possono condividere lo stesso nome base."}), 400
+
+    parent_slots = {}
+    for ace in aces:
+        ace_slots = raw_slots.get(ace, {})
+        parent_slots[(ace, "parent1")] = ace_slots.get("parent1") or None
+        parent_slots[(ace, "parent2")] = ace_slots.get("parent2") or None
+
+    grandparent_slots = {}
+    for ace in aces:
+        ace_slots = raw_slots.get(ace, {})
+        for parent, gp_a_key, gp_b_key in (
+            (parent_slots[(ace, "parent1")], "gp1a", "gp1b"),
+            (parent_slots[(ace, "parent2")], "gp2a", "gp2b"),
+        ):
+            if parent is None:
+                continue
+            gp_a = ace_slots.get(gp_a_key) or None
+            gp_b = ace_slots.get(gp_b_key) or None
+            if gp_a is None and gp_b is None:
+                continue
+            existing = grandparent_slots.setdefault(parent, [None, None])
+            for i, val in enumerate((gp_a, gp_b)):
+                if val is None:
+                    continue
+                if existing[i] is not None and existing[i] != val:
+                    return jsonify({
+                        "error": f"Nonni diversi indicati per lo stesso genitore "
+                                 f"condiviso '{parent}'."
+                    }), 400
+                existing[i] = val
+
+    shared_groups = [[tuple(pair) for pair in group] for group in raw_shared_groups]
+    candidate_pool = restrict_to_owned(universe, owned)
+
+    try:
+        result = plan_ace_group(
+            aces, parent_slots, grandparent_slots, shared_groups,
+            candidate_pool, matrix, name_map, character_ids, id_weights,
+            calendar, races, aptitudes, mode, min_aptitude,
+        )
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+    return jsonify({
+        "aces": aces,
+        "slots": _ace_slots_response(aces, result["parent_slots"], result["grandparent_slots"]),
+        "cycles": result["cycles"],
+        "total_affinity": result["total_affinity"],
         "warning": warning,
     })
 

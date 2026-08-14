@@ -31,6 +31,10 @@ const rentalAnchorSelect = document.getElementById("rental-anchor-select");
 const rentalGpASelect = document.getElementById("rental-gp-a-select");
 const rentalGpBSelect = document.getElementById("rental-gp-b-select");
 const rentalFixedSelects = Array.from(document.querySelectorAll(".rental-fixed-select"));
+const aceField = document.getElementById("ace-field");
+const aceCharacterSelects = Array.from(document.querySelectorAll(".ace-character-select"));
+const aceSlotSelects = Array.from(document.querySelectorAll(".ace-slot-select"));
+const aceShareCheckboxes = Array.from(document.querySelectorAll(".ace-share-checkbox"));
 const runButton = document.getElementById("run-button");
 const saveButton = document.getElementById("save-button");
 const loadButton = document.getElementById("load-button");
@@ -141,6 +145,20 @@ const I18N = {
     unknown_ancestor: "N/D",
     rental_heading: "Rental loop con {name}",
     rental_total_label: "Total Loop Affinity",
+    opt_mode_ace: "Pianifica ace (PvP)",
+    ace_section_title: "Pianifica ace (PvP)",
+    ace_intro: "Fino a 3 ace (i veterani schierabili in PvP): scegli genitori/nonni manualmente per una spark importante, lascia \"(automatico)\" per farli suggerire. Se più ace condividono lo stesso stile di corsa, puoi condividere lo stesso genitore tra loro invece di allevarne uno per ciascuno.",
+    label_ace_parent1: "Genitore 1",
+    label_ace_parent2: "Genitore 2",
+    label_ace_gp1a: "Nonno/a 1a",
+    label_ace_gp1b: "Nonno/a 1b",
+    label_ace_gp2a: "Nonno/a 2a",
+    label_ace_gp2b: "Nonno/a 2b",
+    opt_auto: "(automatico)",
+    label_ace_share_parent1: "Genitore 1 condiviso da:",
+    label_ace_share_parent2: "Genitore 2 condiviso da:",
+    ace_heading: "Piano ace",
+    ace_total_label: "Affinità totale",
     rental_partial_note: "Nonni ignoti: alcuni termini non sono calcolati (mostrati come N/D), il totale copre solo quelli noti.",
     rental_gp_suggestions_label: "Nonni suggeriti, in ordine di affinità potenziale massima",
     rental_gp_pairs_label: "Migliori coppie di nonni per affinità aggiunta al loop (Δ per step)",
@@ -328,6 +346,20 @@ const I18N = {
     unknown_ancestor: "N/A",
     rental_heading: "Rental loop with {name}",
     rental_total_label: "Total Loop Affinity",
+    opt_mode_ace: "Plan aces (PvP)",
+    ace_section_title: "Plan aces (PvP)",
+    ace_intro: "Up to 3 aces (the veterans you can field in PvP): manually pick parents/grandparents for an important spark, leave \"(auto)\" to get them suggested. If several aces share the same running style, you can share the same parent between them instead of breeding one for each.",
+    label_ace_parent1: "Parent 1",
+    label_ace_parent2: "Parent 2",
+    label_ace_gp1a: "Grandparent 1a",
+    label_ace_gp1b: "Grandparent 1b",
+    label_ace_gp2a: "Grandparent 2a",
+    label_ace_gp2b: "Grandparent 2b",
+    opt_auto: "(auto)",
+    label_ace_share_parent1: "Parent 1 shared by:",
+    label_ace_share_parent2: "Parent 2 shared by:",
+    ace_heading: "Ace plan",
+    ace_total_label: "Total affinity",
     rental_partial_note: "Grandparents unknown: some terms aren't computed (shown as N/A), the total only covers the known ones.",
     rental_gp_suggestions_label: "Suggested grandparents, ordered by potential maximum affinity",
     rental_gp_pairs_label: "Best grandparent pairs by affinity added to the loop (Δ per step)",
@@ -613,6 +645,9 @@ const layoutToggle = makeToggleControl(
     // cosa per i posseduti (griglia ritratti vs lista checkbox).
     rerenderLastRun();
     renderOwnedList();
+    // Cambio layout = colonne dell'ace-field di larghezza diversa: ricalcola
+    // (vedi lo stesso ragionamento in updateFieldVisibility sopra).
+    if (modeSelect.value === "ace") [...aceCharacterSelects, ...aceSlotSelects].forEach(fitSelectFont);
   },
 );
 const setLayoutMode = layoutToggle.set;
@@ -752,6 +787,37 @@ function capitalizeWord(word) {
   return word[0].toUpperCase() + word.slice(1).toLowerCase();
 }
 
+// Le <select> dei blocchi "Pianifica ace" sono strette (colonna fissa a
+// 220px, condivisa fra genitore/nonno: ~100px a testa nella griglia 2
+// colonne), quindi il nome scelto puo' non starci ed essere tagliato dal
+// browser senza nessun avviso. Si riduce il font-size finche' il testo
+// attualmente selezionato non ci sta piu' nella larghezza disponibile
+// (misurata con canvas, stesso font della select), fino a una soglia
+// leggibile; oltre quella soglia (nomi molto lunghi in colonna strettissima,
+// nessun font ragionevole ci basterebbe) resta il fallback nativo -- title
+// per il nome intero al passaggio del mouse, ellipsis invece del taglio
+// a meta' parola (vedi regola CSS abbinata su .ace-ancestor-grid select).
+const ACE_SELECT_BASE_FONT_PX = 15.2; // = var(--fs-base) = 0.95rem
+const ACE_SELECT_MIN_FONT_PX = 10;
+function fitSelectFont(select) {
+  const style = getComputedStyle(select);
+  const available = select.clientWidth
+    - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+    - 18; // spazio riservato alla freccia nativa della select
+  const text = select.options[select.selectedIndex]?.textContent || "";
+  select.title = text;
+  if (!text || available <= 0) return;
+  const canvas = fitSelectFont._canvas || (fitSelectFont._canvas = document.createElement("canvas"));
+  const ctx = canvas.getContext("2d");
+  let size = ACE_SELECT_BASE_FONT_PX;
+  while (true) {
+    ctx.font = `${style.fontWeight} ${size}px ${style.fontFamily}`;
+    if (ctx.measureText(text).width <= available || size <= ACE_SELECT_MIN_FONT_PX) break;
+    size -= 0.5;
+  }
+  select.style.fontSize = Math.max(size, ACE_SELECT_MIN_FONT_PX) + "px";
+}
+
 function formatCharacterName(characterId) {
   const base = baseCharacter(characterId);
   const baseDisplay = base.split("_")
@@ -801,7 +867,12 @@ function updateFieldVisibility() {
   characterField.style.display = mode === "top4" ? "" : "none";
   loopField.style.display = mode === "loop" ? "" : "none";
   rentalField.style.display = mode === "rental" ? "" : "none";
+  aceField.style.display = mode === "ace" ? "" : "none";
   applyModeTabButtons();
+  // Mentre #ace-field era display:none le sue select avevano clientWidth 0,
+  // quindi fitSelectFont (chiamata al popolamento) non poteva calcolare
+  // niente -- va rifatta ora che tornano visibili e misurabili.
+  if (mode === "ace") [...aceCharacterSelects, ...aceSlotSelects].forEach(fitSelectFont);
 }
 modeSelect.addEventListener("change", updateFieldVisibility);
 
@@ -913,6 +984,37 @@ function populateMustIncludeSelects() {
     rentalAnchorSelect.appendChild(opt);
   });
   rentalAnchorSelect.value = sortedNames.includes(currentAnchor) ? currentAnchor : (sortedNames[0] || "");
+
+  // Ace: il primo e' obbligatorio (stesso schema dell'anchor sopra), gli
+  // altri due opzionali. Gli slot genitore/nonno sono TUTTI opzionali, ma
+  // con "(automatico)" invece di "-- nessuno --": un valore vuoto significa
+  // "lascialo suggerire", non "nessuno" in senso assoluto (vedi ace_planner.py).
+  const [ace1Select, ace2Select, ace3Select] = aceCharacterSelects;
+  fillWithNone(ace2Select);
+  fillWithNone(ace3Select);
+  const currentAce1 = ace1Select.value;
+  ace1Select.innerHTML = "";
+  sortedNames.forEach(name => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = formatCharacterName(name);
+    ace1Select.appendChild(opt);
+  });
+  ace1Select.value = sortedNames.includes(currentAce1) ? currentAce1 : (sortedNames[0] || "");
+
+  aceSlotSelects.forEach(select => {
+    const current = select.value;
+    select.innerHTML = `<option value="">${t("opt_auto")}</option>`;
+    sortedNames.forEach(name => {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = formatCharacterName(name);
+      select.appendChild(opt);
+    });
+    select.value = current;
+  });
+
+  [...aceCharacterSelects, ...aceSlotSelects].forEach(fitSelectFont);
 }
 
 function renderCharacterSelect() {
@@ -941,6 +1043,37 @@ function getMustInclude() {
 
 function getRentalFixedMembers() {
   return rentalFixedSelects.map(s => s.value).filter(v => v);
+}
+
+// Costruisce il payload di /api/ace_plan dai controlli #ace-field: aces (1-3
+// personaggi), slots (dict[ace] -> dict[ruolo] -> personaggio o null) e
+// shared_groups (coppie [ace,ruolo] da riempire con lo stesso personaggio,
+// una per ruolo genitore -- vedi ace_planner.plan_ace_group). Gli slot/
+// checkbox si riferiscono all'INDICE del blocco (1/2/3), tradotto qui nel
+// personaggio effettivo scelto in quella posizione.
+function getAcePayload() {
+  const [ace1, ace2, ace3] = aceCharacterSelects.map(s => s.value);
+  const indexToCharacter = { 1: ace1 || null, 2: ace2 || null, 3: ace3 || null };
+  const aces = [ace1, ace2, ace3].filter(v => v);
+
+  const slots = {};
+  aces.forEach(ace => { slots[ace] = {}; });
+  aceSlotSelects.forEach(select => {
+    const character = indexToCharacter[Number(select.dataset.aceIndex)];
+    if (!character || !slots[character]) return;
+    slots[character][select.dataset.role] = select.value || null;
+  });
+
+  const groupsByRole = { parent1: [], parent2: [] };
+  aceShareCheckboxes.forEach(cb => {
+    if (!cb.checked) return;
+    const character = indexToCharacter[Number(cb.dataset.aceIndex)];
+    if (!character) return;
+    groupsByRole[cb.dataset.role].push([character, cb.dataset.role]);
+  });
+  const shared_groups = Object.values(groupsByRole).filter(g => g.length >= 2);
+
+  return { aces, slots, shared_groups };
 }
 
 function visibleItems() {
@@ -1561,6 +1694,13 @@ rentalAnchorSelect.addEventListener("change", buildRentalSparkPanel);
 rentalGpASelect.addEventListener("change", buildRentalSparkPanel);
 rentalGpBSelect.addEventListener("change", buildRentalSparkPanel);
 rentalFixedSelects.forEach(select => select.addEventListener("change", refreshRentalSparkPreview));
+
+// Ri-adatta il font-size al nome appena scelto (vedi fitSelectFont sopra):
+// una select stretta puo' far stare un nome corto a piena taglia e uno
+// lungo no, quindi va ricalcolato ad ogni cambio, non solo al popolamento.
+[...aceCharacterSelects, ...aceSlotSelects].forEach(select => {
+  select.addEventListener("change", () => fitSelectFont(select));
+});
 
 function starsToLevelsJs(totalStars) {
   if (totalStars >= 10) return 4;
@@ -2819,6 +2959,32 @@ function renderRentalResult(data) {
   setTimelineTab("original", t("tab_original"), data.calendar_matrix, timelineMembers, true, timelineMembers.length - 1);
 }
 
+// Un ace + i suoi 6 antenati e' esattamente un "ciclo" (vedi ace_planner.py):
+// data.cycles ha lo STESSO formato di quelli di /api/top4 e /api/rental_loop,
+// quindi si riusano buildCycleTable/buildGenealogyCards senza modifiche.
+function renderAcePlan(data) {
+  lastRun = { type: "ace", data };
+  disablePdfButton();  // il piano ace non produce la struttura richiesta dal PDF (fuori scope, come loop/rental)
+  results.innerHTML = renderWarning(data.warning);
+  debugPanel.innerHTML = "";
+  debugPanel.hidden = true;
+
+  const h2 = document.createElement("h2");
+  h2.textContent = t("ace_heading");
+  results.appendChild(h2);
+
+  const totalLine = document.createElement("p");
+  totalLine.className = "total-loop-affinity";
+  totalLine.innerHTML = `${t("ace_total_label")}: <strong>${data.total_affinity}</strong>`;
+  results.appendChild(totalLine);
+
+  results.appendChild(
+    layoutMode === "classic" ? buildCycleTable(data.cycles) : buildGenealogyCards(data.cycles),
+  );
+
+  resetTimelineTabs();  // nessun calendario per il piano ace (v1): pannello a placeholder
+}
+
 async function runQuery() {
   const mode = modeSelect.value;
   const calendarMode = calendarSelect.value;
@@ -2877,6 +3043,19 @@ async function runQuery() {
       const data = await resp.json();
       if (!resp.ok) throw new Error(translateServerMessage(data.error) || t("error_unknown"));
       renderRentalResult(data);
+    } else if (mode === "ace") {
+      const { aces, slots, shared_groups } = getAcePayload();
+      const resp = await fetch("/api/ace_plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          aces, mode: calendarMode, global_only: globalOnly, owned, min_aptitude: minAptitude,
+          slots, shared_groups,
+        }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(translateServerMessage(data.error) || t("error_unknown"));
+      renderAcePlan(data);
     }
   } catch (err) {
     results.innerHTML = `<p class="placeholder">${t("error_prefix", { message: err.message })}</p>`;

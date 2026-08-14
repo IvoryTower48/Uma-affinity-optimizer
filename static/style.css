@@ -333,6 +333,103 @@ select, input[type="number"], input[type="text"] {
   color: var(--text-muted);
 }
 
+/* Pianifica ace (PvP) -- stesso trattamento dell'intro del rental loop
+   sopra (deve leggersi bene, non e' una didascalia minuscola). */
+#ace-field .field-intro {
+  font-size: var(--fs-sm);
+}
+
+.ace-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.ace-slot-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex: 1 1 220px;
+  min-width: 220px;
+  padding: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.ace-slot-block-label {
+  font-weight: 700;
+  font-size: var(--fs-sm);
+}
+
+/* Una sola colonna invece di 2 (era Genitore 1|2 affiancati, Nonno 1a|1b,
+   ecc.): con 3 blocchi ace affiancati ogni colonna aveva solo ~60-80px di
+   testo disponibile, troppo poco perche' anche un nome medio (es. "Nakayama
+   Festa") restasse leggibile anche riducendo il font al minimo leggibile.
+   Impilando le select si guadagna quasi tutta la larghezza del blocco
+   (~200px), a costo di un blocco piu' alto -- spazio verticale che qui
+   costa poco, a differenza di quello orizzontale che era il vero collo di
+   bottiglia. */
+.ace-ancestor-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.4rem;
+}
+
+.ace-ancestor-grid > div {
+  min-width: 0;
+}
+
+.ace-ancestor-grid select {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Il font-size viene gia' ridotto via JS (fitSelectFont in script.js) finche'
+   il nome scelto ci sta; oltre la soglia leggibile minima, ellipsis invece di
+   un taglio a meta' parola -- il nome completo resta comunque disponibile
+   come title (tooltip nativo al passaggio del mouse). */
+.ace-character-select,
+.ace-ancestor-grid select {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ace-ancestor-grid label {
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.ace-share-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--border);
+}
+
+.ace-share-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: var(--fs-xs);
+}
+
+.ace-share-group span {
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.ace-share-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 400;
+}
+
 .lang-switch, .theme-switch, .layout-switch {
   display: flex;
   gap: 0.25rem;
@@ -363,9 +460,12 @@ select, input[type="number"], input[type="text"] {
 /* Tab della modalita' d'uso (top4/loop/rental) -- stesso schema pulsante
    lang/theme/layout sopra, ma con etichette lunghe (frasi intere) invece di
    sigle: padding maggiore, testo non-xs, a-capo libero su schermi stretti. */
+/* Grid a 2 colonne invece di flex-wrap: con 4 modalita' evita la riga
+   "3 pulsanti + 1 pulsante solo" (il vincolo calendario, che ne ha 2,
+   riusa la stessa classe e ci sta comunque bene su un'unica riga da 2). */
 .mode-tabs {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.4rem;
 }
 
