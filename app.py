@@ -273,6 +273,29 @@ def api_gametora_tid_names():
     return jsonify(data_updater.get_gametora_tid_names(DATA_DIR))
 
 
+@app.route("/api/spark_race")
+def api_spark_race():
+    """
+    Elenco delle race spark (gara G1 + eventuale statistica), generato da
+    data_updater (Fonte 6) da Gametora factors.json. Ogni voce: {id, name_en,
+    name_ja, race_id}. Ancora senza un consumatore in UI -- infrastruttura
+    per le prossime feature (import/export genitori, aggiunta manuale con
+    spark note, probabilita' di eredita').
+    """
+    return jsonify(data_updater.get_spark_race_list(DATA_DIR))
+
+
+@app.route("/api/spark_skill")
+def api_spark_skill():
+    """
+    Elenco delle white spark (skill), stesso principio di /api/spark_race.
+    Ogni voce: {id, name_en, name_ja} -- gia' risolte al nome della versione
+    BASE/white della skill (mai quello della gold, vedi
+    data_updater.fetch_gametora_factors).
+    """
+    return jsonify(data_updater.get_spark_skill_list(DATA_DIR))
+
+
 @app.route("/api/portrait/<path:character>")
 def api_portrait(character):
     """

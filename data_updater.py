@@ -614,27 +614,35 @@ GAMETORA_MANIFEST_URL = "https://gametora.com/data/manifests/umamusume.json"
 GAMETORA_DATA_BASE_URL = "https://gametora.com/data/umamusume/"
 
 
-def fetch_gametora_character_cards() -> list | None:
-    """Scarica l'elenco completo delle carte-personaggio (tutte le
-    varianti/costumi) usato dal Collection Tracker di Gametora. Il nome del
-    file include un hash che cambia ad ogni deploy del sito: si risolve prima
-    via il manifest pubblico (stesso meccanismo con cui il sito carica i
-    propri dati). Ritorna None (mai una lista parziale/sporca) se manifest o
-    file non sono raggiungibili o non hanno il formato atteso."""
+def _fetch_gametora_data_file(manifest_key: str):
+    """Scarica un file dati generico di Gametora (data/umamusume/<manifest_key>.<hash>.json),
+    risolvendo l'hash corrente via il manifest pubblico (stesso meccanismo con cui il
+    sito carica i propri dati) -- fattorizzata da fetch_gametora_character_cards per
+    essere riusata anche da fetch_gametora_factors (Fonte 6, sotto). Ritorna il JSON
+    decodificato (list o dict, secondo il file), o None se manifest/file non sono
+    raggiungibili o non hanno il formato atteso."""
     try:
         manifest_resp = requests.get(GAMETORA_MANIFEST_URL, headers=HEADERS, timeout=REQUEST_TIMEOUT)
         manifest_resp.raise_for_status()
-        file_hash = manifest_resp.json()["character-cards"]
+        file_hash = manifest_resp.json()[manifest_key]
 
-        cards_resp = requests.get(
-            f"{GAMETORA_DATA_BASE_URL}character-cards.{file_hash}.json",
+        data_resp = requests.get(
+            f"{GAMETORA_DATA_BASE_URL}{manifest_key}.{file_hash}.json",
             headers=HEADERS, timeout=REQUEST_TIMEOUT,
         )
-        cards_resp.raise_for_status()
-        cards = cards_resp.json()
-        return cards if isinstance(cards, list) else None
+        data_resp.raise_for_status()
+        return data_resp.json()
     except (requests.RequestException, ValueError, KeyError):
         return None
+
+
+def fetch_gametora_character_cards() -> list | None:
+    """Scarica l'elenco completo delle carte-personaggio (tutte le
+    varianti/costumi) usato dal Collection Tracker di Gametora. Ritorna None
+    (mai una lista parziale/sporca) se non raggiungibile o in un formato
+    inatteso."""
+    cards = _fetch_gametora_data_file("character-cards")
+    return cards if isinstance(cards, list) else None
 
 
 def build_gametora_tid_map(character_info: pd.DataFrame, cards: list) -> dict:
@@ -724,6 +732,87 @@ def build_gametora_tid_names(cards: list) -> dict:
         else:
             names[tid] = name_en
     return names
+
+
+# ---------------------------------------------------------------------------
+# Fonte 6: Gametora factors.json -- elenco race spark e white spark (skill),
+# per la pianificazione dell'eredita' (v4, vedi HANDOFF.md). Stesso schema
+# hash-via-manifest della Fonte 5 (_fetch_gametora_data_file, condivisa).
+#
+# Il file e' GIA' risolto dal gioco alla forma effettivamente ereditabile:
+# per le white spark (categoria "skill") il nome e' SEMPRE quello della
+# versione BASE/white della skill, mai quello della versione gold, anche se
+# la skill gold ha un nome completamente diverso (es. la skill gold "In Body
+# and Mind" genera sempre la white spark "Straightaway Adept", MAI una spark
+# col nome "In Body and Mind" -- verificato dal vivo, 2026-08-14: "In Body
+# and Mind" non compare da nessuna parte in factors["skill"], solo
+# "Straightaway Adept" -- 439 voci in factors["skill"] contro 582 skill con
+# rarity=1/white nel catalogo skill completo di Gametora, quindi non e'
+# nemmeno "tutte le white": e' gia' una selezione delle sole white
+# effettivamente ottenibili come spark). Nessun mapping gold->white va
+# quindi costruito qui, la fonte lo ha gia' risolto.
+#
+# Le race spark (categoria "race") includono gia' 'race_id' (riferimento
+# alla gara G1 corrispondente, non usato per ora ma salvato per un futuro
+# incrocio con races.xlsx). Le altre categorie del file (pink/blue/scenario)
+# non sono salvate qui: pink e' gia' implementata a parte (aptitude
+# inheritance), blue ha solo le 5 statistiche note (nessun dato da
+# scaricare), scenario non e' richiesto per ora.
+
+def fetch_gametora_factors() -> dict | None:
+    """Scarica data/umamusume/factors.<hash>.json (database completo delle
+    spark). Ritorna None (mai un dict parziale) se non raggiungibile o privo
+    delle chiavi attese."""
+    data = _fetch_gametora_data_file("factors")
+    if not isinstance(data, dict) or "race" not in data or "skill" not in data:
+        return None
+    return data
+
+
+def _build_spark_list(entries: list) -> list:
+    """Riduce le voci grezze di una categoria di factors.json ai soli campi
+    che servono al tool (id, nome inglese/giapponese, race_id se presente),
+    scartando quelle senza id o senza alcun nome inglese utilizzabile.
+    Ordinata per id per diff leggibili tra un aggiornamento e l'altro."""
+    result = []
+    for entry in entries:
+        entry_id = entry.get("id")
+        name = entry.get("name_en_gl") or entry.get("name_en")
+        if not entry_id or not name:
+            continue
+        item = {"id": entry_id, "name_en": name, "name_ja": entry.get("name_ja", "")}
+        if "race_id" in entry:
+            item["race_id"] = entry["race_id"]
+        result.append(item)
+    result.sort(key=lambda e: e["id"])
+    return result
+
+
+def build_spark_race_list(factors: dict) -> list:
+    return _build_spark_list(factors.get("race", []))
+
+
+def build_spark_skill_list(factors: dict) -> list:
+    return _build_spark_list(factors.get("skill", []))
+
+
+def _spark_race_path(data_dir) -> Path:
+    return Path(data_dir) / "spark_race.json"
+
+
+def _spark_skill_path(data_dir) -> Path:
+    return Path(data_dir) / "spark_skill.json"
+
+
+def get_spark_race_list(data_dir) -> list:
+    """Elenco delle race spark, cosi' come salvato dall'ultimo aggiornamento
+    riuscito (lista vuota se non ancora generato)."""
+    return _read_json(_spark_race_path(data_dir), [])
+
+
+def get_spark_skill_list(data_dir) -> list:
+    """Elenco delle white spark, stesso principio di get_spark_race_list."""
+    return _read_json(_spark_skill_path(data_dir), [])
 
 
 def _gametora_tid_map_path(data_dir) -> Path:
@@ -986,6 +1075,28 @@ def run_update(data_dir: str) -> dict:
         if tid_names != get_gametora_tid_names(data_dir):
             tid_names_path.write_text(json.dumps(tid_names, ensure_ascii=False, indent=2, sort_keys=True))
 
+    # --- Fonte 6: factors.json -- elenco race spark e white spark, per la
+    # pianificazione dell'eredita' (v4). Fetch indipendente da 'cards' sopra
+    # (file diverso), ma stesso schema hash-via-manifest e stessa politica di
+    # scrittura solo se cambiato rispetto all'ultimo salvataggio.
+    report["spark_lists_updated"] = False
+    if not _budget_exceeded(deadline):
+        factors = fetch_gametora_factors()
+        if factors is not None:
+            spark_race = build_spark_race_list(factors)
+            spark_skill = build_spark_skill_list(factors)
+            if spark_race != get_spark_race_list(data_dir) or spark_skill != get_spark_skill_list(data_dir):
+                # encoding="utf-8" esplicito: name_ja e' testo non-ASCII, il
+                # default di sistema (cp1252 su Windows) non lo rappresenta
+                # (vedi commento su _read_json).
+                _spark_race_path(data_dir).write_text(
+                    json.dumps(spark_race, ensure_ascii=False, indent=2), encoding="utf-8",
+                )
+                _spark_skill_path(data_dir).write_text(
+                    json.dumps(spark_skill, ensure_ascii=False, indent=2), encoding="utf-8",
+                )
+                report["spark_lists_updated"] = True
+
     return report
 
 
@@ -1004,12 +1115,17 @@ def _update_settings_path(data_dir: str) -> Path:
 def _read_json(path: Path, default=None):
     """Legge un file JSON, ritornando 'default' se il file e' assente o
     illeggibile (nessuna eccezione verso il chiamante: uno stato
-    mancante/corrotto equivale semplicemente a 'non ancora impostato')."""
+    mancante/corrotto equivale semplicemente a 'non ancora impostato').
+    encoding='utf-8' esplicito (non il default di sistema, cp1252 su
+    Windows): i file scritti da questo modulo possono contenere testo non-
+    ASCII (es. name_ja delle spark, Fonte 6) e vanno scritti con lo stesso
+    encoding esplicito -- vedi _spark_race_path/_spark_skill_path in
+    run_update."""
     if not path.exists():
         return default
     try:
-        return json.loads(path.read_text())
-    except (json.JSONDecodeError, ValueError):
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, ValueError, UnicodeDecodeError):
         return default
 
 

@@ -1,0 +1,224 @@
+[
+  {
+    "id": "10001",
+    "name_en": "February S.",
+    "name_ja": "フェブラリーS",
+    "race_id": "1001"
+  },
+  {
+    "id": "10002",
+    "name_en": "Takamatsunomiya Kinen",
+    "name_ja": "高松宮記念",
+    "race_id": "1002"
+  },
+  {
+    "id": "10003",
+    "name_en": "Osaka Hai",
+    "name_ja": "大阪杯",
+    "race_id": "1003"
+  },
+  {
+    "id": "10004",
+    "name_en": "Oka Sho",
+    "name_ja": "桜花賞",
+    "race_id": "1004"
+  },
+  {
+    "id": "10005",
+    "name_en": "Satsuki Sho",
+    "name_ja": "皐月賞",
+    "race_id": "1005"
+  },
+  {
+    "id": "10006",
+    "name_en": "Tenno Sho (Spring)",
+    "name_ja": "天皇賞（春）",
+    "race_id": "1006"
+  },
+  {
+    "id": "10007",
+    "name_en": "NHK Mile C.",
+    "name_ja": "NHKマイルC",
+    "race_id": "1007"
+  },
+  {
+    "id": "10008",
+    "name_en": "Victoria Mile",
+    "name_ja": "ヴィクトリアマイル",
+    "race_id": "1008"
+  },
+  {
+    "id": "10009",
+    "name_en": "Japanese Oaks",
+    "name_ja": "オークス",
+    "race_id": "1009"
+  },
+  {
+    "id": "10010",
+    "name_en": "Japanese Derby",
+    "name_ja": "日本ダービー",
+    "race_id": "1010"
+  },
+  {
+    "id": "10011",
+    "name_en": "Yasuda Kinen",
+    "name_ja": "安田記念",
+    "race_id": "1011"
+  },
+  {
+    "id": "10012",
+    "name_en": "Takarazuka Kinen",
+    "name_ja": "宝塚記念",
+    "race_id": "1012"
+  },
+  {
+    "id": "10013",
+    "name_en": "Sprinters S.",
+    "name_ja": "スプリンターズS",
+    "race_id": "1013"
+  },
+  {
+    "id": "10014",
+    "name_en": "Shuka Sho",
+    "name_ja": "秋華賞",
+    "race_id": "1014"
+  },
+  {
+    "id": "10015",
+    "name_en": "Kikuka Sho",
+    "name_ja": "菊花賞",
+    "race_id": "1015"
+  },
+  {
+    "id": "10016",
+    "name_en": "Tenno Sho (Autumn)",
+    "name_ja": "天皇賞（秋）",
+    "race_id": "1016"
+  },
+  {
+    "id": "10017",
+    "name_en": "Queen Elizabeth II Cup",
+    "name_ja": "エリザベス女王杯",
+    "race_id": "1017"
+  },
+  {
+    "id": "10018",
+    "name_en": "Mile Ch.",
+    "name_ja": "マイルCS",
+    "race_id": "1018"
+  },
+  {
+    "id": "10019",
+    "name_en": "Japan C.",
+    "name_ja": "ジャパンC",
+    "race_id": "1019"
+  },
+  {
+    "id": "10020",
+    "name_en": "Champions C.",
+    "name_ja": "チャンピオンズC",
+    "race_id": "1020"
+  },
+  {
+    "id": "10021",
+    "name_en": "Hanshin J.F.",
+    "name_ja": "阪神JF",
+    "race_id": "1021"
+  },
+  {
+    "id": "10022",
+    "name_en": "Asahi Hai F.S.",
+    "name_ja": "朝日杯FS",
+    "race_id": "1022"
+  },
+  {
+    "id": "10023",
+    "name_en": "Arima Kinen",
+    "name_ja": "有馬記念",
+    "race_id": "1023"
+  },
+  {
+    "id": "10024",
+    "name_en": "Hopeful S.",
+    "name_ja": "ホープフルS",
+    "race_id": "1024"
+  },
+  {
+    "id": "10025",
+    "name_en": "Teio Sho",
+    "name_ja": "帝王賞",
+    "race_id": "1101"
+  },
+  {
+    "id": "10026",
+    "name_en": "J.D. Derby",
+    "name_ja": "JDダービー",
+    "race_id": "1102"
+  },
+  {
+    "id": "10027",
+    "name_en": "JBC L. Classic",
+    "name_ja": "JBCLクラシック",
+    "race_id": "1103"
+  },
+  {
+    "id": "10028",
+    "name_en": "JBC Sprint",
+    "name_ja": "JBCスプリント",
+    "race_id": "1104"
+  },
+  {
+    "id": "10029",
+    "name_en": "JBC Classic",
+    "name_ja": "JBCクラシック",
+    "race_id": "1105"
+  },
+  {
+    "id": "10030",
+    "name_en": "Tokyo Daishoten",
+    "name_ja": "東京大賞典",
+    "race_id": "1106"
+  },
+  {
+    "id": "10031",
+    "name_en": "M.C. Nambu Hai",
+    "name_ja": "マイルCS南部杯",
+    "race_id": "1110"
+  },
+  {
+    "id": "10032",
+    "name_en": "Kashiwa Kinen",
+    "name_ja": "かしわ記念",
+    "race_id": "1109"
+  },
+  {
+    "id": "10033",
+    "name_en": "Zen-Nippon Junior Yushun",
+    "name_ja": "全日本ジュニア優駿",
+    "race_id": "1108"
+  },
+  {
+    "id": "10034",
+    "name_en": "Kawasaki Kinen",
+    "name_ja": "川崎記念",
+    "race_id": "1107"
+  },
+  {
+    "id": "10035",
+    "name_en": "Prix de l'Arc de Triomphe",
+    "name_ja": "凱旋門賞",
+    "race_id": "1201"
+  },
+  {
+    "id": "10036",
+    "name_en": "アメリカンオークス_ストーリーレース用",
+    "name_ja": "BC・サンタアニタパーク",
+    "race_id": "19001"
+  },
+  {
+    "id": "10037",
+    "name_en": "Hanshin Umamusume Stakes (Story Race Use)",
+    "name_ja": "BC・デルマー",
+    "race_id": "19002"
+  }
+]
