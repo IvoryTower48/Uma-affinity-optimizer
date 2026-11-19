@@ -402,6 +402,8 @@
   </footer>
 
   <script id="min-aptitude-default" type="application/json">{{ min_aptitude | tojson }}</script>
+  <script id="affinity-check-data" type="application/json">{{ affinity_check | tojson }}</script>
+  <div id="affinity-check-toast" class="toast" role="status" hidden></div>
   <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>

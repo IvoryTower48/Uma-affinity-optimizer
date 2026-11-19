@@ -208,6 +208,7 @@ const I18N = {
     veterans_gametora_export_success: "{count} veterani esportati ({skipped} saltati: personaggio non ancora abbinabile a Gametora).",
     veterans_gametora_import_success: "{count} veterani importati ({skipped} saltati: personaggio non riconosciuto).",
     veterans_gametora_import_error: "Import fallito: {message}",
+    affinity_check_diff: "Affinità: {count} differenze rispetto a uma.moe (soprattutto {names}). I risultati restano comunque simili.",
     btn_load: "Carica",
     save_filename_prompt: "Nome del file di salvataggio (lascia vuoto per il nome predefinito):",
     load_error: "Impossibile caricare il file: {message}",
@@ -428,6 +429,7 @@ const I18N = {
     veterans_gametora_export_success: "{count} veterans exported ({skipped} skipped: character not yet matchable to Gametora).",
     veterans_gametora_import_success: "{count} veterans imported ({skipped} skipped: character not recognized).",
     veterans_gametora_import_error: "Import failed: {message}",
+    affinity_check_diff: "Affinity: {count} differences from uma.moe (mostly {names}). Results are still similar.",
     btn_load: "Load",
     save_filename_prompt: "Save file name (leave empty for the default name):",
     load_error: "Could not load the file: {message}",
@@ -4358,3 +4360,14 @@ loadFileInput.addEventListener("change", () => {
   if (file) handleLoadFile(file);
   loadFileInput.value = "";  // permette di ricaricare lo stesso file una seconda volta
 });
+
+// Avviso a scomparsa se il controllo automatico delle affinita' con uma.moe
+// (fine auto-update, vedi check_affinity_umamoe.py) ha trovato differenze.
+const affinityCheck = JSON.parse(document.getElementById("affinity-check-data").textContent);
+if (affinityCheck && affinityCheck.diffs > 0) {
+  const toast = document.getElementById("affinity-check-toast");
+  const names = affinityCheck.by_character.slice(0, 3).map(([name]) => name).join(", ");
+  toast.textContent = t("affinity_check_diff", { count: affinityCheck.diffs, names });
+  toast.hidden = false;
+  setTimeout(() => { toast.hidden = true; }, 8000);
+}

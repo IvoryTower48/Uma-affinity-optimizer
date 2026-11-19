@@ -199,6 +199,7 @@ def index():
         "index.html", base_names=base_names,
         auto_update_enabled=data_updater.is_auto_update_enabled(DATA_DIR),
         min_aptitude=MIN_APTITUDE,
+        affinity_check=(_update_report or {}).get("affinity_check"),
     )
 
 

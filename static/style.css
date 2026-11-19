@@ -2133,3 +2133,25 @@ details.collapsible-list summary {
   font-style: italic;
 }
 
+/* Avviso a scomparsa (controllo affinita' con uma.moe): sopra tutto,
+   sparisce da solo dopo 8 secondi (vedi script.js). */
+.toast {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  max-width: min(32rem, calc(100vw - 2rem));
+  padding: 0.6rem 0.9rem;
+  border-radius: var(--radius-sm);
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  box-shadow: var(--shadow-md);
+  font-size: var(--fs-sm);
+  animation: toast-life 8s forwards;
+}
+@keyframes toast-life {
+  0% { opacity: 0; }
+  5%, 85% { opacity: 1; }
+  100% { opacity: 0; }
+}

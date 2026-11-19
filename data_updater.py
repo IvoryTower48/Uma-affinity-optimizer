@@ -1255,6 +1255,15 @@ def maybe_run_update(data_dir: str) -> dict | None:
     except Exception as exc:
         report = {"timestamp": datetime.now(timezone.utc).isoformat(), "errors": [str(exc)]}
 
+    # Controllo incrociato delle affinita' con uma.moe, sui dati appena
+    # aggiornati -- solo informativo (avviso a scomparsa nella UI, vedi
+    # app.py), mai bloccante. Import locale: modulo a se', lanciabile a mano.
+    try:
+        from check_affinity_umamoe import compare_with_umamoe
+        report["affinity_check"] = compare_with_umamoe(data_dir)
+    except Exception as exc:
+        report["affinity_check_error"] = str(exc)
+
     _state_path(data_dir).write_text(json.dumps({"last_update_utc": datetime.now(timezone.utc).isoformat()}))
 
     report_path = Path(data_dir) / "last_update_report.json"
