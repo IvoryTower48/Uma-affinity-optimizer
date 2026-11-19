@@ -46,6 +46,7 @@ from ace_planner import plan_ace_group
 from timeline import build_calendar_matrix
 import data_updater
 import veterans as veterans_store
+import veterans_gametora
 
 def resource_path(*parts):
     """
@@ -417,6 +418,64 @@ def api_veteran_parent(veteran_id, slot):
         return jsonify({"error": str(e)}), 400
 
     return jsonify(updated)
+
+
+def _inverted_gametora_tid_map() -> dict:
+    """dict[nostro_id] -> tid Gametora -- l'INVERSO di
+    data_updater.get_gametora_tid_map (che va tid -> nostro_id). Un nostro
+    id puo' corrispondere a piu' tid (varianti Gametora diverse con la
+    stessa data di rilascio non capita, ma in generale l'inversione tiene
+    l'ULTIMO trovato) -- accettabile per l'export: basta un tid valido
+    qualsiasi per quel personaggio, Gametora lo risolve comunque allo
+    stesso personaggio in fase di import."""
+    return {our_id: tid for tid, our_id in data_updater.get_gametora_tid_map(DATA_DIR).items()}
+
+
+@app.route("/api/veterans/export_gametora")
+def api_veterans_export_gametora():
+    """
+    Esporta TUTTI i veterani nel formato di backup Gametora (stesso "Copy
+    JSON" di Backup > Veterans > Export sul loro sito, vedi
+    veterans_gametora.build_gametora_export) -- cosi' l'utente puo'
+    incollarlo/importarlo direttamente su gametora.com. I veterani il cui
+    personaggio non ha un tid Gametora noto (es. non ancora uscito su
+    Global) vengono saltati, mai un abbinamento indovinato -- riportati per
+    nome in 'skipped'.
+    """
+    payload, skipped = veterans_gametora.build_gametora_export(
+        veterans_store.get_veterans(DATA_DIR), _inverted_gametora_tid_map(),
+        data_updater.get_spark_race_list(DATA_DIR), data_updater.get_spark_skill_list(DATA_DIR),
+    )
+    return jsonify({"payload": payload, "skipped": skipped})
+
+
+@app.route("/api/veterans/import_gametora", methods=["POST"])
+def api_veterans_import_gametora():
+    """
+    Importa veterani da un backup Gametora (payload incollato/caricato dal
+    frontend, stesso formato di /api/veterans/export_gametora -- vedi
+    veterans_gametora.parse_gametora_import). Ogni veterano importato
+    riceve un id/nome nostri (numerato come veterans.add_veteran), non
+    tocca i veterani gia' esistenti. I veterani il cui personaggio non ha
+    un abbinamento noto vengono saltati (mai un abbinamento indovinato),
+    contati in 'skipped_count' (non per nome: a differenza dell'export, qui
+    non sappiamo altro del personaggio scartato oltre al tid grezzo).
+    """
+    payload = request.get_json() or {}
+    tid_map = data_updater.get_gametora_tid_map(DATA_DIR)
+    fallback_map = data_updater.get_gametora_tid_fallback_map(DATA_DIR)
+    char_id_by_tid = {**fallback_map, **tid_map}  # tid_map (abbinamento esatto) ha precedenza
+
+    try:
+        parsed, skipped_count = veterans_gametora.parse_gametora_import(
+            payload, char_id_by_tid,
+            data_updater.get_spark_race_list(DATA_DIR), data_updater.get_spark_skill_list(DATA_DIR),
+        )
+    except (KeyError, IndexError, TypeError) as e:
+        return jsonify({"error": f"Formato del file non riconosciuto: {e}"}), 400
+
+    updated = veterans_store.import_veterans(DATA_DIR, parsed)
+    return jsonify({"veterans": updated, "imported_count": len(parsed), "skipped_count": skipped_count})
 
 
 @app.route("/api/portrait/<path:character>")

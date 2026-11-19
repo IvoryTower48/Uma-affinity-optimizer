@@ -885,7 +885,8 @@ button:disabled {
 /* Separatore leggero sopra Esporta/Importa Gametora: segnala che e' un
    gruppetto a se' (interscambio con uno strumento esterno), non la
    prosecuzione naturale di "Ordina per" appena sopra. */
-.owned-gametora-buttons {
+.owned-gametora-buttons,
+.veterans-gametora-buttons {
   margin-top: 0.2rem;
   padding-top: 0.7rem;
   border-top: 1px dashed var(--border);

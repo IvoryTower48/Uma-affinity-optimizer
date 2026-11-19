@@ -2,1281 +2,1537 @@
   {
     "id": "20001",
     "name_en": "Right-Handed ○",
-    "name_ja": "右回り○"
+    "name_ja": "右回り○",
+    "tid": "Q"
   },
   {
     "id": "20002",
     "name_en": "Left-Handed ○",
-    "name_ja": "左回り○"
+    "name_ja": "左回り○",
+    "tid": "R"
   },
   {
     "id": "20003",
     "name_en": "Tokyo Racecourse ○",
-    "name_ja": "東京レース場○"
+    "name_ja": "東京レース場○",
+    "tid": "S"
   },
   {
     "id": "20004",
     "name_en": "Nakayama Racecourse ○",
-    "name_ja": "中山レース場○"
+    "name_ja": "中山レース場○",
+    "tid": "T"
   },
   {
     "id": "20005",
     "name_en": "Hanshin Racecourse ○",
-    "name_ja": "阪神レース場○"
+    "name_ja": "阪神レース場○",
+    "tid": "U"
   },
   {
     "id": "20006",
     "name_en": "Kyoto Racecourse ○",
-    "name_ja": "京都レース場○"
+    "name_ja": "京都レース場○",
+    "tid": "V"
   },
   {
     "id": "20007",
     "name_en": "Chukyo Racecourse ○",
-    "name_ja": "中京レース場○"
+    "name_ja": "中京レース場○",
+    "tid": "W"
   },
   {
     "id": "20008",
     "name_en": "Sapporo Racecourse ○",
-    "name_ja": "札幌レース場○"
+    "name_ja": "札幌レース場○",
+    "tid": "X"
   },
   {
     "id": "20009",
     "name_en": "Hakodate Racecourse ○",
-    "name_ja": "函館レース場○"
+    "name_ja": "函館レース場○",
+    "tid": "Y"
   },
   {
     "id": "20010",
     "name_en": "Fukushima Racecourse ○",
-    "name_ja": "福島レース場○"
+    "name_ja": "福島レース場○",
+    "tid": "Z"
   },
   {
     "id": "20011",
     "name_en": "Niigata Racecourse ○",
-    "name_ja": "新潟レース場○"
+    "name_ja": "新潟レース場○",
+    "tid": "10"
   },
   {
     "id": "20012",
     "name_en": "Kokura Racecourse ○",
-    "name_ja": "小倉レース場○"
+    "name_ja": "小倉レース場○",
+    "tid": "11"
   },
   {
     "id": "20013",
     "name_en": "Standard Distance ○",
-    "name_ja": "根幹距離○"
+    "name_ja": "根幹距離○",
+    "tid": "12"
   },
   {
     "id": "20014",
     "name_en": "Non-Standard Distance ○",
-    "name_ja": "非根幹距離○"
+    "name_ja": "非根幹距離○",
+    "tid": "13"
   },
   {
     "id": "20015",
     "name_en": "Firm Conditions ○",
-    "name_ja": "良バ場○"
+    "name_ja": "良バ場○",
+    "tid": "14"
   },
   {
     "id": "20016",
     "name_en": "Wet Conditions ○",
-    "name_ja": "道悪○"
+    "name_ja": "道悪○",
+    "tid": "15"
   },
   {
     "id": "20017",
     "name_en": "Spring Runner ○",
-    "name_ja": "春ウマ娘○"
+    "name_ja": "春ウマ娘○",
+    "tid": "16"
   },
   {
     "id": "20018",
     "name_en": "Summer Runner ○",
-    "name_ja": "夏ウマ娘○"
+    "name_ja": "夏ウマ娘○",
+    "tid": "17"
   },
   {
     "id": "20019",
     "name_en": "Fall Runner ○",
-    "name_ja": "秋ウマ娘○"
+    "name_ja": "秋ウマ娘○",
+    "tid": "18"
   },
   {
     "id": "20020",
     "name_en": "Winter Runner ○",
-    "name_ja": "冬ウマ娘○"
+    "name_ja": "冬ウマ娘○",
+    "tid": "19"
   },
   {
     "id": "20021",
     "name_en": "Sunny Days ○",
-    "name_ja": "晴れの日○"
+    "name_ja": "晴れの日○",
+    "tid": "1a"
   },
   {
     "id": "20022",
     "name_en": "Cloudy Days ○",
-    "name_ja": "曇りの日○"
+    "name_ja": "曇りの日○",
+    "tid": "1b"
   },
   {
     "id": "20023",
     "name_en": "Rainy Days ○",
-    "name_ja": "雨の日○"
+    "name_ja": "雨の日○",
+    "tid": "1c"
   },
   {
     "id": "20024",
     "name_en": "Snowy Days ○",
-    "name_ja": "雪の日○"
+    "name_ja": "雪の日○",
+    "tid": "1d"
   },
   {
     "id": "20025",
     "name_en": "Inner Post Proficiency ○",
-    "name_ja": "内枠得意○"
+    "name_ja": "内枠得意○",
+    "tid": "1e"
   },
   {
     "id": "20026",
     "name_en": "Outer Post Proficiency ○",
-    "name_ja": "外枠得意○"
+    "name_ja": "外枠得意○",
+    "tid": "1f"
   },
   {
     "id": "20027",
     "name_en": "Maverick ○",
-    "name_ja": "おひとり様○"
+    "name_ja": "おひとり様○",
+    "tid": "1g"
   },
   {
     "id": "20028",
     "name_en": "Competitive Spirit ○",
-    "name_ja": "対抗意識○"
+    "name_ja": "対抗意識○",
+    "tid": "1h"
   },
   {
     "id": "20029",
     "name_en": "Target in Sight ○",
-    "name_ja": "徹底マーク○"
+    "name_ja": "徹底マーク○",
+    "tid": "1i"
   },
   {
     "id": "20030",
     "name_en": "Long Shot ○",
-    "name_ja": "伏兵○"
+    "name_ja": "伏兵○",
+    "tid": "1j"
   },
   {
     "id": "20033",
     "name_en": "Corner Adept ○",
-    "name_ja": "コーナー巧者○"
+    "name_ja": "コーナー巧者○",
+    "tid": "1k"
   },
   {
     "id": "20034",
     "name_en": "Corner Acceleration ○",
-    "name_ja": "コーナー加速○"
+    "name_ja": "コーナー加速○",
+    "tid": "1l"
   },
   {
     "id": "20035",
     "name_en": "Corner Recovery ○",
-    "name_ja": "コーナー回復○"
+    "name_ja": "コーナー回復○",
+    "tid": "1m"
   },
   {
     "id": "20036",
     "name_en": "Straightaway Adept",
-    "name_ja": "直線巧者"
+    "name_ja": "直線巧者",
+    "tid": "1n"
   },
   {
     "id": "20037",
     "name_en": "Straightaway Acceleration",
-    "name_ja": "直線加速"
+    "name_ja": "直線加速",
+    "tid": "1o"
   },
   {
     "id": "20038",
     "name_en": "Straightaway Recovery",
-    "name_ja": "直線回復"
+    "name_ja": "直線回復",
+    "tid": "1p"
   },
   {
     "id": "20043",
     "name_en": "Focus",
-    "name_ja": "集中力"
+    "name_ja": "集中力",
+    "tid": "1q"
   },
   {
     "id": "20044",
     "name_en": "Lay Low",
-    "name_ja": "隠れ蓑"
+    "name_ja": "隠れ蓑",
+    "tid": "1r"
   },
   {
     "id": "20045",
     "name_en": "Prudent Positioning",
-    "name_ja": "ポジションセンス"
+    "name_ja": "ポジションセンス",
+    "tid": "1s"
   },
   {
     "id": "20046",
     "name_en": "Ramp Up",
-    "name_ja": "ペースアップ"
+    "name_ja": "ペースアップ",
+    "tid": "1t"
   },
   {
     "id": "20047",
     "name_en": "Pace Strategy",
-    "name_ja": "ペースキープ"
+    "name_ja": "ペースキープ",
+    "tid": "1u"
   },
   {
     "id": "20048",
     "name_en": "Calm in a Crowd",
-    "name_ja": "ウマ込み冷静"
+    "name_ja": "ウマ込み冷静",
+    "tid": "1v"
   },
   {
     "id": "20049",
     "name_en": "Nimble Navigator",
-    "name_ja": "垂れウマ回避"
+    "name_ja": "垂れウマ回避",
+    "tid": "1w"
   },
   {
     "id": "20050",
     "name_en": "Go with the Flow",
-    "name_ja": "臨機応変"
+    "name_ja": "臨機応変",
+    "tid": "1x"
   },
   {
     "id": "20051",
     "name_en": "Homestretch Haste",
-    "name_ja": "末脚"
+    "name_ja": "末脚",
+    "tid": "1y"
   },
   {
     "id": "20053",
     "name_en": "Early Lead",
-    "name_ja": "先駆け"
+    "name_ja": "先駆け",
+    "tid": "1z"
   },
   {
     "id": "20054",
     "name_en": "Fast-Paced",
-    "name_ja": "急ぎ足"
+    "name_ja": "急ぎ足",
+    "tid": "1A"
   },
   {
     "id": "20055",
     "name_en": "Final Push",
-    "name_ja": "押し切り準備"
+    "name_ja": "押し切り準備",
+    "tid": "1B"
   },
   {
     "id": "20056",
     "name_en": "Stamina to Spare",
-    "name_ja": "スタミナキープ"
+    "name_ja": "スタミナキープ",
+    "tid": "1C"
   },
   {
     "id": "20057",
     "name_en": "Preferred Position",
-    "name_ja": "好位追走"
+    "name_ja": "好位追走",
+    "tid": "1D"
   },
   {
     "id": "20058",
     "name_en": "Prepared to Pass",
-    "name_ja": "抜け出し準備"
+    "name_ja": "抜け出し準備",
+    "tid": "1E"
   },
   {
     "id": "20059",
     "name_en": "Position Pilfer",
-    "name_ja": "位置取り押し上げ"
+    "name_ja": "位置取り押し上げ",
+    "tid": "1F"
   },
   {
     "id": "20060",
     "name_en": "Slick Surge",
-    "name_ja": "差し切り体勢"
+    "name_ja": "差し切り体勢",
+    "tid": "1G"
   },
   {
     "id": "20061",
     "name_en": "Outer Swell",
-    "name_ja": "外差し準備"
+    "name_ja": "外差し準備",
+    "tid": "1H"
   },
   {
     "id": "20062",
     "name_en": "Standing By",
-    "name_ja": "後方待機"
+    "name_ja": "後方待機",
+    "tid": "1I"
   },
   {
     "id": "20063",
     "name_en": "Masterful Gambit",
-    "name_ja": "仕掛け抜群"
+    "name_ja": "仕掛け抜群",
+    "tid": "1J"
   },
   {
     "id": "20064",
     "name_en": "Straightaway Spurt",
-    "name_ja": "直線一気"
+    "name_ja": "直線一気",
+    "tid": "1K"
   },
   {
     "id": "20065",
     "name_en": "Sprinting Gear",
-    "name_ja": "スプリントギア"
+    "name_ja": "スプリントギア",
+    "tid": "1L"
   },
   {
     "id": "20066",
     "name_en": "Wait-and-See",
-    "name_ja": "様子見"
+    "name_ja": "様子見",
+    "tid": "1M"
   },
   {
     "id": "20067",
     "name_en": "Gap Closer",
-    "name_ja": "詰め寄り"
+    "name_ja": "詰め寄り",
+    "tid": "1N"
   },
   {
     "id": "20068",
     "name_en": "Productive Plan",
-    "name_ja": "積極策"
+    "name_ja": "積極策",
+    "tid": "1O"
   },
   {
     "id": "20069",
     "name_en": "Watchful Eye",
-    "name_ja": "展開窺い"
+    "name_ja": "展開窺い",
+    "tid": "1P"
   },
   {
     "id": "20070",
     "name_en": "Updrafters",
-    "name_ja": "上昇気流"
+    "name_ja": "上昇気流",
+    "tid": "1Q"
   },
   {
     "id": "20071",
     "name_en": "Rosy Outlook",
-    "name_ja": "前途洋々"
+    "name_ja": "前途洋々",
+    "tid": "1R"
   },
   {
     "id": "20072",
     "name_en": "Up-Tempo",
-    "name_ja": "テンポアップ"
+    "name_ja": "テンポアップ",
+    "tid": "1S"
   },
   {
     "id": "20073",
     "name_en": "Steadfast",
-    "name_ja": "食い下がり"
+    "name_ja": "食い下がり",
+    "tid": "1T"
   },
   {
     "id": "20074",
     "name_en": "Deep Breaths",
-    "name_ja": "深呼吸"
+    "name_ja": "深呼吸",
+    "tid": "1U"
   },
   {
     "id": "20075",
     "name_en": "Inside Scoop",
-    "name_ja": "内弁慶"
+    "name_ja": "内弁慶",
+    "tid": "1V"
   },
   {
     "id": "20076",
     "name_en": "Extra Tank",
-    "name_ja": "別腹タンク"
+    "name_ja": "別腹タンク",
+    "tid": "1W"
   },
   {
     "id": "20077",
     "name_en": "Trick (Front)",
-    "name_ja": "トリック（前）"
+    "name_ja": "トリック（前）",
+    "tid": "1X"
   },
   {
     "id": "20078",
     "name_en": "Trick (Rear)",
-    "name_ja": "トリック（後）"
+    "name_ja": "トリック（後）",
+    "tid": "1Y"
   },
   {
     "id": "20079",
     "name_en": "Frenzied Front Runners",
-    "name_ja": "逃げ駆け引き"
+    "name_ja": "逃げ駆け引き",
+    "tid": "1Z"
   },
   {
     "id": "20080",
     "name_en": "Frenzied Pace Chasers",
-    "name_ja": "先行駆け引き"
+    "name_ja": "先行駆け引き",
+    "tid": "20"
   },
   {
     "id": "20081",
     "name_en": "Frenzied Late Surgers",
-    "name_ja": "差し駆け引き"
+    "name_ja": "差し駆け引き",
+    "tid": "21"
   },
   {
     "id": "20082",
     "name_en": "Frenzied End Closers",
-    "name_ja": "追込駆け引き"
+    "name_ja": "追込駆け引き",
+    "tid": "22"
   },
   {
     "id": "20083",
     "name_en": "Subdued Front Runners",
-    "name_ja": "逃げけん制"
+    "name_ja": "逃げけん制",
+    "tid": "23"
   },
   {
     "id": "20084",
     "name_en": "Flustered Front Runners",
-    "name_ja": "逃げ焦り"
+    "name_ja": "逃げ焦り",
+    "tid": "24"
   },
   {
     "id": "20085",
     "name_en": "Hesitant Front Runners",
-    "name_ja": "逃げためらい"
+    "name_ja": "逃げためらい",
+    "tid": "25"
   },
   {
     "id": "20086",
     "name_en": "Subdued Pace Chasers",
-    "name_ja": "先行けん制"
+    "name_ja": "先行けん制",
+    "tid": "26"
   },
   {
     "id": "20087",
     "name_en": "Flustered Pace Chasers",
-    "name_ja": "先行焦り"
+    "name_ja": "先行焦り",
+    "tid": "27"
   },
   {
     "id": "20088",
     "name_en": "Hesitant Pace Chasers",
-    "name_ja": "先行ためらい"
+    "name_ja": "先行ためらい",
+    "tid": "28"
   },
   {
     "id": "20089",
     "name_en": "Subdued Late Surgers",
-    "name_ja": "差しけん制"
+    "name_ja": "差しけん制",
+    "tid": "29"
   },
   {
     "id": "20090",
     "name_en": "Flustered Late Surgers",
-    "name_ja": "差し焦り"
+    "name_ja": "差し焦り",
+    "tid": "2a"
   },
   {
     "id": "20091",
     "name_en": "Hesitant Late Surgers",
-    "name_ja": "差しためらい"
+    "name_ja": "差しためらい",
+    "tid": "2b"
   },
   {
     "id": "20092",
     "name_en": "Subdued End Closers",
-    "name_ja": "追込けん制"
+    "name_ja": "追込けん制",
+    "tid": "2c"
   },
   {
     "id": "20093",
     "name_en": "Flustered End Closers",
-    "name_ja": "追込焦り"
+    "name_ja": "追込焦り",
+    "tid": "2d"
   },
   {
     "id": "20094",
     "name_en": "Hesitant End Closers",
-    "name_ja": "追込ためらい"
+    "name_ja": "追込ためらい",
+    "tid": "2e"
   },
   {
     "id": "20095",
     "name_en": "Oi Racecourse ○",
-    "name_ja": "大井レース場○"
+    "name_ja": "大井レース場○",
+    "tid": "2f"
   },
   {
     "id": "20096",
     "name_en": "Sprint Straightaways ○",
-    "name_ja": "短距離直線○"
+    "name_ja": "短距離直線○",
+    "tid": "2g"
   },
   {
     "id": "20097",
     "name_en": "Sprint Corners ○",
-    "name_ja": "短距離コーナー○"
+    "name_ja": "短距離コーナー○",
+    "tid": "2h"
   },
   {
     "id": "20098",
     "name_en": "Huge Lead",
-    "name_ja": "大きなリード"
+    "name_ja": "大きなリード",
+    "tid": "2i"
   },
   {
     "id": "20099",
     "name_en": "Countermeasure",
-    "name_ja": "善後策"
+    "name_ja": "善後策",
+    "tid": "2j"
   },
   {
     "id": "20100",
     "name_en": "Meticulous Measures",
-    "name_ja": "仕掛け準備"
+    "name_ja": "仕掛け準備",
+    "tid": "2k"
   },
   {
     "id": "20101",
     "name_en": "Intimidate",
-    "name_ja": "後方釘付"
+    "name_ja": "後方釘付",
+    "tid": "2l"
   },
   {
     "id": "20102",
     "name_en": "Stop Right There!",
-    "name_ja": "抜け駆け禁止"
+    "name_ja": "抜け駆け禁止",
+    "tid": "2m"
   },
   {
     "id": "20103",
     "name_en": "Mile Straightaways ○",
-    "name_ja": "マイル直線○"
+    "name_ja": "マイル直線○",
+    "tid": "2n"
   },
   {
     "id": "20104",
     "name_en": "Mile Corners ○",
-    "name_ja": "マイルコーナー○"
+    "name_ja": "マイルコーナー○",
+    "tid": "2o"
   },
   {
     "id": "20105",
     "name_en": "Shifting Gears",
-    "name_ja": "ギアシフト"
+    "name_ja": "ギアシフト",
+    "tid": "2p"
   },
   {
     "id": "20106",
     "name_en": "Acceleration",
-    "name_ja": "アクセラレーション"
+    "name_ja": "アクセラレーション",
+    "tid": "2q"
   },
   {
     "id": "20107",
     "name_en": "Unyielding Spirit",
-    "name_ja": "負けん気"
+    "name_ja": "負けん気",
+    "tid": "2r"
   },
   {
     "id": "20108",
     "name_en": "Speed Eater",
-    "name_ja": "スピードイーター"
+    "name_ja": "スピードイーター",
+    "tid": "2s"
   },
   {
     "id": "20109",
     "name_en": "Opening Gambit",
-    "name_ja": "布石"
+    "name_ja": "布石",
+    "tid": "2t"
   },
   {
     "id": "20110",
     "name_en": "Medium Straightaways ○",
-    "name_ja": "中距離直線○"
+    "name_ja": "中距離直線○",
+    "tid": "2u"
   },
   {
     "id": "20111",
     "name_en": "Medium Corners ○",
-    "name_ja": "中距離コーナー○"
+    "name_ja": "中距離コーナー○",
+    "tid": "2v"
   },
   {
     "id": "20112",
     "name_en": "Hawkeye",
-    "name_ja": "ホークアイ"
+    "name_ja": "ホークアイ",
+    "tid": "2w"
   },
   {
     "id": "20113",
     "name_en": "Thunderbolt Step",
-    "name_ja": "イナズマステップ"
+    "name_ja": "イナズマステップ",
+    "tid": "2x"
   },
   {
     "id": "20114",
     "name_en": "Soft Step",
-    "name_ja": "軽やかステップ"
+    "name_ja": "軽やかステップ",
+    "tid": "2y"
   },
   {
     "id": "20115",
     "name_en": "Tether",
-    "name_ja": "束縛"
+    "name_ja": "束縛",
+    "tid": "2z"
   },
   {
     "id": "20116",
     "name_en": "Murmur",
-    "name_ja": "ささやき"
+    "name_ja": "ささやき",
+    "tid": "2A"
   },
   {
     "id": "20117",
     "name_en": "Long Straightaways ○",
-    "name_ja": "長距離直線○"
+    "name_ja": "長距離直線○",
+    "tid": "2B"
   },
   {
     "id": "20118",
     "name_en": "Long Corners ○",
-    "name_ja": "長距離コーナー○"
+    "name_ja": "長距離コーナー○",
+    "tid": "2C"
   },
   {
     "id": "20119",
     "name_en": "Keeping the Lead",
-    "name_ja": "リードキープ"
+    "name_ja": "リードキープ",
+    "tid": "2D"
   },
   {
     "id": "20120",
     "name_en": "Passing Pro",
-    "name_ja": "パス上手"
+    "name_ja": "パス上手",
+    "tid": "2E"
   },
   {
     "id": "20121",
     "name_en": "Pressure",
-    "name_ja": "追い上げ"
+    "name_ja": "追い上げ",
+    "tid": "2F"
   },
   {
     "id": "20122",
     "name_en": "Stamina Eater",
-    "name_ja": "スタミナイーター"
+    "name_ja": "スタミナイーター",
+    "tid": "2G"
   },
   {
     "id": "20123",
     "name_en": "Smoke Screen",
-    "name_ja": "目くらまし"
+    "name_ja": "目くらまし",
+    "tid": "2H"
   },
   {
     "id": "20124",
     "name_en": "Front Runner Straightaways ○",
-    "name_ja": "逃げ直線○"
+    "name_ja": "逃げ直線○",
+    "tid": "2I"
   },
   {
     "id": "20125",
     "name_en": "Front Runner Corners ○",
-    "name_ja": "逃げコーナー○"
+    "name_ja": "逃げコーナー○",
+    "tid": "2J"
   },
   {
     "id": "20126",
     "name_en": "Dodging Danger",
-    "name_ja": "危険回避"
+    "name_ja": "危険回避",
+    "tid": "2K"
   },
   {
     "id": "20127",
     "name_en": "Leader's Pride",
-    "name_ja": "先頭プライド"
+    "name_ja": "先頭プライド",
+    "tid": "2L"
   },
   {
     "id": "20128",
     "name_en": "Moxie",
-    "name_ja": "勢い任せ"
+    "name_ja": "勢い任せ",
+    "tid": "2M"
   },
   {
     "id": "20129",
     "name_en": "Second Wind",
-    "name_ja": "二の矢"
+    "name_ja": "二の矢",
+    "tid": "2N"
   },
   {
     "id": "20130",
     "name_en": "Restart",
-    "name_ja": "リスタート"
+    "name_ja": "リスタート",
+    "tid": "2O"
   },
   {
     "id": "20131",
     "name_en": "Pace Chaser Straightaways ○",
-    "name_ja": "先行直線○"
+    "name_ja": "先行直線○",
+    "tid": "2P"
   },
   {
     "id": "20132",
     "name_en": "Pace Chaser Corners ○",
-    "name_ja": "先行コーナー○"
+    "name_ja": "先行コーナー○",
+    "tid": "2Q"
   },
   {
     "id": "20133",
     "name_en": "Shrewd Step",
-    "name_ja": "巧みなステップ"
+    "name_ja": "巧みなステップ",
+    "tid": "2R"
   },
   {
     "id": "20134",
     "name_en": "Straight Descent",
-    "name_ja": "直滑降"
+    "name_ja": "直滑降",
+    "tid": "2S"
   },
   {
     "id": "20135",
     "name_en": "Hydrate",
-    "name_ja": "栄養補給"
+    "name_ja": "栄養補給",
+    "tid": "2T"
   },
   {
     "id": "20136",
     "name_en": "Tactical Tweak",
-    "name_ja": "まき直し"
+    "name_ja": "まき直し",
+    "tid": "2U"
   },
   {
     "id": "20137",
     "name_en": "Disorient",
-    "name_ja": "かく乱"
+    "name_ja": "かく乱",
+    "tid": "2V"
   },
   {
     "id": "20138",
     "name_en": "Late Surger Straightaways ○",
-    "name_ja": "差し直線○"
+    "name_ja": "差し直線○",
+    "tid": "2W"
   },
   {
     "id": "20139",
     "name_en": "Late Surger Corners ○",
-    "name_ja": "差しコーナー○"
+    "name_ja": "差しコーナー○",
+    "tid": "2X"
   },
   {
     "id": "20140",
     "name_en": "Fighter",
-    "name_ja": "がんばり屋"
+    "name_ja": "がんばり屋",
+    "tid": "2Y"
   },
   {
     "id": "20141",
     "name_en": "1,500,000 CC",
-    "name_ja": "十万バリキ"
+    "name_ja": "十万バリキ",
+    "tid": "2Z"
   },
   {
     "id": "20142",
     "name_en": "A Small Breather",
-    "name_ja": "小休憩"
+    "name_ja": "小休憩",
+    "tid": "30"
   },
   {
     "id": "20143",
     "name_en": "Studious",
-    "name_ja": "読解力"
+    "name_ja": "読解力",
+    "tid": "31"
   },
   {
     "id": "20144",
     "name_en": "Sharp Gaze",
-    "name_ja": "鋭い眼光"
+    "name_ja": "鋭い眼光",
+    "tid": "32"
   },
   {
     "id": "20145",
     "name_en": "End Closer Straightaways ○",
-    "name_ja": "追込直線○"
+    "name_ja": "追込直線○",
+    "tid": "33"
   },
   {
     "id": "20146",
     "name_en": "End Closer Corners ○",
-    "name_ja": "追込コーナー○"
+    "name_ja": "追込コーナー○",
+    "tid": "34"
   },
   {
     "id": "20147",
     "name_en": "I Can See Right Through You",
-    "name_ja": "お見通し"
+    "name_ja": "お見通し",
+    "tid": "35"
   },
   {
     "id": "20148",
     "name_en": "After-School Stroll",
-    "name_ja": "下校の楽しみ"
+    "name_ja": "下校の楽しみ",
+    "tid": "36"
   },
   {
     "id": "20149",
     "name_en": "Levelheaded",
-    "name_ja": "冷静"
+    "name_ja": "冷静",
+    "tid": "37"
   },
   {
     "id": "20150",
     "name_en": "Strategist",
-    "name_ja": "策士"
+    "name_ja": "策士",
+    "tid": "38"
   },
   {
     "id": "20151",
     "name_en": "Intense Gaze",
-    "name_ja": "まなざし"
+    "name_ja": "まなざし",
+    "tid": "39"
   },
   {
     "id": "20152",
     "name_en": "Front Runner Savvy ○",
-    "name_ja": "逃げのコツ○"
+    "name_ja": "逃げのコツ○",
+    "tid": "3a"
   },
   {
     "id": "20153",
     "name_en": "Pace Chaser Savvy ○",
-    "name_ja": "先行のコツ○"
+    "name_ja": "先行のコツ○",
+    "tid": "3b"
   },
   {
     "id": "20154",
     "name_en": "Late Surger Savvy ○",
-    "name_ja": "差しのコツ○"
+    "name_ja": "差しのコツ○",
+    "tid": "3c"
   },
   {
     "id": "20155",
     "name_en": "End Closer Savvy ○",
-    "name_ja": "追込のコツ○"
+    "name_ja": "追込のコツ○",
+    "tid": "3d"
   },
   {
     "id": "20156",
     "name_en": "Lucky Seven",
-    "name_ja": "ラッキーセブン"
+    "name_ja": "ラッキーセブン",
+    "tid": "3e"
   },
   {
     "id": "20157",
     "name_en": "Triple 7s",
-    "name_ja": "スリーセブン"
+    "name_ja": "スリーセブン",
+    "tid": "3f"
   },
   {
     "id": "20158",
     "name_en": "Highlander",
-    "name_ja": "登山家"
+    "name_ja": "登山家",
+    "tid": "3g"
   },
   {
     "id": "20159",
     "name_en": "Uma Stan",
-    "name_ja": "ウマ好み"
+    "name_ja": "ウマ好み",
+    "tid": "3h"
   },
   {
     "id": "20160",
     "name_en": "Groundwork",
-    "name_ja": "地固め"
+    "name_ja": "地固め",
+    "tid": "3i"
   },
   {
     "id": "20161",
     "name_en": "Tail Held High",
-    "name_ja": "尻尾上がり"
+    "name_ja": "尻尾上がり",
+    "tid": "3j"
   },
   {
     "id": "20162",
     "name_en": "Shake It Out",
-    "name_ja": "ふり絞り"
+    "name_ja": "ふり絞り",
+    "tid": "3k"
   },
   {
     "id": "20163",
     "name_en": "Sympathy",
-    "name_ja": "シンパシー"
+    "name_ja": "シンパシー",
+    "tid": "3l"
   },
   {
     "id": "20164",
     "name_en": "Lone Wolf",
-    "name_ja": "一匹狼"
+    "name_ja": "一匹狼",
+    "tid": "3m"
   },
   {
     "id": "20165",
     "name_en": "Slipstream",
-    "name_ja": "スリップストリーム"
+    "name_ja": "スリップストリーム",
+    "tid": "3n"
   },
   {
     "id": "20166",
     "name_en": "Playtime's Over!",
-    "name_ja": "遊びはおしまいっ！"
+    "name_ja": "遊びはおしまいっ！",
+    "tid": "3o"
   },
   {
     "id": "20167",
     "name_en": "Top Pick",
-    "name_ja": "レコメンド"
+    "name_ja": "レコメンド",
+    "tid": "3p"
   },
   {
     "id": "20168",
     "name_en": "Forward, March!",
-    "name_ja": "前列狙い"
+    "name_ja": "前列狙い",
+    "tid": "3q"
   },
   {
     "id": "20169",
     "name_en": "Be Still",
-    "name_ja": "静かな呼吸"
+    "name_ja": "静かな呼吸",
+    "tid": "3r"
   },
   {
     "id": "20170",
     "name_en": "All I've Got",
-    "name_ja": "ありったけ"
+    "name_ja": "ありったけ",
+    "tid": "3s"
   },
   {
     "id": "20190",
     "name_en": "Head-On",
-    "name_ja": "真っ向勝負"
+    "name_ja": "真っ向勝負",
+    "tid": "3t"
   },
   {
     "id": "20200",
     "name_en": "Familiar Ground",
-    "name_ja": "砂塵慣れ"
+    "name_ja": "砂塵慣れ",
+    "tid": "3u"
   },
   {
     "id": "20201",
     "name_en": "Feature Act",
-    "name_ja": "影打"
+    "name_ja": "影打",
+    "tid": "3v"
   },
   {
     "id": "20202",
     "name_en": "Early Start",
-    "name_ja": "早仕掛け"
+    "name_ja": "早仕掛け",
+    "tid": "3w"
   },
   {
     "id": "20203",
     "name_en": "Risky Business",
-    "name_ja": "あやしげな作戦"
+    "name_ja": "あやしげな作戦",
+    "tid": "3x"
   },
   {
     "id": "20204",
     "name_en": "Light as a Feather",
-    "name_ja": "軽い足取り"
+    "name_ja": "軽い足取り",
+    "tid": "3y"
   },
   {
     "id": "20207",
     "name_en": "Free-Spirited",
-    "name_ja": "マイペース"
+    "name_ja": "マイペース",
+    "tid": "3z"
   },
   {
     "id": "20208",
     "name_en": "Take the Chance",
-    "name_ja": "ワンチャンス"
+    "name_ja": "ワンチャンス",
+    "tid": "3A"
   },
   {
     "id": "20209",
     "name_en": "Fighting Spirit",
-    "name_ja": "闘争心"
+    "name_ja": "闘争心",
+    "tid": "3B"
   },
   {
     "id": "20210",
     "name_en": "Eager",
-    "name_ja": "前のめり"
+    "name_ja": "前のめり",
+    "tid": "3C"
   },
   {
     "id": "20211",
     "name_en": "Pumped",
-    "name_ja": "気合十分"
+    "name_ja": "気合十分",
+    "tid": "3D"
   },
   {
     "id": "20212",
     "name_en": "Fearless",
-    "name_ja": "恐れぬ心"
+    "name_ja": "恐れぬ心",
+    "tid": "3E"
   },
   {
     "id": "20213",
     "name_en": "With All My Soul",
-    "name_ja": "気迫を込めて"
+    "name_ja": "気迫を込めて",
+    "tid": "3F"
   },
   {
     "id": "20215",
     "name_en": "Full Throttle",
-    "name_ja": "フルスロットル"
+    "name_ja": "フルスロットル",
+    "tid": "3G"
   },
   {
     "id": "20216",
     "name_en": "Restraint",
-    "name_ja": "自制心"
+    "name_ja": "自制心",
+    "tid": "3H"
   },
   {
     "id": "20217",
     "name_en": "Downhill Speedster",
-    "name_ja": "下り坂巧者"
+    "name_ja": "下り坂巧者",
+    "tid": "3I"
   },
   {
     "id": "20219",
     "name_en": "All Set",
-    "name_ja": "抜かりなし"
+    "name_ja": "抜かりなし",
+    "tid": "3J"
   },
   {
     "id": "20220",
     "name_en": "Kawasaki Racecourse ○",
-    "name_ja": "川崎レース場○"
+    "name_ja": "川崎レース場○",
+    "tid": "3K"
   },
   {
     "id": "20221",
     "name_en": "Funabashi Racecourse ○",
-    "name_ja": "船橋レース場○"
+    "name_ja": "船橋レース場○",
+    "tid": "3L"
   },
   {
     "id": "20222",
     "name_en": "Morioka Racecourse ○",
-    "name_ja": "盛岡レース場○"
+    "name_ja": "盛岡レース場○",
+    "tid": "3M"
   },
   {
     "id": "20223",
     "name_en": "Night Races ○",
-    "name_ja": "ナイター○"
+    "name_ja": "ナイター○",
+    "tid": "3N"
   },
   {
     "id": "20224",
     "name_en": "Sharp Turns ○",
-    "name_ja": "小回り○"
+    "name_ja": "小回り○",
+    "tid": "3O"
   },
   {
     "id": "20225",
     "name_en": "Collaborative Graded Races ○",
-    "name_ja": "交流重賞○"
+    "name_ja": "交流重賞○",
+    "tid": "3P"
   },
   {
     "id": "20226",
     "name_en": "Sunny Sign",
-    "name_ja": "明るい兆し"
+    "name_ja": "明るい兆し",
+    "tid": "3Q"
   },
   {
     "id": "20227",
     "name_en": "Comeback",
-    "name_ja": "盛り返し"
+    "name_ja": "盛り返し",
+    "tid": "3R"
   },
   {
     "id": "20228",
     "name_en": "Full Tilt",
-    "name_ja": "まっしぐら"
+    "name_ja": "まっしぐら",
+    "tid": "3S"
   },
   {
     "id": "20229",
     "name_en": "Rational",
-    "name_ja": "冴える思考"
+    "name_ja": "冴える思考",
+    "tid": "3T"
   },
   {
     "id": "20230",
     "name_en": "Down in the Dirt ○",
-    "name_ja": "砂浴び○"
+    "name_ja": "砂浴び○",
+    "tid": "3U"
   },
   {
     "id": "20231",
     "name_en": "Got the Spirit!",
-    "name_ja": "意気込み十分"
+    "name_ja": "意気込み十分",
+    "tid": "3V"
   },
   {
     "id": "20232",
     "name_en": "Rapid Gain",
-    "name_ja": "急浮上"
+    "name_ja": "急浮上",
+    "tid": "3W"
   },
   {
     "id": "20233",
     "name_en": "Solid Steps",
-    "name_ja": "踏み込み上手"
+    "name_ja": "踏み込み上手",
+    "tid": "3X"
   },
   {
     "id": "20234",
     "name_en": "Muddy ○",
-    "name_ja": "泥遊び○"
+    "name_ja": "泥遊び○",
+    "tid": "3Y"
   },
   {
     "id": "20235",
     "name_en": "Dust Cloud",
-    "name_ja": "土煙"
+    "name_ja": "土煙",
+    "tid": "3Z"
   },
   {
     "id": "20236",
     "name_en": "Oppression",
-    "name_ja": "圧迫感"
+    "name_ja": "圧迫感",
+    "tid": "40"
   },
   {
     "id": "20237",
     "name_en": "On the Attack",
-    "name_ja": "攻めの姿勢"
+    "name_ja": "攻めの姿勢",
+    "tid": "41"
   },
   {
     "id": "20238",
     "name_en": "Breakin' Out",
-    "name_ja": "打開策"
+    "name_ja": "打開策",
+    "tid": "42"
   },
   {
     "id": "20239",
     "name_en": "Mad Dash",
-    "name_ja": "しゃかりき"
+    "name_ja": "しゃかりき",
+    "tid": "43"
   },
   {
     "id": "20240",
     "name_en": "Leap Forward",
-    "name_ja": "一足飛び"
+    "name_ja": "一足飛び",
+    "tid": "44"
   },
   {
     "id": "20241",
     "name_en": "Aspire",
-    "name_ja": "向上心"
+    "name_ja": "向上心",
+    "tid": "45"
   },
   {
     "id": "20242",
     "name_en": "Scramble",
-    "name_ja": "がむしゃら"
+    "name_ja": "がむしゃら",
+    "tid": "46"
   },
   {
     "id": "20243",
     "name_en": "Steady Gait",
-    "name_ja": "確かな足取り"
+    "name_ja": "確かな足取り",
+    "tid": "47"
   },
   {
     "id": "20244",
     "name_en": "Risk-Taker",
-    "name_ja": "やまっけ"
+    "name_ja": "やまっけ",
+    "tid": "48"
   },
   {
     "id": "20245",
     "name_en": "Pedal to the Metal",
-    "name_ja": "キレる脚"
+    "name_ja": "キレる脚",
+    "tid": "49"
   },
   {
     "id": "20246",
     "name_en": "Firm Resolve",
-    "name_ja": "粘り腰"
+    "name_ja": "粘り腰",
+    "tid": "4a"
   },
   {
     "id": "20247",
     "name_en": "Latch On",
-    "name_ja": "食らいつき"
+    "name_ja": "食らいつき",
+    "tid": "4b"
   },
   {
     "id": "20248",
     "name_en": "My True Strength",
-    "name_ja": "本領発揮"
+    "name_ja": "本領発揮",
+    "tid": "4c"
   },
   {
     "id": "20249",
     "name_en": "Sharp Steps",
-    "name_ja": "切れ味"
+    "name_ja": "切れ味",
+    "tid": "4d"
   },
   {
     "id": "20250",
     "name_en": "No Looking Back",
-    "name_ja": "向こう見ず"
+    "name_ja": "向こう見ず",
+    "tid": "4e"
   },
   {
     "id": "20252",
     "name_en": "Break the Mold",
-    "name_ja": "型破り"
+    "name_ja": "型破り",
+    "tid": "4f"
   },
   {
     "id": "20253",
     "name_en": "Graceful Gait",
-    "name_ja": "しとやかな足取り"
+    "name_ja": "しとやかな足取り",
+    "tid": "4g"
   },
   {
     "id": "20254",
     "name_en": "Pressure",
-    "name_ja": "プレッシャー"
+    "name_ja": "プレッシャー",
+    "tid": "4h"
   },
   {
     "id": "20255",
     "name_en": "High Speed",
-    "name_ja": "快速"
+    "name_ja": "快速",
+    "tid": "4i"
   },
   {
     "id": "20256",
     "name_en": "Locked On",
-    "name_ja": "ロックオン"
+    "name_ja": "ロックオン",
+    "tid": "4j"
   },
   {
     "id": "20258",
     "name_en": "Undistracted",
-    "name_ja": "脇目も振らず"
+    "name_ja": "脇目も振らず",
+    "tid": "4k"
   },
   {
     "id": "20259",
     "name_en": "Hurry Up!",
-    "name_ja": "大急ぎ"
+    "name_ja": "大急ぎ",
+    "tid": "4l"
   },
   {
     "id": "20260",
     "name_en": "Ignition",
-    "name_ja": "イグニッション"
+    "name_ja": "イグニッション",
+    "tid": "4m"
   },
   {
     "id": "20261",
     "name_en": "Unrestrained Passion",
-    "name_ja": "溢れる情熱"
+    "name_ja": "溢れる情熱",
+    "tid": "4n"
   },
   {
     "id": "20262",
     "name_en": "Start the Charge",
-    "name_ja": "進出開始"
+    "name_ja": "進出開始",
+    "tid": "4o"
   },
   {
     "id": "20264",
     "name_en": "First Step",
-    "name_ja": "一歩から"
+    "name_ja": "一歩から",
+    "tid": "4p"
   },
   {
     "id": "20265",
     "name_en": "Confident",
-    "name_ja": "自信家"
+    "name_ja": "自信家",
+    "tid": "4q"
   },
   {
     "id": "20266",
     "name_en": "Rising Heat",
-    "name_ja": "込み上げる熱"
+    "name_ja": "込み上げる熱",
+    "tid": "4r"
   },
   {
     "id": "20267",
     "name_en": "Beating Heart",
-    "name_ja": "心弾んで"
+    "name_ja": "心弾んで",
+    "tid": "4s"
   },
   {
     "id": "20268",
     "name_en": "Pop Off!",
-    "name_ja": "バイブス上昇"
+    "name_ja": "バイブス上昇",
+    "tid": "4t"
   },
   {
     "id": "20269",
     "name_en": "Goin' First",
-    "name_ja": "一番乗り"
+    "name_ja": "一番乗り",
+    "tid": "4u"
   },
   {
     "id": "20270",
     "name_en": "Adventurer",
-    "name_ja": "探求心"
+    "name_ja": "探求心",
+    "tid": "4v"
   },
   {
     "id": "21001",
     "name_en": "Ignited Spirit SPD",
-    "name_ja": "アオハル点火・速"
+    "name_ja": "アオハル点火・速",
+    "tid": "6Z"
   },
   {
     "id": "21002",
     "name_en": "Ignited Spirit STA",
-    "name_ja": "アオハル点火・体"
+    "name_ja": "アオハル点火・体",
+    "tid": "70"
   },
   {
     "id": "21003",
     "name_en": "Ignited Spirit PWR",
-    "name_ja": "アオハル点火・力"
+    "name_ja": "アオハル点火・力",
+    "tid": "71"
   },
   {
     "id": "21004",
     "name_en": "Ignited Spirit GUTS",
-    "name_ja": "アオハル点火・根"
+    "name_ja": "アオハル点火・根",
+    "tid": "72"
   },
   {
     "id": "21005",
     "name_en": "Ignited Spirit WIT",
-    "name_ja": "アオハル点火・賢"
+    "name_ja": "アオハル点火・賢",
+    "tid": "73"
   },
   {
     "id": "21006",
     "name_en": "Glittering Star",
-    "name_ja": "綺羅星"
+    "name_ja": "綺羅星",
+    "tid": "74"
   },
   {
     "id": "21007",
     "name_en": "On the Way to Our Dream",
-    "name_ja": "夢の途中"
+    "name_ja": "夢の途中",
+    "tid": "75"
   },
   {
     "id": "21008",
     "name_en": "Racing Spirit: Speed",
-    "name_ja": "レースの真髄・速"
+    "name_ja": "レースの真髄・速",
+    "tid": "76"
   },
   {
     "id": "21009",
     "name_en": "Racing Spirit: Stamina",
-    "name_ja": "レースの真髄・体"
+    "name_ja": "レースの真髄・体",
+    "tid": "77"
   },
   {
     "id": "21010",
     "name_en": "Racing Spirit: Power",
-    "name_ja": "レースの真髄・力"
+    "name_ja": "レースの真髄・力",
+    "tid": "78"
   },
   {
     "id": "21011",
     "name_en": "Racing Spirit: Guts",
-    "name_ja": "レースの真髄・根"
+    "name_ja": "レースの真髄・根",
+    "tid": "79"
   },
   {
     "id": "21012",
     "name_en": "Racing Spirit: Wit",
-    "name_ja": "レースの真髄・賢"
+    "name_ja": "レースの真髄・賢",
+    "tid": "7a"
   },
   {
     "id": "21013",
     "name_en": "Racing Spirit: Mood",
-    "name_ja": "レースの真髄・心"
+    "name_ja": "レースの真髄・心",
+    "tid": "7b"
   },
   {
     "id": "21014",
     "name_en": "Racing Spirit: Speed +",
-    "name_ja": "レースの真髄・速＋"
+    "name_ja": "レースの真髄・速＋",
+    "tid": "7c"
   },
   {
     "id": "21015",
     "name_en": "Racing Spirit: Stamina +",
-    "name_ja": "レースの真髄・体＋"
+    "name_ja": "レースの真髄・体＋",
+    "tid": "7d"
   },
   {
     "id": "21016",
     "name_en": "Racing Spirit: Power +",
-    "name_ja": "レースの真髄・力＋"
+    "name_ja": "レースの真髄・力＋",
+    "tid": "7e"
   },
   {
     "id": "21017",
     "name_en": "Racing Spirit: Guts +",
-    "name_ja": "レースの真髄・根＋"
+    "name_ja": "レースの真髄・根＋",
+    "tid": "7f"
   },
   {
     "id": "21018",
     "name_en": "Racing Spirit: Wit +",
-    "name_ja": "レースの真髄・賢＋"
+    "name_ja": "レースの真髄・賢＋",
+    "tid": "7g"
   },
   {
     "id": "21019",
     "name_en": "Racing Spirit: Mood +",
-    "name_ja": "レースの真髄・心＋"
+    "name_ja": "レースの真髄・心＋",
+    "tid": "7h"
   },
   {
     "id": "21020",
     "name_en": "Eyes on the Goal",
-    "name_ja": "前だけ見据えて"
+    "name_ja": "前だけ見据えて",
+    "tid": "7i"
   },
   {
     "id": "21021",
     "name_en": "Ignited Spirit: Speed +",
-    "name_ja": "アオハル点火・速＋"
+    "name_ja": "アオハル点火・速＋",
+    "tid": "7j"
   },
   {
     "id": "21022",
     "name_en": "Ignited Spirit: Stamina +",
-    "name_ja": "アオハル点火・体＋"
+    "name_ja": "アオハル点火・体＋",
+    "tid": "7k"
   },
   {
     "id": "21023",
     "name_en": "Ignited Spirit: Power +",
-    "name_ja": "アオハル点火・力＋"
+    "name_ja": "アオハル点火・力＋",
+    "tid": "7l"
   },
   {
     "id": "21024",
     "name_en": "Ignited Spirit: Guts +",
-    "name_ja": "アオハル点火・根＋"
+    "name_ja": "アオハル点火・根＋",
+    "tid": "7m"
   },
   {
     "id": "21025",
     "name_en": "Ignited Spirit: Wit +",
-    "name_ja": "アオハル点火・賢＋"
+    "name_ja": "アオハル点火・賢＋",
+    "tid": "7n"
   },
   {
     "id": "21026",
     "name_en": "Sun's Blessing",
-    "name_ja": "陽の加護"
+    "name_ja": "陽の加護",
+    "tid": "7o"
   },
   {
     "id": "21027",
     "name_en": "Sea's Blessing",
-    "name_ja": "海の加護"
+    "name_ja": "海の加護",
+    "tid": "7p"
   },
   {
     "id": "21028",
     "name_en": "Earth's Blessing",
-    "name_ja": "地の加護"
+    "name_ja": "地の加護",
+    "tid": "7q"
   }
 ]

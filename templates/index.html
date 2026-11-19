@@ -73,6 +73,13 @@
         <button type="button" id="veteran-add-button" data-i18n="btn_veteran_add">Aggiungi veterano</button>
       </div>
 
+      <div class="save-load-buttons veterans-gametora-buttons">
+        <button type="button" id="veterans-gametora-export-button" data-i18n="btn_veterans_gametora_export">Esporta veterani per Gametora</button>
+        <button type="button" id="veterans-gametora-import-button" data-i18n="btn_veterans_gametora_import">Importa veterani da Gametora</button>
+        <input type="file" id="veterans-gametora-import-file-input" accept="application/json" style="display:none">
+      </div>
+      <p id="veterans-gametora-status" class="warning" hidden></p>
+
       <!-- Lista laterale (icona + nome) + pannello di dettaglio per UN SOLO
            veterano alla volta (mai piu' righe identiche ripetute in fila,
            bug segnalato dall'utente 2026-08-15 con screenshot). -->

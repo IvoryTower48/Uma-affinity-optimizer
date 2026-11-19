@@ -64,6 +64,10 @@ const veteranAddCharacterSelect = document.getElementById("veteran-add-character
 const veteranAddButton = document.getElementById("veteran-add-button");
 const veteransListEl = document.getElementById("veterans-list");
 const veteranDetailEl = document.getElementById("veteran-detail");
+const veteransGametoraExportButton = document.getElementById("veterans-gametora-export-button");
+const veteransGametoraImportButton = document.getElementById("veterans-gametora-import-button");
+const veteransGametoraImportFileInput = document.getElementById("veterans-gametora-import-file-input");
+const veteransGametoraStatus = document.getElementById("veterans-gametora-status");
 const aceSlotVeteranImportButtons = Array.from(document.querySelectorAll(".ace-slot-veteran-import-button"));
 const aceSlotSparkPickers = Array.from(document.querySelectorAll(".ace-slot-spark-picker"));
 const aceSlotSparkAddButtons = Array.from(document.querySelectorAll(".ace-slot-spark-add-button"));
@@ -198,6 +202,12 @@ const I18N = {
     veteran_import_modal_title: "Importa veterano",
     ace_slot_spark_remove_title: "Rimuovi",
     veteran_parents_title: "Genitori del veterano (diventeranno i nonni, una volta importato come genitore)",
+    btn_veterans_gametora_export: "Esporta veterani per Gametora",
+    btn_veterans_gametora_import: "Importa veterani da Gametora",
+    veterans_gametora_export_empty: "Nessun veterano da esportare.",
+    veterans_gametora_export_success: "{count} veterani esportati ({skipped} saltati: personaggio non ancora abbinabile a Gametora).",
+    veterans_gametora_import_success: "{count} veterani importati ({skipped} saltati: personaggio non riconosciuto).",
+    veterans_gametora_import_error: "Import fallito: {message}",
     btn_load: "Carica",
     save_filename_prompt: "Nome del file di salvataggio (lascia vuoto per il nome predefinito):",
     load_error: "Impossibile caricare il file: {message}",
@@ -412,6 +422,12 @@ const I18N = {
     veteran_import_modal_title: "Import veteran",
     ace_slot_spark_remove_title: "Remove",
     veteran_parents_title: "Veteran's parents (become grandparents once imported as a parent)",
+    btn_veterans_gametora_export: "Export veterans for Gametora",
+    btn_veterans_gametora_import: "Import veterans from Gametora",
+    veterans_gametora_export_empty: "No veterans to export.",
+    veterans_gametora_export_success: "{count} veterans exported ({skipped} skipped: character not yet matchable to Gametora).",
+    veterans_gametora_import_success: "{count} veterans imported ({skipped} skipped: character not recognized).",
+    veterans_gametora_import_error: "Import failed: {message}",
     btn_load: "Load",
     save_filename_prompt: "Save file name (leave empty for the default name):",
     load_error: "Could not load the file: {message}",
@@ -3913,6 +3929,69 @@ veteransOpenButton.addEventListener("click", openVeteransModal);
 veteransCloseButton.addEventListener("click", closeVeteransModal);
 veteransModal.addEventListener("click", event => {
   if (event.target === veteransModal) closeVeteransModal();  // click fuori dal box chiude, come i popover
+});
+
+function showVeteransGametoraStatus(message) {
+  veteransGametoraStatus.textContent = message;
+  veteransGametoraStatus.hidden = false;
+}
+
+// Export/import veterani compatibile col formato di backup di Gametora
+// (Backup > Veterans > Export/Import sul loro sito, vedi
+// veterans_gametora.py per il formato decodificato) -- a differenza
+// dell'export/import dei posseduti (client-side, tid gia' in mano), qui la
+// conversione gira lato server (array posizionali non banali da
+// replicare in JS senza duplicare la stessa logica).
+veteransGametoraExportButton.addEventListener("click", async () => {
+  const resp = await fetch("/api/veterans/export_gametora");
+  const data = await resp.json();
+  const count = Object.keys(data.payload.servers.en.veterans).length;
+  if (count === 0) {
+    showVeteransGametoraStatus(t("veterans_gametora_export_empty"));
+    return;
+  }
+  const blob = new Blob([JSON.stringify(data.payload)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "gametora_veterans_export.json";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showVeteransGametoraStatus(t("veterans_gametora_export_success", { count, skipped: data.skipped.length }));
+});
+
+veteransGametoraImportButton.addEventListener("click", () => veteransGametoraImportFileInput.click());
+
+veteransGametoraImportFileInput.addEventListener("change", () => {
+  const file = veteransGametoraImportFileInput.files[0];
+  veteransGametoraImportFileInput.value = "";  // permette di reimportare lo stesso file una seconda volta
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    let payload;
+    try {
+      payload = JSON.parse(reader.result);
+    } catch (err) {
+      showVeteransGametoraStatus(t("veterans_gametora_import_error", { message: err.message }));
+      return;
+    }
+    const resp = await fetch("/api/veterans/import_gametora", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      showVeteransGametoraStatus(t("veterans_gametora_import_error", { message: translateServerMessage(data.error) || t("error_unknown") }));
+      return;
+    }
+    veteransCache = data.veterans;
+    renderVeteransList();
+    showVeteransGametoraStatus(t("veterans_gametora_import_success", { count: data.imported_count, skipped: data.skipped_count }));
+  };
+  reader.readAsText(file);
 });
 
 veteranAddButton.addEventListener("click", async () => {

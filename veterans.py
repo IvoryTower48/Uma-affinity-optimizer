@@ -17,8 +17,7 @@ Ogni veterano: {id, character, name, white_sparks: [...], race_sparks: [...],
 parent1, parent2}, dove ogni spark e' {spark_id, name_en, stars} (spark_id =
 campo 'id' dei cataloghi data/spark_skill.json / data/spark_race.json, vedi
 data_updater.py -- NON il 'tid' compatto usato da Gametora per il proprio
-export/import, quella e' una traduzione separata per quando si costruira'
-quella feature).
+export/import, quella e' una traduzione separata (vedi veterans_gametora.py).
 
 name: etichetta scelta dall'utente (di default "<Personaggio> #N", N =
 conteggio tra i veterani con lo stesso 'character' al momento della
@@ -164,6 +163,34 @@ def set_veteran_sparks(data_dir, veteran_id: str, white_sparks: list, race_spark
         raise ValueError("Veterano non trovato.")
     veteran["white_sparks"] = white_sparks
     veteran["race_sparks"] = race_sparks
+    _save_veterans(data_dir, veterans)
+    return veterans
+
+
+def import_veterans(data_dir, parsed_veterans: list) -> list:
+    """
+    Crea in blocco veterani gia' completi (personaggio + spark proprie +
+    genitori noti, gia' pronti come {character, white_sparks, race_sparks,
+    parent1, parent2}) -- usato dall'import da Gametora
+    (vedi veterans_gametora.parse_gametora_import), UN SOLO salvataggio su
+    disco invece di N chiamate separate. Il nome di ciascuno segue la
+    stessa numerazione di add_veteran (per personaggio, in base a quanti ne
+    esistono gia') -- CONTA anche i veterani appena aggiunti nello stesso
+    batch, cosi' piu' veterani importati insieme con lo stesso personaggio
+    restano distinti fin da subito, non tutti "#1". Ritorna la lista
+    aggiornata di TUTTI i veterani (esistenti + importati)."""
+    veterans = get_veterans(data_dir)
+    for parsed in parsed_veterans:
+        existing_count = sum(1 for v in veterans if v["character"] == parsed["character"])
+        veterans.append({
+            "id": uuid.uuid4().hex,
+            "character": parsed["character"],
+            "name": f"{format_character_name(parsed['character'])} #{existing_count + 1}",
+            "white_sparks": parsed["white_sparks"],
+            "race_sparks": parsed["race_sparks"],
+            "parent1": parsed["parent1"],
+            "parent2": parsed["parent2"],
+        })
     _save_veterans(data_dir, veterans)
     return veterans
 

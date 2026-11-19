@@ -394,10 +394,10 @@ def _register_new_suffix(data_dir, suffix: str):
     """Aggiunge un nuovo suffisso a data/extra_suffixes.json (creato se assente),
     cosi' che config.KNOWN_SUFFIXES lo includa dai prossimi avvii in poi."""
     path = Path(data_dir) / "extra_suffixes.json"
-    existing = json.loads(path.read_text()) if path.exists() else []
+    existing = json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
     if suffix not in existing and suffix not in KNOWN_SUFFIXES:
         existing.append(suffix)
-        path.write_text(json.dumps(existing, ensure_ascii=False, indent=2))
+        path.write_text(json.dumps(existing, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------
@@ -771,16 +771,26 @@ def fetch_gametora_factors() -> dict | None:
 
 def _build_spark_list(entries: list) -> list:
     """Riduce le voci grezze di una categoria di factors.json ai soli campi
-    che servono al tool (id, nome inglese/giapponese, race_id se presente),
-    scartando quelle senza id o senza alcun nome inglese utilizzabile.
-    Ordinata per id per diff leggibili tra un aggiornamento e l'altro."""
+    che servono al tool (id, nome inglese/giapponese, race_id se presente,
+    tid), scartando quelle senza id o senza alcun nome inglese utilizzabile.
+    Ordinata per id per diff leggibili tra un aggiornamento e l'altro.
+
+    'tid': il codice corto usato da Gametora nel proprio export/import dei
+    Veterans (es. "1n", "f") -- diverso dal 'tid' dei personaggi
+    (data/gametora_tid_map.json, namespace separato, vedi
+    veterans_gametora.py). Serve per la mappatura bidirezionale delle spark
+    in quell'export, decodificato a mano confrontando un file reale
+    esportato dall'utente con questo stesso factors.json (2026-08-15)."""
     result = []
     for entry in entries:
         entry_id = entry.get("id")
         name = entry.get("name_en_gl") or entry.get("name_en")
         if not entry_id or not name:
             continue
-        item = {"id": entry_id, "name_en": name, "name_ja": entry.get("name_ja", "")}
+        item = {
+            "id": entry_id, "name_en": name, "name_ja": entry.get("name_ja", ""),
+            "tid": entry.get("tid", ""),
+        }
         if "race_id" in entry:
             item["race_id"] = entry["race_id"]
         result.append(item)
@@ -1062,18 +1072,18 @@ def run_update(data_dir: str) -> dict:
         tid_map = build_gametora_tid_map(character_info, cards)
         tid_map_path = _gametora_tid_map_path(data_dir)
         if tid_map != get_gametora_tid_map(data_dir):
-            tid_map_path.write_text(json.dumps(tid_map, ensure_ascii=False, indent=2, sort_keys=True))
+            tid_map_path.write_text(json.dumps(tid_map, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
             report["gametora_tid_map_updated"] = True
 
         fallback_map = build_gametora_tid_fallback_map(character_info, cards, tid_map)
         fallback_map_path = _gametora_tid_fallback_map_path(data_dir)
         if fallback_map != get_gametora_tid_fallback_map(data_dir):
-            fallback_map_path.write_text(json.dumps(fallback_map, ensure_ascii=False, indent=2, sort_keys=True))
+            fallback_map_path.write_text(json.dumps(fallback_map, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
 
         tid_names = build_gametora_tid_names(cards)
         tid_names_path = _gametora_tid_names_path(data_dir)
         if tid_names != get_gametora_tid_names(data_dir):
-            tid_names_path.write_text(json.dumps(tid_names, ensure_ascii=False, indent=2, sort_keys=True))
+            tid_names_path.write_text(json.dumps(tid_names, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
 
     # --- Fonte 6: factors.json -- elenco race spark e white spark, per la
     # pianificazione dell'eredita' (v4). Fetch indipendente da 'cards' sopra
@@ -1248,6 +1258,6 @@ def maybe_run_update(data_dir: str) -> dict | None:
     _state_path(data_dir).write_text(json.dumps({"last_update_utc": datetime.now(timezone.utc).isoformat()}))
 
     report_path = Path(data_dir) / "last_update_report.json"
-    report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2))
+    report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
 
     return report
