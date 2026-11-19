@@ -209,6 +209,10 @@ const I18N = {
     veterans_gametora_import_success: "{count} veterani importati ({skipped} saltati: personaggio non riconosciuto).",
     veterans_gametora_import_error: "Import fallito: {message}",
     affinity_check_diff: "Affinità: {count} differenze rispetto a uma.moe (soprattutto {names}). I risultati restano comunque simili.",
+    affinity_check_same: "Affinità: nessuna differenza rispetto a uma.moe.",
+    affinity_check_running: "Confronto in corso…",
+    btn_affinity_check: "Confronta affinità con uma.moe",
+    note_affinity_check: "Non aggiorna i dati: serve solo ad avvisare se i risultati di questo tool possono differire da quelli di uma.moe.",
     btn_load: "Carica",
     save_filename_prompt: "Nome del file di salvataggio (lascia vuoto per il nome predefinito):",
     load_error: "Impossibile caricare il file: {message}",
@@ -430,6 +434,10 @@ const I18N = {
     veterans_gametora_import_success: "{count} veterans imported ({skipped} skipped: character not recognized).",
     veterans_gametora_import_error: "Import failed: {message}",
     affinity_check_diff: "Affinity: {count} differences from uma.moe (mostly {names}). Results are still similar.",
+    affinity_check_same: "Affinity: no differences from uma.moe.",
+    affinity_check_running: "Comparing…",
+    btn_affinity_check: "Compare affinity with uma.moe",
+    note_affinity_check: "Does not update any data: it only warns you when this tool's results may differ from uma.moe's.",
     btn_load: "Load",
     save_filename_prompt: "Save file name (leave empty for the default name):",
     load_error: "Could not load the file: {message}",
@@ -4361,13 +4369,39 @@ loadFileInput.addEventListener("change", () => {
   loadFileInput.value = "";  // permette di ricaricare lo stesso file una seconda volta
 });
 
-// Avviso a scomparsa se il controllo automatico delle affinita' con uma.moe
-// (fine auto-update, vedi check_affinity_umamoe.py) ha trovato differenze.
-const affinityCheck = JSON.parse(document.getElementById("affinity-check-data").textContent);
-if (affinityCheck && affinityCheck.diffs > 0) {
-  const toast = document.getElementById("affinity-check-toast");
-  const names = affinityCheck.by_character.slice(0, 3).map(([name]) => name).join(", ");
-  toast.textContent = t("affinity_check_diff", { count: affinityCheck.diffs, names });
-  toast.hidden = false;
-  setTimeout(() => { toast.hidden = true; }, 8000);
+// Controllo manuale delle affinita' con uma.moe (pulsante nelle impostazioni,
+// vedi check_affinity_umamoe.py): esito in un avviso a scomparsa.
+const affinityCheckButton = document.getElementById("affinity-check-button");
+const affinityCheckToast = document.getElementById("affinity-check-toast");
+let affinityToastTimer;
+
+function showAffinityToast(message) {
+  clearTimeout(affinityToastTimer);
+  affinityCheckToast.textContent = message;
+  affinityCheckToast.hidden = true;
+  void affinityCheckToast.offsetWidth;  // fa ripartire l'animazione di dissolvenza
+  affinityCheckToast.hidden = false;
+  affinityToastTimer = setTimeout(() => { affinityCheckToast.hidden = true; }, 8000);
 }
+
+affinityCheckButton.addEventListener("click", async () => {
+  affinityCheckButton.disabled = true;
+  affinityCheckButton.textContent = t("affinity_check_running");
+  try {
+    const resp = await fetch("/api/affinity_check", { method: "POST" });
+    const data = await resp.json();
+    if (!resp.ok) {
+      showAffinityToast(data.error || t("error_unknown"));
+    } else if (data.diffs > 0) {
+      const names = data.by_character.slice(0, 3).map(([name]) => name).join(", ");
+      showAffinityToast(t("affinity_check_diff", { count: data.diffs, names }));
+    } else {
+      showAffinityToast(t("affinity_check_same"));
+    }
+  } catch (err) {
+    showAffinityToast(err.message);
+  } finally {
+    affinityCheckButton.disabled = false;
+    affinityCheckButton.textContent = t("btn_affinity_check");
+  }
+});

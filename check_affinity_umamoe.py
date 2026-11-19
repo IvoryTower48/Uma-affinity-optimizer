@@ -5,9 +5,9 @@ coppie e terne) con le matrici gia' calcolate pubblicate da uma.moe
 (/resources/current/affinity.json.gz: 'chars' = id personaggio del gioco a
 4 cifre, 'aff2' = matrice n*n, 'aff3' = matrice n*n*n appiattite).
 
-Gira da solo a fine auto-update (data_updater.maybe_run_update): il
-risultato finisce in last_update_report.json e, se ci sono differenze, in
-un avviso a scomparsa nella UI. Lanciabile anche a mano:
+Lanciato a mano dal pulsante nelle impostazioni (POST /api/affinity_check,
+esito in un avviso a scomparsa) -- non aggiorna nessun dato. Anche da riga
+di comando:
     python check_affinity_umamoe.py
 Uma.moe copre solo i personaggi Global: i nostri personaggi non ancora
 usciti non vengono confrontati. Differenza nota (2026-11-19): Shinko Windy,

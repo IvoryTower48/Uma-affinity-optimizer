@@ -47,6 +47,7 @@ from timeline import build_calendar_matrix
 import data_updater
 import veterans as veterans_store
 import veterans_gametora
+from check_affinity_umamoe import compare_with_umamoe
 
 def resource_path(*parts):
     """
@@ -199,7 +200,6 @@ def index():
         "index.html", base_names=base_names,
         auto_update_enabled=data_updater.is_auto_update_enabled(DATA_DIR),
         min_aptitude=MIN_APTITUDE,
-        affinity_check=(_update_report or {}).get("affinity_check"),
     )
 
 
@@ -216,6 +216,20 @@ def api_auto_update_setting():
         enabled = bool((request.get_json(silent=True) or {}).get("enabled"))
         data_updater.set_auto_update_enabled(DATA_DIR, enabled)
     return jsonify({"enabled": data_updater.is_auto_update_enabled(DATA_DIR)})
+
+
+@app.route("/api/affinity_check", methods=["POST"])
+def api_affinity_check():
+    """
+    Controllo MANUALE (pulsante nelle impostazioni) delle nostre affinita'
+    contro quelle pubblicate da uma.moe, vedi check_affinity_umamoe.py. Non
+    aggiorna nessun dato: serve solo ad avvisare se i risultati possono
+    differire tra i due siti.
+    """
+    try:
+        return jsonify(compare_with_umamoe(DATA_DIR))
+    except Exception as e:
+        return jsonify({"error": f"uma.moe non raggiungibile: {e}"}), 502
 
 
 @app.route("/api/meta_parents", methods=["GET", "POST"])

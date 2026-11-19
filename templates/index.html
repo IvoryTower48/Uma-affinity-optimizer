@@ -57,6 +57,11 @@
         </div>
 
         <div class="settings-row settings-row-block">
+          <button type="button" id="affinity-check-button" data-i18n="btn_affinity_check">Confronta affinità con uma.moe</button>
+          <p class="auto-update-note" data-i18n="note_affinity_check">Non aggiorna i dati: serve solo ad avvisare se i risultati di questo tool possono differire da quelli di uma.moe.</p>
+        </div>
+
+        <div class="settings-row settings-row-block">
           <button type="button" id="meta-parents-open-button" data-i18n="btn_manage_meta_parents">Gestisci genitori meta…</button>
         </div>
       </div>
@@ -402,7 +407,6 @@
   </footer>
 
   <script id="min-aptitude-default" type="application/json">{{ min_aptitude | tojson }}</script>
-  <script id="affinity-check-data" type="application/json">{{ affinity_check | tojson }}</script>
   <div id="affinity-check-toast" class="toast" role="status" hidden></div>
   <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>

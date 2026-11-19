@@ -2133,8 +2133,8 @@ details.collapsible-list summary {
   font-style: italic;
 }
 
-/* Avviso a scomparsa (controllo affinita' con uma.moe): sopra tutto,
-   sparisce da solo dopo 8 secondi (vedi script.js). */
+/* Avviso a scomparsa (controllo manuale affinita' con uma.moe): sopra
+   tutto, sparisce da solo dopo 8 secondi (vedi script.js). */
 .toast {
   position: fixed;
   top: 1rem;
