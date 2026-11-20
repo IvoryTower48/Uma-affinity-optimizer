@@ -12,7 +12,6 @@ sicuro, stesso principio di data_updater.py).
 """
 import json
 import math
-import re
 from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
@@ -24,14 +23,19 @@ from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas as pdfcanvas
 
 from cycle_analysis import derive_cycle_spark_plan_from_signature_sparks
-from data_updater import HEADERS, gametora_slug
+from data_loader import load_character_info
+from data_updater import HEADERS, get_gametora_char_ids
 from display_names import format_character_name, format_race_name
 from naming import base_character
 
 REQUEST_TIMEOUT = 15
 RACE_ICON_URL = "https://uma.guide/icon/race/thum_race_rt_000_{gt_id}_00.webp"
-GAMETORA_CHARACTER_URL = "https://gametora.com/umamusume/characters/{slug}"
-PORTRAIT_URL_RE = re.compile(r'media\.gametora\.com/umamusume/characters/profile/\d+\.png')
+# Ritratto "profile"; per i personaggi piu' recenti Gametora a volte ha solo
+# l'icona, usata come riserva.
+PORTRAIT_URLS = (
+    "https://media.gametora.com/umamusume/characters/profile/{char_id}.png",
+    "https://gametora.com/images/umamusume/characters/icons/chr_icon_{char_id}.png",
+)
 
 
 def _race_gametora_ids(data_dir):
@@ -81,32 +85,25 @@ def fetch_character_portrait_image(character, data_dir):
     if cache_path.exists():
         return str(cache_path)
 
-    slug = gametora_slug(base.replace("_", " "))
-    try:
-        page_resp = requests.get(
-            GAMETORA_CHARACTER_URL.format(slug=slug), headers=HEADERS, timeout=REQUEST_TIMEOUT,
-        )
-    except requests.RequestException:
-        return None
-    if page_resp.status_code != 200:
-        return None
-
-    match = PORTRAIT_URL_RE.search(page_resp.text)
-    if match is None:
+    # URL diretto dal char_id (data/gametora_char_ids.json, scritto
+    # dall'aggiornamento dati): la pagina per-personaggio di Gametora non
+    # contiene piu' il link all'immagine nell'HTML (dal 2026-08-12).
+    name_map, _ = load_character_info(data_dir)
+    jp_name = next((jp for c, jp in name_map.items() if base_character(c) == base), None)
+    char_id = get_gametora_char_ids(data_dir).get(jp_name)
+    if char_id is None:
         return None
 
-    try:
-        img_resp = requests.get(
-            "https://" + match.group(0), headers=HEADERS, timeout=REQUEST_TIMEOUT,
-        )
-    except requests.RequestException:
-        return None
-    if img_resp.status_code != 200:
-        return None
-
-    cache_path.parent.mkdir(parents=True, exist_ok=True)
-    cache_path.write_bytes(img_resp.content)
-    return str(cache_path)
+    for url in PORTRAIT_URLS:
+        try:
+            img_resp = requests.get(url.format(char_id=char_id), headers=HEADERS, timeout=REQUEST_TIMEOUT)
+        except requests.RequestException:
+            return None
+        if img_resp.status_code == 200:
+            cache_path.parent.mkdir(parents=True, exist_ok=True)
+            cache_path.write_bytes(img_resp.content)
+            return str(cache_path)
+    return None
 
 
 # --- Costruzione del documento PDF (1-2 pagine, illustrato) -----------------

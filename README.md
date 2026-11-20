@@ -76,7 +76,7 @@ config.py                constants (suffixes related to uma variants, aptitude t
 naming.py                mapping from uma variant name -> uma base name
 display_names.py         Name format for the UI
 data_loader.py           loading and normalization of all datasets
-data_updater.py          data update from gametora.com/GitHub/Wikipedia (optional, turned
+data_updater.py          data update from gametora.com/GitHub/uma.moe (optional, turned
                          off by default; toggle also in the UI; runs on every startup
                          while enabled, not just once a day)
 affinity.py              base affinity, achievable races, calendar conflict resolution,
@@ -120,8 +120,8 @@ In their place, there are placeholders to represent the umas and races.
 A few more files under `data/` are runtime settings, not part of the curated
 dataset above: `meta_parents.json` (custom meta-parent list), `update_settings.json`
 (auto-update toggle), `extra_suffixes.json` (variant suffixes discovered
-automatically), `.update_state.json`/`.variant_check_state.json` (auto-update
-timestamps), and `update_backups/` (timestamped backup before every automatic
+automatically), `.update_state.json` (auto-update
+timestamp), and `update_backups/` (timestamped backup before every automatic
 write to the datasets above). None of these need to exist for the tool to work.
 
 ## Further command examples to use this tool (CLI)

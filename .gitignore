@@ -18,7 +18,6 @@ data/image_cache/
 # dell'utente: non hanno senso in un repository condiviso.
 data/update_backups/
 data/.update_state.json
-data/.variant_check_state.json
 data/last_update_report.json
 data/update_settings.json
 

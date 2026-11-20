@@ -28,7 +28,7 @@ def app_dir():
 # (es. "oguri_cap_og_xmas" -> rimuove "_xmas" -> "oguri_cap_og" -> rimuove "_og" -> "oguri_cap")
 KNOWN_SUFFIXES = [
     "_og", "_xmas", "_cheer", "_island", "_ny", "_wedding",
-    "_valen", "_ballroom", "_anime", "_alt", "_tl", "_summer", "_onsen",
+    "_valen", "_ballroom", "_anime", "_alt", "_tl", "_summer", "_onsen", "_fes",
 ]
 
 # Suffissi scoperti automaticamente da data_updater.py (nuove varianti che non
