@@ -4,6 +4,8 @@ Funzioni di calcolo dell'affinita' tra due personaggi (varianti incluse):
   - base_affinity: dalla matrice di ID/pesi (richiede name_map slug -> nome giapponese)
   - achievable_races_for/resolve_achievable: raggiungibilita' gare dal calendario + soglie di aptitude
 """
+from itertools import product
+
 from config import GRADE_RANK
 
 
@@ -36,12 +38,28 @@ def slot_occupation_map(character: str, calendar: dict) -> dict:
     personaggio ('blocked:<slot>' incluso, marcato come '__blocked__' perche' non
     corrisponde a nessuna riga in races.xlsx). Un personaggio ha al massimo una
     entry per slot (non puo' correre due gare nello stesso turno).
+    Le alternative degli obiettivi a scelta NON sono qui (nessuna occupa il
+    turno finche' non viene scelta): vedi choice_groups/resolve_achievable.
     """
     occ = {}
     for e in calendar.get(character, []):
+        if e.get("choice"):
+            continue
         race_id = "__blocked__" if e["is_blocked"] else e["race"]
         occ[e["slot"]] = race_id
     return occ
+
+
+def choice_groups(character: str, calendar: dict) -> list:
+    """Obiettivi a scelta del personaggio: lista di gruppi, ognuno una lista
+    di alternative (slot, race_id) -- race_id '__blocked__' per una gara non
+    G1. In carriera se ne corre UNA per gruppo (vedi resolve_achievable)."""
+    groups = {}
+    for e in calendar.get(character, []):
+        if e.get("choice"):
+            race_id = "__blocked__" if e["is_blocked"] else e["race"]
+            groups.setdefault(e["choice"], []).append((e["slot"], race_id))
+    return [groups[k] for k in sorted(groups)]
 
 
 def race_is_achievable(character: str, race_id: str, races: dict, aptitudes: dict,
@@ -91,7 +109,7 @@ def _character_used_slots(character: str, calendar: dict, mode: str) -> dict:
 
 def resolve_achievable(character: str, candidate_race_ids, races: dict, aptitudes: dict,
                         calendar: dict, mode: str, priority_key=None, slot_key=None,
-                        return_slots: bool = False):
+                        return_slots: bool = False, return_choices: bool = False):
     """
     Dato un insieme di gare CANDIDATE per un singolo personaggio (gia' filtrate
     altrove per raggiungibilita' di base, es. l'intersezione con un altro
@@ -138,9 +156,42 @@ def resolve_achievable(character: str, candidate_race_ids, races: dict, aptitude
       comunque noto a priori) come dict slot->race_id -- serve a chi ha
       bisogno del turn_number esatto (l'insieme raggiungibile da solo non
       lo dice), non solo del conteggio.
+    - return_choices: se True, ritorna anche le alternative scelte per gli
+      obiettivi a scelta, come dict slot->race_id ('__blocked__' per una non
+      G1) -- serve alla timeline per mostrarle come "obbligatoria".
+
+    Obiettivi a scelta (2026-11-21, richiesta dell'utente): se ne sceglie
+    UNA alternativa per gruppo -- l'alternativa scelta occupa il suo turno
+    (e, se G1 tra le candidate, e' una vittoria garantita); i turni delle
+    alternative scartate restano liberi. Si provano tutte le combinazioni
+    (pochissime in pratica, max 9) e si tiene quella con PIU' gare
+    raggiungibili, a parita' quella con le gare di priorita' migliore (nel
+    contesto di un gruppo: le piu' condivise, vedi
+    cycle_analysis.compute_turn_priority). Chiamata UNA volta per personaggio
+    per l'intero gruppo (resolve_group_achievable), la scelta e' quindi la
+    stessa in TUTTE le coppie in cui compare -- es. Daiwa Scarlet che vince
+    il Derby con 3 membri non puo' contare l'Oaks con il quarto.
     """
     priority_key = priority_key or (lambda r: r)
-    occupation = _character_used_slots(character, calendar, mode)
+    groups = choice_groups(character, calendar) if mode != "mant" else []
+    best = None
+    for chosen in product(*groups):
+        choice_occupation = dict(chosen)
+        result = _resolve_with_occupation(character, candidate_race_ids, races, mode, priority_key, slot_key,
+                                          {**_character_used_slots(character, calendar, mode), **choice_occupation})
+        score = (-len(result[0]), sorted(priority_key(r) for r in result[0]))
+        if best is None or score < best[0]:
+            best = (score, result, choice_occupation)
+    _, (achievable, slot_owner), choice_occupation = best
+    extra = (slot_owner,) if return_slots else ()
+    extra += (choice_occupation,) if return_choices else ()
+    return (achievable, *extra) if extra else achievable
+
+
+def _resolve_with_occupation(character, candidate_race_ids, races, mode, priority_key, slot_key, occupation):
+    """Corpo del matching di resolve_achievable, con l'occupazione fissa dei
+    turni (obbligatorie + alternative scelte) gia' decisa. Ritorna
+    (achievable, slot_owner)."""
     used_slots_base = set(occupation.keys())
 
     guaranteed = set()
@@ -178,9 +229,7 @@ def resolve_achievable(character: str, candidate_race_ids, races: dict, aptitude
         try_augment(race_id, set())
 
     achievable = guaranteed | set(slot_owner.values())
-    if return_slots:
-        return achievable, slot_owner
-    return achievable
+    return achievable, slot_owner
 
 
 def base_affinity(char_a: str, char_b: str, name_map: dict,

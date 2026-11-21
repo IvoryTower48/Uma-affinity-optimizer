@@ -347,7 +347,8 @@ def build_cycle_details(established, matrix, name_map, character_ids, id_weights
     return cycles
 
 
-def resolve_group_achievable(group_members, races, aptitudes, calendar, mode, min_aptitude):
+def resolve_group_achievable(group_members, races, aptitudes, calendar, mode, min_aptitude,
+                             return_choices=False):
     """
     Per un gruppo FISSO (qui: i 5 dell'esplorazione a un salto, o del loop),
     ritorna dict[personaggio] -> insieme delle gare DAVVERO raggiungibili,
@@ -358,6 +359,11 @@ def resolve_group_achievable(group_members, races, aptitudes, calendar, mode, mi
     gare che perdono la competizione per un turno conteso (es. 2 delle 4 gare
     JBC), invece di mostrarle come "raggiungibile" senza tener conto della
     scarsita' di turni disponibili.
+
+    Qui si decide anche, UNA volta per personaggio, quale alternativa degli
+    obiettivi a scelta corre (vedi affinity.resolve_achievable): coerente in
+    tutte le coppie del gruppo. return_choices=True ritorna anche
+    dict[personaggio] -> {slot: race_id scelto} (per la timeline).
     """
     achievable_per_member = {
         c: achievable_races_for(c, races, aptitudes, calendar, mode, min_aptitude)
@@ -365,10 +371,15 @@ def resolve_group_achievable(group_members, races, aptitudes, calendar, mode, mi
     }
     turn_priority = compute_turn_priority(group_members, races, aptitudes, calendar, mode, min_aptitude)
     priority_key = lambda race_id: turn_priority[race_id]
-    return {
-        c: resolve_achievable(c, achievable_per_member[c], races, aptitudes, calendar, mode, priority_key)
+    resolved = {
+        c: resolve_achievable(c, achievable_per_member[c], races, aptitudes, calendar, mode, priority_key,
+                              return_choices=True)
         for c in group_members
     }
+    achievable = {c: r[0] for c, r in resolved.items()}
+    if return_choices:
+        return achievable, {c: r[1] for c, r in resolved.items()}
+    return achievable
 
 
 def one_hop_exploration(child, top4_ordered, matrix, name_map, character_ids, id_weights,

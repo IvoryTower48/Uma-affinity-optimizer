@@ -134,7 +134,9 @@ def _base_rate_priority_key(character: str, races: dict, aptitudes: dict) -> "ca
 def _mandatory_race_ids(character: str, calendar: dict, mode: str) -> set:
     if mode == "mant":
         return set()
-    return {e["race"] for e in calendar.get(character, []) if not e["is_blocked"]}
+    # le alternative degli obiettivi a scelta non hanno un anno fisso finche'
+    # non vengono scelte (vedi affinity.resolve_achievable)
+    return {e["race"] for e in calendar.get(character, []) if not e["is_blocked"] and not e.get("choice")}
 
 
 def _movable_race_ids(races: dict, mandatory_race_ids: set) -> list:

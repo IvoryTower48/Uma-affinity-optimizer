@@ -34,7 +34,8 @@ from cycle_analysis import resolve_group_achievable
 from display_names import format_race_name
 
 
-def race_status_for_character(character, race_id, races, aptitudes, calendar, mode, resolved_achievable, min_aptitude):
+def race_status_for_character(character, race_id, races, aptitudes, calendar, mode, resolved_achievable, min_aptitude,
+                              chosen_alternatives=None):
     """
     Ritorna un dict {status, winnable} per una singola coppia (personaggio, gara).
     status in {"obbligatoria", "impossibile", "raggiungibile", "aptitude"}.
@@ -52,6 +53,10 @@ def race_status_for_character(character, race_id, races, aptitudes, calendar, mo
     "obbligatoria"; altrimenti se almeno una e' libera, lo stato dipende dalla
     risoluzione dei conflitti (resolved_achievable); solo se OGNI occorrenza e'
     bloccata da un'altra obbligatoria, lo stato e' "impossibile" a priori.
+
+    chosen_alternatives: dict slot->race_id delle alternative scelte per gli
+    obiettivi a scelta in questo gruppo (resolve_group_achievable) -- contano
+    come obbligatorie; quelle scartate sono gare normali.
     """
     winnable = race_is_winnable(character, race_id, races, aptitudes, min_aptitude)
 
@@ -63,7 +68,7 @@ def race_status_for_character(character, race_id, races, aptitudes, calendar, mo
         status = "raggiungibile" if race_id in resolved_achievable else "impossibile"
         return {"status": status, "winnable": winnable}
 
-    occupation = slot_occupation_map(character, calendar)
+    occupation = {**slot_occupation_map(character, calendar), **(chosen_alternatives or {})}
     occupants = [occupation.get(o["slot"]) for o in races[race_id]["occurrences"]]
 
     if race_id in occupants:
@@ -93,7 +98,9 @@ def build_calendar_matrix(group_members, races, aptitudes, calendar, mode, min_a
 
     # risoluzione group-aware dei conflitti di turno, una volta per l'intero
     # gruppo (vedi cycle_analysis.resolve_group_achievable)
-    resolved_per_member = resolve_group_achievable(group_members, races, aptitudes, calendar, mode, min_aptitude)
+    resolved_per_member, chosen_per_member = resolve_group_achievable(
+        group_members, races, aptitudes, calendar, mode, min_aptitude, return_choices=True,
+    )
 
     # precalcolo stato per ogni (personaggio, gara), cosi' il controllo di
     # condivisione non ricalcola nulla
@@ -101,6 +108,7 @@ def build_calendar_matrix(group_members, races, aptitudes, calendar, mode, min_a
         race_id: {
             char: race_status_for_character(
                 char, race_id, races, aptitudes, calendar, mode, resolved_per_member[char], min_aptitude,
+                chosen_per_member[char],
             )
             for char in group_members
         }

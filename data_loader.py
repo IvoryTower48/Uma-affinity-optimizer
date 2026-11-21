@@ -99,10 +99,16 @@ def load_races(data_dir):
 
 def load_mandatory_races(data_dir):
     """
-    Ritorna dict[character] -> list of dict con chiavi: race, year, slot.
+    Ritorna dict[character] -> list of dict con chiavi: race, year, choice.
     Per le entry 'blocked:<slot>' lo slot e' estratto direttamente dal nome;
     per le gare reali, lo slot viene risolto tramite races.xlsx (passato a parte
     dal chiamante, vedi build_character_calendar).
+
+    choice (colonna opzionale "Choice", 2026-11-21): None per un obiettivo
+    fisso; un'etichetta (es. "4") condivisa dalle ALTERNATIVE di uno stesso
+    obiettivo a scelta (es. Daiwa Scarlet: Japanese Oaks OPPURE Japanese
+    Derby) -- in un gruppo valutato se ne sceglie UNA sola per personaggio,
+    vedi affinity.resolve_achievable.
     """
     df = pd.read_excel(os.path.join(data_dir, "mandatory_races.xlsx"))
     df.columns = [c.strip().lower() for c in df.columns]
@@ -110,9 +116,13 @@ def load_mandatory_races(data_dir):
     mandatory = {}
     for _, row in df.iterrows():
         char = row["character"]
+        choice = row.get("choice")
+        if isinstance(choice, float) and choice.is_integer():
+            choice = int(choice)  # Excel rilegge "4" come 4.0: stessa etichetta
         mandatory.setdefault(char, []).append({
             "race": row["race"],
             "year": int(row["year"]),
+            "choice": None if pd.isna(choice) or str(choice).strip() == "" else str(choice).strip(),
         })
     return mandatory
 
@@ -154,7 +164,7 @@ def build_character_calendar(mandatory_races, races):
         come arima_kinen ha occorrenze diverse per anno 2 e anno 3, con slot
         diversi -- usare l'occorrenza sbagliata farebbe risultare occupato il
         turno sbagliato del calendario del personaggio).
-    Ritorna dict[character] -> list of dict {race, year, slot, is_blocked}
+    Ritorna dict[character] -> list of dict {race, year, slot, is_blocked, choice}
     Solleva un errore chiaro se una gara reale non e' trovata in races.xlsx
     (non dovrebbe succedere, dato che i due file sono stati validati incrociati).
     """
@@ -187,6 +197,7 @@ def build_character_calendar(mandatory_races, races):
                 "year": e["year"],
                 "slot": slot,
                 "is_blocked": is_blocked,
+                "choice": e.get("choice"),
             })
         calendar[char] = enriched
     return calendar

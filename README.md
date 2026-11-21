@@ -106,7 +106,10 @@ data/                    dataset (see below)
 - `character_ids.csv`, `id_weights.csv` — to compute base affinity
 - `aptitudes.xlsx` — base aptitudes for a character (and variants, if at least one aptude differs)
 - `races.xlsx`, `race_gametora_ids.json` — race metadata
-- `mandatory_races.xlsx` — mandatory career races for each character
+- `mandatory_races.xlsx` — mandatory career races for each character (filled
+  automatically from Gametora for new characters; rows sharing a `Choice` label
+  are alternatives of the same objective, and one of them is picked per evaluated group)
+- `gametora_char_ids.json` — Japanese name → Gametora character ID (portraits)
 - `character_info.csv` — mapping variant → japanese name + Global server release date
 - `gametora_tid_map.json`, `gametora_tid_fallback_map.json`, `gametora_tid_names.json` —
   mapping between Gametora Collection Tracker card IDs and this tool's character IDs,

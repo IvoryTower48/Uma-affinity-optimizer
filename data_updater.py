@@ -24,6 +24,9 @@ state rimosse):
    - date Global mancanti (check_pending_global_releases),
    - costumi nuovi (check_new_variants),
    - aptitude da verificare, SOLO segnalazione (check_aptitude_mismatches),
+   - gare obbligatorie dei personaggi che non ne hanno, dal file gemello
+     ura-objectives.<hash>.json (build_mandatory_races); per quelli che le
+     hanno gia', differenze SOLO segnalate,
    - mappe tid Gametora -> nostro id (build_gametora_tid_map & co., per
      import/export posseduti e veterani). L'hash nel nome del file cambia ad
      ogni deploy del sito: si risolve via data/manifests/umamusume.json.
@@ -60,6 +63,7 @@ from pathlib import Path
 import pandas as pd
 import requests
 from config import KNOWN_SUFFIXES, META_PARENTS
+from data_loader import load_races
 from naming import base_character
 
 SOURCE_KT_URL = (
@@ -523,6 +527,83 @@ def check_aptitude_mismatches(character_info: pd.DataFrame, aptitudes_df: pd.Dat
 
 
 # ---------------------------------------------------------------------------
+# Gare obbligatorie (obiettivi di carriera) da Gametora ura-objectives.json
+# (aggiunto il 2026-11-21). Formato di una voce: {char_id, obj_id,
+# objectives: [{order, turn (1-72), target_type (1 = obiettivo di carriera,
+# 3 = finali URA), cond_type (1 = gara, 3 = fan, 2 = "vinci N gare"...),
+# race_choice (0 = fisso, >0 = alternativa), races: [{id, icon_id, url_name,
+# grade (100 = G1, 900 = debutto)...}]}]}. Verificato sui 148 personaggi
+# gia' compilati a mano: 138 identici; le differenze erano 3 errori nostri
+# (corretti), Matikanefukukitaru (obiettivi casuali in gioco) e gli
+# obiettivi a scelta, ora rappresentati con la colonna Choice.
+# ---------------------------------------------------------------------------
+
+def _turn_to_slot(turn: int) -> str:
+    """Turno 1-72 -> slot 'yA_mMM_dH' (24 turni per anno, 2 per mese)."""
+    t = turn - 1
+    return f"y{t // 24 + 1}_m{(t % 24) // 2 + 1:02d}_d{t % 2 + 1}"
+
+
+def _objective_race(race: dict, slot: str, g1_by_slot: dict, our_race_by_gametora_id: dict) -> str:
+    """Nostro race_id della G1 di un obiettivo, o 'blocked:<slot>' per una
+    gara non G1 (o una G1 non presente in races.xlsx). La G1 si riconosce dal
+    turno; se nello stesso turno ce n'e' piu' d'una (es. Japan Cup e Mile
+    Championship), dall'id Gametora: quello della gara o il suo icon_id
+    (l'id "canonico": Gametora usa id diversi per la stessa G1 in anni
+    diversi, es. Japan Cup 1019/1031), o dal nome nell'url (satsuki-sho)."""
+    candidates = g1_by_slot.get(slot, []) if race.get("grade") == 100 else []
+    if len(candidates) > 1:
+        keys = {our_race_by_gametora_id.get(race.get("id")), our_race_by_gametora_id.get(race.get("icon_id")),
+                (race.get("url_name") or "").replace("-", "_")}
+        candidates = [c for c in candidates if c in keys]
+    return candidates[0] if len(candidates) == 1 else f"blocked:{slot}"
+
+
+def build_mandatory_races(objectives: list, races: dict, gametora_race_ids: dict) -> list:
+    """
+    Obiettivi di carriera Gametora di UN personaggio -> righe di
+    mandatory_races.xlsx [{race, year, choice}]. Ignorati il debutto, gli
+    obiettivi senza gara (fan, "vinci N gare") e le finali URA: nessuno
+    occupa un turno preciso. Un obiettivo con piu' gare dentro (JBC, che
+    cambia ippodromo ogni anno) e' sempre la stessa gara: si usa la prima.
+    Gli obiettivi a scelta (stesso 'order', alternative diverse) diventano
+    righe con la stessa etichetta 'choice' (l'order) -- TUTTE le alternative,
+    scelta dell'utente: in un gruppo se ne usa una sola, vedi
+    affinity.resolve_achievable. Alternative identiche contano come una.
+    """
+    g1_by_slot = {}
+    for race_id, info in races.items():
+        for occurrence in info["occurrences"]:
+            g1_by_slot.setdefault(occurrence["slot"], []).append(race_id)
+    our_race_by_gametora_id = {gt_id: race_id for race_id, gt_id in gametora_race_ids.items()}
+
+    options_by_order = {}
+    for objective in sorted(objectives, key=lambda o: (o.get("order", 0), o.get("race_choice", 0),
+                                                        o.get("race_choice_details", 0))):
+        race_list = objective.get("races") or []
+        if objective.get("target_type") != 1 or not race_list or race_list[0].get("grade") == 900:
+            continue
+        turn = objective["turn"]
+        option = (_objective_race(race_list[0], _turn_to_slot(turn), g1_by_slot, our_race_by_gametora_id),
+                  (turn - 1) // 24 + 1)
+        options = options_by_order.setdefault(objective["order"], [])
+        if option not in options:
+            options.append(option)
+
+    rows = []
+    for order, options in sorted(options_by_order.items()):
+        choice = str(order) if len(options) > 1 else ""
+        rows.extend({"race": race, "year": year, "choice": choice} for race, year in options)
+    return rows
+
+
+def _mandatory_key(rows) -> set:
+    """Forma confrontabile delle righe di un personaggio (l'etichetta della
+    scelta conta solo come "e' un'alternativa o no")."""
+    return {(r["race"], int(r["year"]), bool(r["choice"])) for r in rows}
+
+
+# ---------------------------------------------------------------------------
 # Fonte 5: Gametora character-cards.json -- mappa tid -> nostro ID interno
 # (per import/export della selezione posseduti compatibile col Collection
 # Tracker di Gametora, vedi static/script.js)
@@ -812,6 +893,8 @@ def run_update(data_dir: str) -> dict:
         "new_variants_added": [],
         "new_variants_needs_name": [],   # costumi nuovi in attesa del nome da uma.moe
         "aptitude_mismatches": [],       # SOLO segnalazione, vedi check_aptitude_mismatches
+        "mandatory_races_added": [],     # personaggi a cui sono state compilate le gare obbligatorie
+        "mandatory_races_mismatches": [],  # SOLO segnalazione: differenze con Gametora
         "errors": [],
         "stopped_early": False,  # True se MAX_UPDATE_SECONDS e' scaduto a meta'
     }
@@ -945,6 +1028,46 @@ def run_update(data_dir: str) -> dict:
             aptitudes_df.to_excel(aptitudes_path, index=False)
 
         report["aptitude_mismatches"] = check_aptitude_mismatches(character_info, aptitudes_df, cards)
+
+    # --- Gare obbligatorie: compilate SOLO per i personaggi che non ne hanno
+    # (nuovi, o mai compilati come Rulership); le righe esistenti non si
+    # toccano mai, le differenze con Gametora vengono solo segnalate.
+    if cards is not None and not _budget_exceeded(deadline):
+        objectives = _fetch_gametora_data_file("ura-objectives")
+        if isinstance(objectives, list):
+            mandatory_path = data_dir / "mandatory_races.xlsx"
+            mandatory_df = pd.read_excel(mandatory_path)
+            if "Choice" not in mandatory_df.columns:
+                mandatory_df["Choice"] = ""
+            objectives_by_char_id = {o.get("char_id"): o.get("objectives") or [] for o in objectives}
+            char_id_by_jp = build_gametora_char_ids(cards)
+            races = load_races(data_dir)
+            gametora_race_ids = _read_json(data_dir / "race_gametora_ids.json", {})
+            existing = {
+                character: [{"race": r.Race, "year": r.Year, "choice": "" if pd.isna(r.Choice) else str(r.Choice)}
+                            for r in rows.itertuples()]
+                for character, rows in mandatory_df.groupby("Character")
+            }
+            new_rows = []
+            for _, row in character_info.iterrows():
+                char_objectives = objectives_by_char_id.get(char_id_by_jp.get(row["jp_name"]))
+                if not char_objectives:
+                    continue
+                expected = build_mandatory_races(char_objectives, races, gametora_race_ids)
+                if row["character"] not in existing:
+                    new_rows += [{"Character": row["character"], "Race": r["race"], "Year": r["year"],
+                                  "Choice": r["choice"]} for r in expected]
+                    report["mandatory_races_added"].append(row["character"])
+                elif _mandatory_key(existing[row["character"]]) != _mandatory_key(expected):
+                    ours, theirs = _mandatory_key(existing[row["character"]]), _mandatory_key(expected)
+                    report["mandatory_races_mismatches"].append({
+                        "character": row["character"],
+                        "only_ours": sorted(map(list, ours - theirs)),
+                        "only_gametora": sorted(map(list, theirs - ours)),
+                    })
+            if new_rows:
+                mandatory_df = pd.concat([mandatory_df, pd.DataFrame(new_rows)], ignore_index=True)
+                mandatory_df.to_excel(mandatory_path, index=False)
 
     # --- Fonte 5 (continua): mappe tid Gametora -> nostro ID interno
     # (import/export posseduti compatibile col Collection Tracker), costruite
@@ -1085,7 +1208,8 @@ def _backup_data_files(data_dir: str):
     data_dir = Path(data_dir)
     backup_dir = data_dir / "update_backups" / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     backup_dir.mkdir(parents=True, exist_ok=True)
-    for name in ("character_ids.csv", "id_weights.csv", "character_info.csv", "aptitudes.xlsx"):
+    for name in ("character_ids.csv", "id_weights.csv", "character_info.csv", "aptitudes.xlsx",
+                 "mandatory_races.xlsx"):
         src = data_dir / name
         if src.exists():
             (backup_dir / name).write_bytes(src.read_bytes())
@@ -1175,4 +1299,33 @@ if __name__ == "__main__":
     assert dates == [{"character": "aaa_og", "new_date": "2025-06-26"},
                      {"character": "aaa_summer", "new_date": "2026-01-01"},
                      {"character": "aaa_island", "new_date": "2026-01-01"}], dates
+    # Gare obbligatorie: G1 riconosciuta dal turno (e dall'icon_id se due G1
+    # condividono il turno), gara minore bloccata, debutto/fan/URA ignorati,
+    # alternative con la stessa etichetta, alternative identiche fuse.
+    test_races = {
+        "japan_cup": {"occurrences": [{"slot": "y3_m11_d2"}]},
+        "mile_championship": {"occurrences": [{"slot": "y3_m11_d2"}]},
+        "japanese_oaks": {"occurrences": [{"slot": "y2_m05_d2"}]},
+        "japanese_derby": {"occurrences": [{"slot": "y2_m05_d2"}]},
+    }
+    gt_ids = {"japan_cup": 1019, "mile_championship": 1018, "japanese_oaks": 1009, "japanese_derby": 1010}
+    objective = lambda order, turn, race_id, grade=100, choice=0, target=1, icon=None: {
+        "order": order, "turn": turn, "target_type": target, "race_choice": choice,
+        "races": [{"id": race_id, "icon_id": icon or race_id, "grade": grade}],
+    }
+    rows = build_mandatory_races([
+        objective(1, 12, 9392, grade=900),                      # debutto
+        {"order": 2, "turn": 24, "target_type": 1, "race_choice": 0},  # obiettivo a fan
+        objective(3, 34, 1009, choice=1), objective(3, 34, 1010, choice=2),  # Oaks oppure Derby
+        objective(4, 54, 2011, grade=200),                      # Nikkei Sho (G2)
+        objective(5, 70, 1031, icon=1019),                      # Japan Cup, id di un altro anno
+        objective(6, 72, 1023, choice=3), objective(6, 72, 1023, choice=3),  # alternative identiche
+        objective(7, 74, 0, target=3),                          # finali URA
+    ], test_races, gt_ids)
+    assert rows == [
+        {"race": "japanese_oaks", "year": 2, "choice": "3"}, {"race": "japanese_derby", "year": 2, "choice": "3"},
+        {"race": "blocked:y3_m03_d2", "year": 3, "choice": ""},
+        {"race": "japan_cup", "year": 3, "choice": ""},
+        {"race": "blocked:y3_m12_d2", "year": 3, "choice": ""},
+    ], rows
     print("data_updater.py: self-check OK")
