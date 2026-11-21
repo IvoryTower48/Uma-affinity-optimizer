@@ -68,6 +68,10 @@ const veteransGametoraExportButton = document.getElementById("veterans-gametora-
 const veteransGametoraImportButton = document.getElementById("veterans-gametora-import-button");
 const veteransGametoraImportFileInput = document.getElementById("veterans-gametora-import-file-input");
 const veteransGametoraStatus = document.getElementById("veterans-gametora-status");
+const veteransUmadumpImportButton = document.getElementById("veterans-umadump-import-button");
+const veteransUmadumpImportFileInput = document.getElementById("veterans-umadump-import-file-input");
+const veteransSearchInput = document.getElementById("veterans-search-input");
+const veteransSortSelect = document.getElementById("veterans-sort-select");
 const aceSlotVeteranImportButtons = Array.from(document.querySelectorAll(".ace-slot-veteran-import-button"));
 const aceSlotSparkPickers = Array.from(document.querySelectorAll(".ace-slot-spark-picker"));
 const aceSlotSparkAddButtons = Array.from(document.querySelectorAll(".ace-slot-spark-add-button"));
@@ -208,6 +212,24 @@ const I18N = {
     veterans_gametora_export_success: "{count} veterani esportati ({skipped} saltati: personaggio non ancora abbinabile a Gametora).",
     veterans_gametora_import_success: "{count} veterani importati ({skipped} saltati: personaggio non riconosciuto).",
     veterans_gametora_import_error: "Import fallito: {message}",
+    btn_veterans_umadump_import: "Importa veterani da umadump",
+    btn_veterans_file_import: "Importa collezione veterani da file (umadump)",
+    btn_veteran_single_file_import: "Importa veterano singolo da file (umadump)",
+    veterans_umadump_import_success: "Import da umadump: {added} aggiunti, {unchanged} già presenti, {removed} rimossi (non più nel file), {skipped} saltati (personaggio non riconosciuto).",
+    veterans_search_placeholder: "Cerca per nome…",
+    opt_veterans_sort_added: "Ordine di inserimento",
+    opt_veterans_sort_name: "Nome",
+    opt_veterans_sort_created: "Più recenti",
+    opt_veterans_sort_score: "Punteggio",
+    veteran_info_score: "Punteggio {score}",
+    veteran_info_created: "creato il {date}",
+    veteran_info_locked: "bloccato",
+    veteran_info_imported: "importato da umadump",
+    veteran_won_races: "G1 vinte",
+    veteran_won_races_none: "nessuna",
+    veteran_sparks_blue: "Blu",
+    veteran_sparks_pink: "Rosa",
+    veteran_sparks_green: "Verde",
     affinity_check_diff: "Affinità: {count} differenze rispetto a uma.moe (soprattutto {names}). I risultati restano comunque simili.",
     affinity_check_same: "Affinità: nessuna differenza rispetto a uma.moe.",
     affinity_check_running: "Confronto in corso…",
@@ -433,6 +455,24 @@ const I18N = {
     veterans_gametora_export_success: "{count} veterans exported ({skipped} skipped: character not yet matchable to Gametora).",
     veterans_gametora_import_success: "{count} veterans imported ({skipped} skipped: character not recognized).",
     veterans_gametora_import_error: "Import failed: {message}",
+    btn_veterans_umadump_import: "Import veterans from umadump",
+    btn_veterans_file_import: "Import veteran collection from file (umadump)",
+    btn_veteran_single_file_import: "Import single veteran from file (umadump)",
+    veterans_umadump_import_success: "umadump import: {added} added, {unchanged} already present, {removed} removed (no longer in the file), {skipped} skipped (character not recognized).",
+    veterans_search_placeholder: "Search by name…",
+    opt_veterans_sort_added: "Order added",
+    opt_veterans_sort_name: "Name",
+    opt_veterans_sort_created: "Most recent",
+    opt_veterans_sort_score: "Score",
+    veteran_info_score: "Score {score}",
+    veteran_info_created: "created {date}",
+    veteran_info_locked: "locked",
+    veteran_info_imported: "imported from umadump",
+    veteran_won_races: "G1 wins",
+    veteran_won_races_none: "none",
+    veteran_sparks_blue: "Blue",
+    veteran_sparks_pink: "Pink",
+    veteran_sparks_green: "Green",
     affinity_check_diff: "Affinity: {count} differences from uma.moe (mostly {names}). Results are still similar.",
     affinity_check_same: "Affinity: no differences from uma.moe.",
     affinity_check_running: "Comparing…",
@@ -577,6 +617,10 @@ function t(key, vars) {
 // ancora in elenco, viene mostrato in italiano anche con lingua EN attiva
 // (fallback sicuro, non un errore silente: il testo resta sempre leggibile).
 const SERVER_MESSAGE_TRANSLATIONS = [
+  [/^Il file contiene (\d+) veterani: /,
+    m => `The file contains ${m[1]} veterans: for a full inventory use "Import veteran collection from file".`],
+  [/^Il file non sembra un export di umadump/,
+    () => "The file doesn't look like a umadump export (trained_chara_data.json)."],
   [/^Personaggio '(.+?)' non trovato( \(con il filtro Global attivo\))?\.$/,
     m => `Character '${m[1]}' not found${m[2] ? " (with the Global filter active)" : ""}.`],
   [/^'(.+?)' e' ambiguo tra le varianti: (.+?)\. Specifica quale con il nome completo\.$/,
@@ -639,6 +683,9 @@ function applyStaticTranslations() {
   });
   document.querySelectorAll("[data-i18n-title]").forEach(el => {
     el.title = t(el.dataset.i18nTitle);
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+    el.placeholder = t(el.dataset.i18nPlaceholder);
   });
   ownedSortDirectionButton.textContent = t(ownedSortDescending ? "sort_descending" : "sort_ascending");
   langToggle.applyButtons(currentLang);
@@ -3620,6 +3667,8 @@ let veteransCache = [];
 const sparkCatalog = { race: [], white: [] };
 let sparkCatalogLoaded = false;
 
+let raceLabels = {};  // race_id -> nome leggibile, per le G1 vinte dei veterani importati
+
 async function loadSparkCatalog() {
   if (sparkCatalogLoaded) return;
   const [race, white] = await Promise.all([
@@ -3628,6 +3677,7 @@ async function loadSparkCatalog() {
   ]);
   sparkCatalog.race = [...race].sort((a, b) => a.name_en.localeCompare(b.name_en));
   sparkCatalog.white = [...white].sort((a, b) => a.name_en.localeCompare(b.name_en));
+  raceLabels = await fetch("/api/race_labels").then(r => r.json());
   sparkCatalogLoaded = true;
 }
 
@@ -3829,6 +3879,7 @@ function buildVeteranParentEditor(veteran, slot) {
     wrap.appendChild(buildSparkEditor(parent.white_sparks, parent.race_sparks, (newWhite, newRace) => {
       saveVeteranParent(veteran.id, slot, parent.character, newWhite, newRace);
     }));
+    wrap.appendChild(buildImportedSparkInfo(parent));
   }
 
   return wrap;
@@ -3853,10 +3904,11 @@ function renderVeteransList() {
     renderVeteranDetail();
     return;
   }
-  if (!veteransCache.some(v => v.id === selectedVeteranId)) {
-    selectedVeteranId = veteransCache[0].id;  // selezione assente/rimossa: seleziona il primo
+  const shown = visibleVeterans();
+  if (!shown.some(v => v.id === selectedVeteranId)) {
+    selectedVeteranId = shown.length ? shown[0].id : null;  // selezione assente/filtrata: il primo visibile
   }
-  veteransCache.forEach(v => {
+  shown.forEach(v => {
     const item = document.createElement("div");
     item.className = "veteran-list-item" + (v.id === selectedVeteranId ? " selected" : "");
     item.appendChild(buildPortraitWrap(v.character));
@@ -3871,6 +3923,57 @@ function renderVeteransList() {
     veteransListEl.appendChild(item);
   });
   renderVeteranDetail();
+}
+
+// Ricerca per nome e ordinamento (2026-11-21: con l'inventario importato da
+// umadump i veterani sono centinaia). Senza data/punteggio (veterani creati
+// a mano) si finisce in fondo.
+function visibleVeterans() {
+  const query = veteransSearchInput.value.trim().toLowerCase();
+  const list = veteransCache.filter(v => !query || v.name.toLowerCase().includes(query));
+  const sort = veteransSortSelect.value;
+  if (sort === "name") list.sort((a, b) => a.name.localeCompare(b.name));
+  if (sort === "created") list.sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
+  if (sort === "score") list.sort((a, b) => (b.rank_score ?? -1) - (a.rank_score ?? -1));
+  return list;
+}
+
+veteransSearchInput.addEventListener("input", () => renderVeteransList());
+veteransSortSelect.addEventListener("change", () => renderVeteransList());
+
+// Rank del gioco (1 = G ... 18 = SS+), ricavato dal punteggio dei veterani
+// reali; oltre SS+ (ranghi UG e successivi) si mostra solo "UG".
+const VETERAN_RANK_LABELS = ["G", "G+", "F", "F+", "E", "E+", "D", "D+", "C", "C+",
+  "B", "B+", "A", "A+", "S", "S+", "SS", "SS+"];
+
+function veteranRankLabel(rank) {
+  if (!rank) return "";
+  return VETERAN_RANK_LABELS[rank - 1] || "UG";
+}
+
+// Dati in sola lettura di un veterano importato (o di un suo genitore):
+// spark blu/rosa/verdi e G1 vinte. Niente per un veterano creato a mano.
+function buildImportedSparkInfo(entity) {
+  const wrap = document.createElement("div");
+  wrap.className = "veteran-imported-info";
+  const groups = [
+    ["veteran_sparks_blue", entity.blue_sparks],
+    ["veteran_sparks_pink", entity.pink_sparks],
+    ["veteran_sparks_green", entity.green_sparks],
+  ];
+  groups.forEach(([key, sparks]) => {
+    if (!sparks || sparks.length === 0) return;
+    const line = document.createElement("p");
+    line.textContent = `${t(key)}: ` + sparks.map(s => `${s.name_en} ${"★".repeat(s.stars)}`).join(", ");
+    wrap.appendChild(line);
+  });
+  if (entity.won_races) {
+    const line = document.createElement("p");
+    line.textContent = `${t("veteran_won_races")}: ` + (entity.won_races.length
+      ? entity.won_races.map(r => raceLabels[r] || r).join(", ") : t("veteran_won_races_none"));
+    wrap.appendChild(line);
+  }
+  return wrap;
 }
 
 // Il dettaglio completo (nome/personaggio/rimuovi, spark proprie, i 2
@@ -3898,9 +4001,21 @@ function renderVeteranDetail() {
   row.append(nameInput, charLabel, removeBtn);
   veteranDetailEl.appendChild(row);
 
+  if (v.source) {
+    const info = document.createElement("p");
+    info.className = "veteran-info-line";
+    const parts = [t("veteran_info_imported")];
+    if (v.rank_score != null) parts.push(`${t("veteran_info_score", { score: v.rank_score })} (${veteranRankLabel(v.rank)})`);
+    if (v.created_at) parts.push(t("veteran_info_created", { date: v.created_at.slice(0, 10) }));
+    if (v.is_locked) parts.push(t("veteran_info_locked"));
+    info.textContent = parts.join(" · ");
+    veteranDetailEl.appendChild(info);
+  }
+
   veteranDetailEl.appendChild(buildSparkEditor(v.white_sparks, v.race_sparks, (newWhite, newRace) => {
     saveVeteranSparks(v.id, newWhite, newRace);
   }));
+  veteranDetailEl.appendChild(buildImportedSparkInfo(v));
 
   const parentsTitle = document.createElement("p");
   parentsTitle.className = "veteran-parents-title";
@@ -4000,6 +4115,103 @@ veteransGametoraImportFileInput.addEventListener("change", () => {
     veteransCache = data.veterans;
     renderVeteransList();
     showVeteransGametoraStatus(t("veterans_gametora_import_success", { count: data.imported_count, skipped: data.skipped_count }));
+  };
+  reader.readAsText(file);
+});
+
+// Import da umadump (trained_chara_data.json): inventario completo
+// (sincronizzato) o un singolo veterano -- la differenza la fa il server dal
+// contenuto del file (lista o oggetto), vedi veterans_umadump.py.
+veteransUmadumpImportButton.addEventListener("click", () => veteransUmadumpImportFileInput.click());
+
+veteransUmadumpImportFileInput.addEventListener("change", () => {
+  const file = veteransUmadumpImportFileInput.files[0];
+  veteransUmadumpImportFileInput.value = "";  // permette di reimportare lo stesso file
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try {
+      JSON.parse(reader.result);  // errore leggibile se non e' JSON, prima di inviarlo
+    } catch (err) {
+      showVeteransGametoraStatus(t("veterans_gametora_import_error", { message: err.message }));
+      return;
+    }
+    const resp = await fetch("/api/veterans/import_umadump", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: reader.result,
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      showVeteransGametoraStatus(t("veterans_gametora_import_error", { message: translateServerMessage(data.error) || t("error_unknown") }));
+      return;
+    }
+    veteransCache = data.veterans;
+    renderVeteransList();
+    showVeteransGametoraStatus(t("veterans_umadump_import_success", {
+      added: data.added, unchanged: data.unchanged, removed: data.removed, skipped: data.skipped_count,
+    }));
+  };
+  reader.readAsText(file);
+});
+
+// Pulsante "Importa veterani da file…" (piano ace e popup di scelta del
+// veterano, 2026-11-21): un solo pulsante per entrambi i formati, riconosciuti
+// dal contenuto -- umadump (veterani con trained_chara_id, lista o singolo)
+// oppure backup veterani di Gametora.
+const veteransAnyImportFileInput = document.getElementById("veterans-any-import-file-input");
+const veteransFileImportStatusEls = Array.from(document.querySelectorAll(".veterans-file-import-status"));
+
+function showVeteransFileImportStatus(message) {
+  veteransFileImportStatusEls.forEach(el => { el.textContent = message; el.hidden = false; });
+}
+
+function isUmadumpPayload(payload) {
+  const first = Array.isArray(payload) ? payload[0] : payload;
+  return !!first && typeof first === "object" && "trained_chara_id" in first;
+}
+
+// Il pulsante "veterano singolo" (data-single) aggiunge il veterano senza
+// mai sincronizzare: il server rifiuta un file con piu' veterani.
+let veteranFileImportSingle = false;
+
+document.querySelectorAll(".veterans-file-import-button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    veteranFileImportSingle = btn.dataset.single === "1";
+    veteransAnyImportFileInput.click();
+  });
+});
+
+veteransAnyImportFileInput.addEventListener("change", () => {
+  const file = veteransAnyImportFileInput.files[0];
+  veteransAnyImportFileInput.value = "";
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    let payload;
+    try {
+      payload = JSON.parse(reader.result);
+    } catch (err) {
+      showVeteransFileImportStatus(t("veterans_gametora_import_error", { message: err.message }));
+      return;
+    }
+    const umadump = veteranFileImportSingle || isUmadumpPayload(payload);
+    const umadumpUrl = "/api/veterans/import_umadump" + (veteranFileImportSingle ? "?single=1" : "");
+    const resp = await fetch(umadump ? umadumpUrl : "/api/veterans/import_gametora", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: reader.result,
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      showVeteransFileImportStatus(t("veterans_gametora_import_error", { message: translateServerMessage(data.error) || t("error_unknown") }));
+      return;
+    }
+    veteransCache = data.veterans;
+    if (!veteranImportModal.hidden) renderVeteranImportList();
+    showVeteransFileImportStatus(umadump
+      ? t("veterans_umadump_import_success", { added: data.added, unchanged: data.unchanged, removed: data.removed, skipped: data.skipped_count })
+      : t("veterans_gametora_import_success", { count: data.imported_count, skipped: data.skipped_count }));
   };
   reader.readAsText(file);
 });

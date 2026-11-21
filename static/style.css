@@ -1796,6 +1796,28 @@ details.collapsible-list summary {
   min-height: 0;
 }
 
+.veterans-list-tools {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.veterans-list-tools input {
+  width: 220px;
+}
+
+.veteran-info-line,
+.veteran-imported-info p {
+  margin: 0.2rem 0;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+@media (max-width: 600px) {
+  .veterans-list-tools { flex-wrap: wrap; }
+  .veterans-list-tools input { width: 100%; }
+}
+
 .veterans-side-list {
   width: 220px;
   flex-shrink: 0;

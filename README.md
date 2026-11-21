@@ -25,6 +25,12 @@ This tool also features:
 - a table that summarizes the career timeline of the loop;
 - an illustrated PDF export of the finished loop (character portraits,
   real race plaques, genealogy trees);
+- a veteran library (already-bred parents with their sparks and the G1 races
+  they and their parents won), importable from Gametora or from a
+  [umadump](https://github.com/werseter/umadump) export
+  (`trained_chara_data.json`): a full export keeps the library in sync
+  (new veterans added, transferred ones removed), a single-veteran file is
+  just added; veterans created by hand are never touched;
 - save/load of a full session (search results, spark plan, filters) as JSON;
 - independent training win probability: an additional, non-authoritative
   per-race win chance based on aptitude and race-turn fatigue (the
@@ -93,6 +99,9 @@ independent_training.py  pure win-probability formula (aptitude + consecutive-ra
 timeline.py              race caledndar/timeline for the looping characters
 pdf_export.py            illustrated PDF export of the finished loop (character portraits,
                          race plaques, genealogy trees)
+veterans.py              veteran library (data/veterans.json) and umadump import sync rules
+veterans_gametora.py     veteran import/export in Gametora's backup format
+veterans_umadump.py      reads umadump's trained_chara_data.json (pure functions)
 main.py                  CLI (does not expose pink spark planning, rental loop mode, or
                          meta-parent management, which are UI-only)
 app.py                   local Flask server (UI)
@@ -110,6 +119,10 @@ data/                    dataset (see below)
   automatically from Gametora for new characters; rows sharing a `Choice` label
   are alternatives of the same objective, and one of them is picked per evaluated group)
 - `gametora_char_ids.json` — Japanese name → Gametora character ID (portraits)
+- `spark_race.json`, `spark_skill.json`, `spark_blue.json`, `spark_pink.json`,
+  `spark_green.json` — spark catalogs (from Gametora)
+- `card_characters.json`, `saddle_races.json` — game card ID → character and
+  won "saddle" → G1 race, used by the umadump veteran import
 - `character_info.csv` — mapping variant → japanese name + Global server release date
 - `gametora_tid_map.json`, `gametora_tid_fallback_map.json`, `gametora_tid_names.json` —
   mapping between Gametora Collection Tracker card IDs and this tool's character IDs,

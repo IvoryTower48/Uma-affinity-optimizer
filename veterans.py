@@ -195,6 +195,55 @@ def import_veterans(data_dir, parsed_veterans: list) -> list:
     return veterans
 
 
+def _source_key(veteran: dict):
+    """(viewer_id, trained_chara_id) di un veterano importato da file
+    umadump, None per uno creato a mano o importato da Gametora."""
+    source = veteran.get("source") or {}
+    if source.get("type") != "umadump":
+        return None
+    return source.get("viewer_id"), source.get("trained_chara_id")
+
+
+def sync_imported_veterans(data_dir, parsed_veterans: list, full: bool) -> tuple:
+    """
+    Import da file umadump (regole dell'utente, 2026-11-21):
+    - un veterano nuovo viene aggiunto (nome "Personaggio — memo" o
+      "Personaggio #N", vedi veterans_umadump.default_name);
+    - uno gia' presente (stesso giocatore + stesso id nel gioco) resta
+      com'e', comprese le modifiche fatte nel tool (nome, spark);
+    - con un inventario COMPLETO (full), i veterani importati da file dello
+      stesso giocatore che non ci sono piu' vengono cancellati (trasferiti
+      in gioco). Quelli di altri giocatori (presi in prestito) e quelli
+      creati a mano o importati da Gametora non vengono mai toccati.
+    Ritorna (tutti i veterani, {added, unchanged, removed}).
+    """
+    from veterans_umadump import default_name
+
+    veterans = get_veterans(data_dir)
+    existing_keys = {_source_key(v) for v in veterans} - {None}
+    incoming_keys = {_source_key(p) for p in parsed_veterans}
+    stats = {"added": 0, "unchanged": 0, "removed": 0}
+
+    if full:
+        viewers = {key[0] for key in incoming_keys}
+        kept = [v for v in veterans
+                if not (_source_key(v) and _source_key(v)[0] in viewers and _source_key(v) not in incoming_keys)]
+        stats["removed"] = len(veterans) - len(kept)
+        veterans = kept
+
+    for parsed in parsed_veterans:
+        if _source_key(parsed) in existing_keys:
+            stats["unchanged"] += 1
+            continue
+        count = sum(1 for v in veterans if v["character"] == parsed["character"])
+        record = {k: v for k, v in parsed.items() if k != "memo"}
+        veterans.append({"id": uuid.uuid4().hex,
+                         "name": default_name(parsed["character"], parsed["memo"], count), **record})
+        stats["added"] += 1
+    _save_veterans(data_dir, veterans)
+    return veterans, stats
+
+
 def set_veteran_parent(data_dir, veteran_id: str, slot: str, character: str | None,
                         white_sparks: list, race_sparks: list) -> list:
     """
@@ -218,7 +267,11 @@ def set_veteran_parent(data_dir, veteran_id: str, slot: str, character: str | No
     if not character:
         veteran[slot] = None
     else:
+        # stesso personaggio: si tengono i campi che l'editor non tocca
+        # (spark blu/rosa/verdi e G1 vinte di un genitore importato)
+        previous = veteran[slot] if veteran[slot] and veteran[slot]["character"] == character else {}
         veteran[slot] = {
+            **previous,
             "character": character,
             "white_sparks": white_sparks or [],
             "race_sparks": race_sparks or [],

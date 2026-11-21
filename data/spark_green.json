@@ -1,0 +1,1646 @@
+[
+  {
+    "id": "100101",
+    "name_en": "Shooting Star",
+    "name_ja": "シューティングスター",
+    "tid": "9e"
+  },
+  {
+    "id": "100102",
+    "name_en": "Dazzl'n ♪ Diver",
+    "name_ja": "わやかわ♪マリンダイヴ",
+    "tid": "9f"
+  },
+  {
+    "id": "100103",
+    "name_en": "Dreams Donned with Pride!",
+    "name_ja": "威風堂々、夢錦！",
+    "tid": "9g"
+  },
+  {
+    "id": "100201",
+    "name_en": "The View from the Lead Is Mine!",
+    "name_ja": "先頭の景色は譲らない…！",
+    "tid": "9h"
+  },
+  {
+    "id": "100202",
+    "name_en": "Ahead of the Horizon",
+    "name_ja": "水平線のその先へ",
+    "tid": "9i"
+  },
+  {
+    "id": "100301",
+    "name_en": "Sky-High Teio Step",
+    "name_ja": "究極テイオーステップ",
+    "tid": "9j"
+  },
+  {
+    "id": "100302",
+    "name_en": "Certain Victory",
+    "name_ja": "絶対は、ボクだ",
+    "tid": "9k"
+  },
+  {
+    "id": "100303",
+    "name_en": "歌舞歓楽や、ああをかし",
+    "name_ja": "歌舞歓楽や、ああをかし",
+    "tid": "9l"
+  },
+  {
+    "id": "100401",
+    "name_en": "Red Shift/LP1211-M",
+    "name_ja": "紅焔ギア/LP1211-M",
+    "tid": "9m"
+  },
+  {
+    "id": "100402",
+    "name_en": "A Kiss for Courage",
+    "name_ja": "グッときて♪Chu",
+    "tid": "9n"
+  },
+  {
+    "id": "100403",
+    "name_en": "霊験灼然チョベリグ神託",
+    "name_ja": "霊験灼然チョベリグ神託",
+    "tid": "9o"
+  },
+  {
+    "id": "100501",
+    "name_en": "Lights of Vaudeville",
+    "name_ja": "煌星のヴォードヴィル",
+    "tid": "9p"
+  },
+  {
+    "id": "100502",
+    "name_en": "Ravissant",
+    "name_ja": "Ravissant",
+    "tid": "9q"
+  },
+  {
+    "id": "100503",
+    "name_en": "Gloire à toi!",
+    "name_ja": "Gloire à toi!",
+    "tid": "dk"
+  },
+  {
+    "id": "100601",
+    "name_en": "Triumphant Pulse",
+    "name_ja": "勝利の鼓動",
+    "tid": "9r"
+  },
+  {
+    "id": "100602",
+    "name_en": "Festive Miracle",
+    "name_ja": "聖夜のミラクルラン！",
+    "tid": "9s"
+  },
+  {
+    "id": "100603",
+    "name_en": "灰の光跡：シンデレラグレイ",
+    "name_ja": "灰の光跡：シンデレラグレイ",
+    "tid": "9t"
+  },
+  {
+    "id": "100701",
+    "name_en": "Anchors Aweigh!",
+    "name_ja": "不沈艦、抜錨ォッ！",
+    "tid": "9u"
+  },
+  {
+    "id": "100702",
+    "name_en": "564 Escapades",
+    "name_ja": "Adventure of 564",
+    "tid": "9v"
+  },
+  {
+    "id": "100703",
+    "name_en": "Vive la GOLD",
+    "name_ja": "Vive la GOLD",
+    "tid": "9w"
+  },
+  {
+    "id": "100801",
+    "name_en": "Cut and Drive!",
+    "name_ja": "カッティング×DRIVE！",
+    "tid": "9x"
+  },
+  {
+    "id": "100802",
+    "name_en": "Into High Gear!",
+    "name_ja": "Into High Gear!",
+    "tid": "9y"
+  },
+  {
+    "id": "100901",
+    "name_en": "Resplendent Red Ace",
+    "name_ja": "ブリリアント・レッドエース",
+    "tid": "9z"
+  },
+  {
+    "id": "100902",
+    "name_en": "Queen's Lumination",
+    "name_ja": "Queen's Lumination",
+    "tid": "9A"
+  },
+  {
+    "id": "100903",
+    "name_en": "究竟の弓勢",
+    "name_ja": "究竟の弓勢",
+    "tid": "ek"
+  },
+  {
+    "id": "101001",
+    "name_en": "Shooting for Victory!",
+    "name_ja": "ヴィクトリーショット！",
+    "tid": "9B"
+  },
+  {
+    "id": "101002",
+    "name_en": "Joyful Voyage!",
+    "name_ja": "Joyful Voyage!",
+    "tid": "9C"
+  },
+  {
+    "id": "101003",
+    "name_en": "Have S'more Love!",
+    "name_ja": "Have S'more Love!",
+    "tid": "9D"
+  },
+  {
+    "id": "101101",
+    "name_en": "Where There's a Will, There's a Way",
+    "name_ja": "精神一到何事か成らざらん",
+    "tid": "9E"
+  },
+  {
+    "id": "101102",
+    "name_en": "Superior Heal",
+    "name_ja": "ゲインヒール・スペリアー",
+    "tid": "9F"
+  },
+  {
+    "id": "101103",
+    "name_en": "演舞・撫子大薙刀",
+    "name_ja": "演舞・撫子大薙刀",
+    "tid": "9G"
+  },
+  {
+    "id": "101201",
+    "name_en": "You and Me! One-on-One!",
+    "name_ja": "タイマン！デッドヒート！",
+    "tid": "9H"
+  },
+  {
+    "id": "101202",
+    "name_en": "First Bite of the Feast!",
+    "name_ja": "大盛り！ファーストバイト！",
+    "tid": "9I"
+  },
+  {
+    "id": "101301",
+    "name_en": "The Duty of Dignity Calls",
+    "name_ja": "貴顕の使命を果たすべく",
+    "tid": "9J"
+  },
+  {
+    "id": "101302",
+    "name_en": "Legacy of the Strong",
+    "name_ja": "最強の名を懸けて",
+    "tid": "9K"
+  },
+  {
+    "id": "101303",
+    "name_en": "Your Smile Sparkles as the Waves",
+    "name_ja": "きらめくは海、まばゆきは君",
+    "tid": "9L"
+  },
+  {
+    "id": "101401",
+    "name_en": "Victoria por plancha ☆",
+    "name_ja": "プランチャ☆ガナドール",
+    "tid": "9M"
+  },
+  {
+    "id": "101402",
+    "name_en": "Condor's Fury",
+    "name_ja": "コンドル猛撃波",
+    "tid": "9N"
+  },
+  {
+    "id": "101501",
+    "name_en": "This Dance Is for Vittoria!",
+    "name_ja": "ヴィットーリアに捧ぐ舞踏",
+    "tid": "9O"
+  },
+  {
+    "id": "101502",
+    "name_en": "Barcarole of Blessings",
+    "name_ja": "恵福バルカローレ",
+    "tid": "9P"
+  },
+  {
+    "id": "101601",
+    "name_en": "Shadow Break",
+    "name_ja": "Shadow Break",
+    "tid": "9Q"
+  },
+  {
+    "id": "101602",
+    "name_en": "Free from the Ashes",
+    "name_ja": "灰色の臨界点",
+    "tid": "9R"
+  },
+  {
+    "id": "101701",
+    "name_en": "Behold Thine Emperor's Divine Might",
+    "name_ja": "汝、皇帝の神威を見よ",
+    "tid": "9S"
+  },
+  {
+    "id": "101702",
+    "name_en": "Arrows Whistle, Shadows Disperse",
+    "name_ja": "翳り退く、さざめきの矢",
+    "tid": "9T"
+  },
+  {
+    "id": "101703",
+    "name_en": "Cascading Might",
+    "name_ja": "Cascading Might",
+    "tid": "e8"
+  },
+  {
+    "id": "101801",
+    "name_en": "Blazing Pride",
+    "name_ja": "ブレイズ・オブ・プライド",
+    "tid": "9U"
+  },
+  {
+    "id": "101802",
+    "name_en": "Eternal Moments",
+    "name_ja": "薫風、永遠なる瞬間を",
+    "tid": "9V"
+  },
+  {
+    "id": "101803",
+    "name_en": "Shadow Ancestress",
+    "name_ja": "Shadow Ancestress",
+    "tid": "e9"
+  },
+  {
+    "id": "101901",
+    "name_en": "OMG! (ﾟ∀ﾟ)  The Final Sprint! ☆",
+    "name_ja": "尊み☆ﾗｽﾄｽﾊﾟ—(ﾟ∀ﾟ)—ﾄ!",
+    "tid": "9W"
+  },
+  {
+    "id": "101902",
+    "name_en": "THE MOE AAAA Thanks for My Life",
+    "name_ja": "萌到讓我活過來了！",
+    "tid": "9X"
+  },
+  {
+    "id": "102001",
+    "name_en": "Angling and Scheming",
+    "name_ja": "アングリング×スキーミング",
+    "tid": "9Y"
+  },
+  {
+    "id": "102002",
+    "name_en": "Break It Down!",
+    "name_ja": "Do Ya Breakin!",
+    "tid": "9Z"
+  },
+  {
+    "id": "102003",
+    "name_en": "海風にまったり身を任せ",
+    "name_ja": "海風にまったり身を任せ",
+    "tid": "dL"
+  },
+  {
+    "id": "102101",
+    "name_en": "White Lightning Comin' Through!",
+    "name_ja": "白い稲妻、見せたるで！",
+    "tid": "a0"
+  },
+  {
+    "id": "102102",
+    "name_en": "Lightning Flare",
+    "name_ja": "火神鳴",
+    "tid": "a1"
+  },
+  {
+    "id": "102201",
+    "name_en": "Fairy Tale",
+    "name_ja": "Fairy tale",
+    "tid": "a2"
+  },
+  {
+    "id": "102202",
+    "name_en": "Best day ever",
+    "name_ja": "Best day ever",
+    "tid": "a3"
+  },
+  {
+    "id": "102203",
+    "name_en": "麗走一直！ラーメン道",
+    "name_ja": "麗走一直！ラーメン道",
+    "tid": "dD"
+  },
+  {
+    "id": "102301",
+    "name_en": "∴win Q.E.D.",
+    "name_ja": "∴win Q.E.D.",
+    "tid": "a4"
+  },
+  {
+    "id": "102302",
+    "name_en": "Presents from X",
+    "name_ja": "Presents from X",
+    "tid": "a5"
+  },
+  {
+    "id": "102303",
+    "name_en": "勝利ヘ至ル累積",
+    "name_ja": "勝利ヘ至ル累積",
+    "tid": "a6"
+  },
+  {
+    "id": "102401",
+    "name_en": "Flashy☆Landing",
+    "name_ja": "ひらめき☆ランディング",
+    "tid": "a7"
+  },
+  {
+    "id": "102402",
+    "name_en": "Flowery☆Maneuver",
+    "name_ja": "フラワリー☆マニューバ",
+    "tid": "a8"
+  },
+  {
+    "id": "102403",
+    "name_en": "HOP STEP♪LOCK ON!",
+    "name_ja": "HOP STEP♪LOCK ON!",
+    "tid": "a9"
+  },
+  {
+    "id": "102501",
+    "name_en": "Chasing after You",
+    "name_ja": "アナタヲ・オイカケテ",
+    "tid": "aa"
+  },
+  {
+    "id": "102502",
+    "name_en": "心からのおもてにゃし",
+    "name_ja": "心からのおもてにゃし",
+    "tid": "ab"
+  },
+  {
+    "id": "102503",
+    "name_en": "迷える時も、幽かなる時も",
+    "name_ja": "迷える時も、幽かなる時も",
+    "tid": "dv"
+  },
+  {
+    "id": "102601",
+    "name_en": "G00 1st. F∞;",
+    "name_ja": "G00 1st.F∞;",
+    "tid": "ac"
+  },
+  {
+    "id": "102602",
+    "name_en": "Operation Cacao",
+    "name_ja": "オペレーション・Cacao",
+    "tid": "ad"
+  },
+  {
+    "id": "102701",
+    "name_en": "Let's Pump Some Iron!",
+    "name_ja": "レッツ・アナボリック！",
+    "tid": "ae"
+  },
+  {
+    "id": "102702",
+    "name_en": "A Warm Cup for You",
+    "name_ja": "あなたに捧げるフリーポア",
+    "tid": "af"
+  },
+  {
+    "id": "102801",
+    "name_en": "YUMMY☆SPEED!",
+    "name_ja": "I'M☆FULL☆SPEED!!",
+    "tid": "ag"
+  },
+  {
+    "id": "102802",
+    "name_en": "シュガーパレード・始動！",
+    "name_ja": "シュガーパレード・始動！",
+    "tid": "ah"
+  },
+  {
+    "id": "102901",
+    "name_en": "Snow Bright, Snow Flight",
+    "name_ja": "ゆきあかり、おいかけて",
+    "tid": "ai"
+  },
+  {
+    "id": "102902",
+    "name_en": "いっぱいおあげんしぇ！",
+    "name_ja": "いっぱいおあげんしぇ！",
+    "tid": "aj"
+  },
+  {
+    "id": "102903",
+    "name_en": "今ぞ刈りどき祝祭の季",
+    "name_ja": "今ぞ刈りどき祝祭の季",
+    "tid": "em"
+  },
+  {
+    "id": "103001",
+    "name_en": "Blue Rose Closer",
+    "name_ja": "ブルーローズチェイサー",
+    "tid": "ak"
+  },
+  {
+    "id": "103002",
+    "name_en": "Every Rose Has Its Fangs",
+    "name_ja": "Drain for rose",
+    "tid": "al"
+  },
+  {
+    "id": "103003",
+    "name_en": "あおぞらクッキング♪",
+    "name_ja": "あおぞらクッキング♪",
+    "tid": "am"
+  },
+  {
+    "id": "103101",
+    "name_en": "All Charged! It's Go Time!",
+    "name_ja": "チャージ完了！全速前進！",
+    "tid": "an"
+  },
+  {
+    "id": "103102",
+    "name_en": "Fresh☆Parlor",
+    "name_ja": "フレッシュ☆パーラー",
+    "tid": "ao"
+  },
+  {
+    "id": "103103",
+    "name_en": "全力全開！サイクロン",
+    "name_ja": "全力全開！サイクロン",
+    "tid": "ap"
+  },
+  {
+    "id": "103201",
+    "name_en": "U=ma2",
+    "name_ja": "U=ma2",
+    "tid": "aq"
+  },
+  {
+    "id": "103202",
+    "name_en": "Summer Halation",
+    "name_ja": "夏空ハレーション",
+    "tid": "ar"
+  },
+  {
+    "id": "103203",
+    "name_en": "超光速微粒子の可能性",
+    "name_ja": "超光速微粒子の可能性",
+    "tid": "as"
+  },
+  {
+    "id": "103301",
+    "name_en": "Shooting Star of Dioskouroi",
+    "name_ja": "ディオスクロイの流星",
+    "tid": "at"
+  },
+  {
+    "id": "103302",
+    "name_en": "Crystal Mist",
+    "name_ja": "Crystal Mist",
+    "tid": "au"
+  },
+  {
+    "id": "103401",
+    "name_en": "Now We're Cruisin'!",
+    "name_ja": "快走かな、快走かな！",
+    "tid": "av"
+  },
+  {
+    "id": "103402",
+    "name_en": "Firelight",
+    "name_ja": "灯穂",
+    "tid": "aw"
+  },
+  {
+    "id": "103501",
+    "name_en": "Our Ticket to Win!",
+    "name_ja": "勝利のチケットを、君にッ！",
+    "tid": "ax"
+  },
+  {
+    "id": "103502",
+    "name_en": "Ticket to Your Dreams!",
+    "name_ja": "夢の先へ、届け！",
+    "tid": "ay"
+  },
+  {
+    "id": "103503",
+    "name_en": "GO! Full-send",
+    "name_ja": "GO! Full-send",
+    "tid": "az"
+  },
+  {
+    "id": "103601",
+    "name_en": "trigger:BEAT",
+    "name_ja": "trigger:BEAT",
+    "tid": "aA"
+  },
+  {
+    "id": "103602",
+    "name_en": "...found you.",
+    "name_ja": "...found you.",
+    "tid": "aB"
+  },
+  {
+    "id": "103701",
+    "name_en": "Schwarzes Schwert",
+    "name_ja": "Schwarzes Schwert",
+    "tid": "aC"
+  },
+  {
+    "id": "103702",
+    "name_en": "Guten Appetit ♪",
+    "name_ja": "Guten Appetit♪",
+    "tid": "aD"
+  },
+  {
+    "id": "103703",
+    "name_en": "潮風のGeschenk",
+    "name_ja": "潮風のGeschenk",
+    "tid": "aE"
+  },
+  {
+    "id": "103801",
+    "name_en": "#LookatCurren",
+    "name_ja": "#LookatCurren",
+    "tid": "aF"
+  },
+  {
+    "id": "103802",
+    "name_en": "One True Color",
+    "name_ja": "One True Color",
+    "tid": "aG"
+  },
+  {
+    "id": "103901",
+    "name_en": "A Princess Must Seize Victory!",
+    "name_ja": "姫たるもの、勝利をこの手に",
+    "tid": "aH"
+  },
+  {
+    "id": "103902",
+    "name_en": "快なる剛力",
+    "name_ja": "快なる剛力",
+    "tid": "aI"
+  },
+  {
+    "id": "104001",
+    "name_en": "KEEP IT REAL.",
+    "name_ja": "KEEP IT REAL.",
+    "tid": "aJ"
+  },
+  {
+    "id": "104002",
+    "name_en": "Dancing in the Leaves",
+    "name_ja": "GET DOWN",
+    "tid": "aK"
+  },
+  {
+    "id": "104003",
+    "name_en": "Silent Sunset Gold",
+    "name_ja": "Silent Sunset Gold",
+    "tid": "aL"
+  },
+  {
+    "id": "104101",
+    "name_en": "Genius x Bakushin = Victory",
+    "name_ja": "優等生×バクシン＝大勝利ッ",
+    "tid": "aM"
+  },
+  {
+    "id": "104102",
+    "name_en": "Cherry☆Scramble",
+    "name_ja": "CHERRY☆スクランブル",
+    "tid": "aN"
+  },
+  {
+    "id": "104103",
+    "name_en": "桜吹雪くスプリントバースト",
+    "name_ja": "桜吹雪くスプリントバースト",
+    "tid": "aO"
+  },
+  {
+    "id": "104201",
+    "name_en": "I'm Possible!",
+    "name_ja": "『I'm possible』",
+    "tid": "aP"
+  },
+  {
+    "id": "104202",
+    "name_en": "Oh!bento-magic☆",
+    "name_ja": "Oh!bento-magic☆",
+    "tid": "aQ"
+  },
+  {
+    "id": "104301",
+    "name_en": "Ding Dong, Boo!",
+    "name_ja": "Ding Dong Boo",
+    "tid": "aR"
+  },
+  {
+    "id": "104302",
+    "name_en": "最恐！いたずら計画なのだ♪",
+    "name_ja": "最恐！いたずら計画なのだ♪",
+    "tid": "e0"
+  },
+  {
+    "id": "104401",
+    "name_en": "Victory belongs to me—Strelitzia! ☆",
+    "name_ja": "いただき☆ストレリチア！",
+    "tid": "aS"
+  },
+  {
+    "id": "104402",
+    "name_en": "とっておきmaterialize",
+    "name_ja": "とっておきmaterialize",
+    "tid": "aT"
+  },
+  {
+    "id": "104501",
+    "name_en": "Pure Heart",
+    "name_ja": "ピュリティオブハート",
+    "tid": "aU"
+  },
+  {
+    "id": "104502",
+    "name_en": "Give Mummy a Hug ♡",
+    "name_ja": "ぐるぐるマミートリック♡",
+    "tid": "aV"
+  },
+  {
+    "id": "104503",
+    "name_en": "忍法・ほほえみ心結の印",
+    "name_ja": "忍法・ほほえみ心結の印",
+    "tid": "aW"
+  },
+  {
+    "id": "104601",
+    "name_en": "SPARKLY☆STARDOM",
+    "name_ja": "キラキラ☆STARDOM",
+    "tid": "aX"
+  },
+  {
+    "id": "104602",
+    "name_en": "α-star*",
+    "name_ja": "α-star*",
+    "tid": "aY"
+  },
+  {
+    "id": "104603",
+    "name_en": "Forward March!",
+    "name_ja": "Forward March!",
+    "tid": "aZ"
+  },
+  {
+    "id": "104701",
+    "name_en": "Raise My Soul's Blade!",
+    "name_ja": "掲げよ、己が魂の剣を！",
+    "tid": "b0"
+  },
+  {
+    "id": "104702",
+    "name_en": "未知との遭遇、即ち物語",
+    "name_ja": "未知との遭遇、即ち物語",
+    "tid": "b1"
+  },
+  {
+    "id": "104801",
+    "name_en": "Pop & Polish",
+    "name_ja": "YEAH☆VIVID TIME!",
+    "tid": "b2"
+  },
+  {
+    "id": "104802",
+    "name_en": "Us Girlies Keep Winnin'! ♪",
+    "name_ja": "GALmem.ふぉーえば♪",
+    "tid": "b3"
+  },
+  {
+    "id": "104803",
+    "name_en": "ヤバ技☆ジャグルビート",
+    "name_ja": "ヤバ技☆ジャグルビート",
+    "tid": "b4"
+  },
+  {
+    "id": "104901",
+    "name_en": "Laugh at the Odds",
+    "name_ja": "剣ヶ峰より、狂気に嗤え",
+    "tid": "b5"
+  },
+  {
+    "id": "104902",
+    "name_en": "運否、聖夜の星に賭ける",
+    "name_ja": "運否、聖夜の星に賭ける",
+    "tid": "b6"
+  },
+  {
+    "id": "105001",
+    "name_en": "Nemesis",
+    "name_ja": "Nemesis",
+    "tid": "b7"
+  },
+  {
+    "id": "105002",
+    "name_en": "Hephaestus",
+    "name_ja": "Hephaistos",
+    "tid": "b8"
+  },
+  {
+    "id": "105003",
+    "name_en": "Overdrive Speed",
+    "name_ja": "Overdrive Speed",
+    "tid": "b9"
+  },
+  {
+    "id": "105101",
+    "name_en": "Budding Blossom",
+    "name_ja": "つぼみ、ほころぶ時",
+    "tid": "ba"
+  },
+  {
+    "id": "105102",
+    "name_en": "Flowering Dreams",
+    "name_ja": "Flowering Dreams",
+    "tid": "bb"
+  },
+  {
+    "id": "105201",
+    "name_en": "Super-Duper Climax",
+    "name_ja": "ワクワククライマックス",
+    "tid": "bc"
+  },
+  {
+    "id": "105202",
+    "name_en": "114th Time's the Charm",
+    "name_ja": "113転び114起き",
+    "tid": "bd"
+  },
+  {
+    "id": "105301",
+    "name_en": "Red-Hot Discipline!",
+    "name_ja": "熱血！！風紀アタック",
+    "tid": "be"
+  },
+  {
+    "id": "105302",
+    "name_en": "Scorching Summer Tech!",
+    "name_ja": "奥義・常夏バーニング！！",
+    "tid": "bf"
+  },
+  {
+    "id": "105401",
+    "name_en": "疾風爆走ペガサスダッシュ！",
+    "name_ja": "疾風爆走ペガサスダッシュ！",
+    "tid": "bg"
+  },
+  {
+    "id": "105501",
+    "name_en": "Magical☆Marvelous★World",
+    "name_ja": "万彩☆マーベラス★世界",
+    "tid": "bh"
+  },
+  {
+    "id": "105502",
+    "name_en": "喝采☆ワンダードール！",
+    "name_ja": "喝采☆ワンダードール！",
+    "tid": "bi"
+  },
+  {
+    "id": "105601",
+    "name_en": "I See Victory in My Future!",
+    "name_ja": "来ます来てます来させます！",
+    "tid": "bj"
+  },
+  {
+    "id": "105602",
+    "name_en": "Bountiful Harvest",
+    "name_ja": "禾スナハチ登ル",
+    "tid": "bk"
+  },
+  {
+    "id": "105701",
+    "name_en": "Lyrical Journey",
+    "name_ja": "叙情、旅路の果てに",
+    "tid": "bl"
+  },
+  {
+    "id": "105702",
+    "name_en": "爛然闊歩",
+    "name_ja": "爛然闊歩",
+    "tid": "bm"
+  },
+  {
+    "id": "105801",
+    "name_en": "I Never Goof Up!",
+    "name_ja": "I Never Goof Up！",
+    "tid": "bn"
+  },
+  {
+    "id": "105802",
+    "name_en": "Spooky, Scary, Happy",
+    "name_ja": "Spooky-Scary-Happy",
+    "tid": "bo"
+  },
+  {
+    "id": "105901",
+    "name_en": "Moving Past, and Beyond",
+    "name_ja": "彼方、その先へ…",
+    "tid": "bp"
+  },
+  {
+    "id": "105902",
+    "name_en": "Wherever This Wonder Leads",
+    "name_ja": "ときめきが呼ぶほうへ",
+    "tid": "bq"
+  },
+  {
+    "id": "106001",
+    "name_en": "Just a Little Farther!",
+    "name_ja": "きっとその先へ…！",
+    "tid": "br"
+  },
+  {
+    "id": "106002",
+    "name_en": "Go☆Go☆Goal!",
+    "name_ja": "Go☆Go☆for it!",
+    "tid": "bs"
+  },
+  {
+    "id": "106003",
+    "name_en": "もちっと・ハレハレ",
+    "name_ja": "もちっと・ハレハレ",
+    "tid": "bt"
+  },
+  {
+    "id": "106101",
+    "name_en": "Prideful King",
+    "name_ja": "Pride of KING",
+    "tid": "bu"
+  },
+  {
+    "id": "106102",
+    "name_en": "Louder! Tracen Cheer!",
+    "name_ja": "轟！トレセン応援団！！",
+    "tid": "bv"
+  },
+  {
+    "id": "106103",
+    "name_en": "理想へのwinding road",
+    "name_ja": "理想へのwinding road",
+    "tid": "bw"
+  },
+  {
+    "id": "106201",
+    "name_en": "Go, Go, Mun!",
+    "name_ja": "どんっ、パッ、むんっ",
+    "tid": "bx"
+  },
+  {
+    "id": "106202",
+    "name_en": "Tumbly Power Drive!",
+    "name_ja": "ごろりん！？パワードライブ",
+    "tid": "by"
+  },
+  {
+    "id": "106301",
+    "name_en": "百錬成鋼",
+    "name_ja": "百錬成鋼",
+    "tid": "bz"
+  },
+  {
+    "id": "106302",
+    "name_en": "千歳、廻りて",
+    "name_ja": "千歳、廻りて",
+    "tid": "bA"
+  },
+  {
+    "id": "106401",
+    "name_en": "Keep Pushing Ahead",
+    "name_ja": "ぶっちぎりロード",
+    "tid": "bB"
+  },
+  {
+    "id": "106402",
+    "name_en": "jingle all the way",
+    "name_ja": "jingle all the way",
+    "tid": "bC"
+  },
+  {
+    "id": "106501",
+    "name_en": "Hands in the Air Like Ya Don't Care!",
+    "name_ja": "アゲてアゲてぷちょへんざ！",
+    "tid": "bD"
+  },
+  {
+    "id": "106502",
+    "name_en": "ノッてけ、マッシュアップ！",
+    "name_ja": "ノッてけ、マッシュアップ！",
+    "tid": "bE"
+  },
+  {
+    "id": "106601",
+    "name_en": "Turbo BLAST!",
+    "name_ja": "エンジン全開！大噴射！",
+    "tid": "bF"
+  },
+  {
+    "id": "106701",
+    "name_en": "Eternal Encompassing Shine",
+    "name_ja": "晦冥を照らせ永遠の耀き",
+    "tid": "bG"
+  },
+  {
+    "id": "106702",
+    "name_en": "Rain Cloud Bolt",
+    "name_ja": "玄雲散らす、黄金甲矢",
+    "tid": "bH"
+  },
+  {
+    "id": "106703",
+    "name_en": "ポンテ・デ・ディアマン",
+    "name_ja": "ポンテ・デ・ディアマン",
+    "tid": "bI"
+  },
+  {
+    "id": "106801",
+    "name_en": "Victory Cheer!",
+    "name_ja": "勝ち鬨ワッショイ！",
+    "tid": "bJ"
+  },
+  {
+    "id": "106802",
+    "name_en": "Bring on the Banquet!",
+    "name_ja": "あっぱれ大盤振る舞い！",
+    "tid": "bK"
+  },
+  {
+    "id": "106803",
+    "name_en": "ミンナノアタシへ！",
+    "name_ja": "ミンナノアタシへ！",
+    "tid": "bL"
+  },
+  {
+    "id": "106901",
+    "name_en": "Ambition to Surpass the Sakura",
+    "name_ja": "憧れは桜を越える！",
+    "tid": "bM"
+  },
+  {
+    "id": "106902",
+    "name_en": "Watch! Me! BLOOM!",
+    "name_ja": "咲け咲け！私！",
+    "tid": "bN"
+  },
+  {
+    "id": "107001",
+    "name_en": "Seirios",
+    "name_ja": "セイリオス",
+    "tid": "bO"
+  },
+  {
+    "id": "107002",
+    "name_en": "駆るは光、狩るは星々",
+    "name_ja": "駆るは光、狩るは星々",
+    "tid": "bP"
+  },
+  {
+    "id": "107101",
+    "name_en": "A Lifelong Dream, A Moment's Flight",
+    "name_ja": "一期の夢、刹那の飛翔",
+    "tid": "bQ"
+  },
+  {
+    "id": "107102",
+    "name_en": "Danser le Présent",
+    "name_ja": "Danser le présent",
+    "tid": "bR"
+  },
+  {
+    "id": "107201",
+    "name_en": "Peerless Dance of Flowering Flames",
+    "name_ja": "烈火繚乱、無敵之舞",
+    "tid": "bS"
+  },
+  {
+    "id": "107202",
+    "name_en": "剛勇果断、烈火之刀",
+    "name_ja": "剛勇果断、烈火之刀",
+    "tid": "bT"
+  },
+  {
+    "id": "107301",
+    "name_en": "燃え盛るは絶対の意志",
+    "name_ja": "燃え盛るは絶対の意志",
+    "tid": "bU"
+  },
+  {
+    "id": "107401",
+    "name_en": "Lovely Spring Breeze",
+    "name_ja": "麗しき花信風",
+    "tid": "bV"
+  },
+  {
+    "id": "107402",
+    "name_en": "Illuminate you",
+    "name_ja": "Illuminate you",
+    "tid": "bW"
+  },
+  {
+    "id": "107403",
+    "name_en": "夕凪のリトリート・メモリー",
+    "name_ja": "夕凪のリトリート・メモリー",
+    "tid": "dM"
+  },
+  {
+    "id": "107501",
+    "name_en": "灰雪の冠",
+    "name_ja": "灰雪の冠",
+    "tid": "eo"
+  },
+  {
+    "id": "107601",
+    "name_en": "World in Bloom",
+    "name_ja": "花開き、世界",
+    "tid": "bX"
+  },
+  {
+    "id": "107602",
+    "name_en": "春光・Bon appétit",
+    "name_ja": "春光・Bon appétit",
+    "tid": "bY"
+  },
+  {
+    "id": "107701",
+    "name_en": "Road to Glory",
+    "name_ja": "Road to Glory",
+    "tid": "bZ"
+  },
+  {
+    "id": "107702",
+    "name_en": "Joy to the World",
+    "name_ja": "Joy to the World",
+    "tid": "c0"
+  },
+  {
+    "id": "107703",
+    "name_en": "一杯全力、お届けします！",
+    "name_ja": "一杯全力、お届けします！",
+    "tid": "dC"
+  },
+  {
+    "id": "107801",
+    "name_en": "Sunny Breeze",
+    "name_ja": "風光る",
+    "tid": "c1"
+  },
+  {
+    "id": "107802",
+    "name_en": "Breezy Treat",
+    "name_ja": "Breezy Treat",
+    "tid": "c2"
+  },
+  {
+    "id": "107901",
+    "name_en": "『船橋最強！』",
+    "name_ja": "『船橋最強！』",
+    "tid": "c3"
+  },
+  {
+    "id": "108001",
+    "name_en": "Info: Acquired",
+    "name_ja": "Info: Acquired",
+    "tid": "c4"
+  },
+  {
+    "id": "108002",
+    "name_en": "地熱解放オーヴァードライブ",
+    "name_ja": "地熱解放オーヴァードライブ",
+    "tid": "c5"
+  },
+  {
+    "id": "108101",
+    "name_en": "Punkish Bite",
+    "name_ja": "Punkish Bite",
+    "tid": "c6"
+  },
+  {
+    "id": "108201",
+    "name_en": "Shining Runway",
+    "name_ja": "Shining Runway",
+    "tid": "c7"
+  },
+  {
+    "id": "108202",
+    "name_en": "煌めき華やぐアローライン",
+    "name_ja": "煌めき華やぐアローライン",
+    "tid": "c8"
+  },
+  {
+    "id": "108301",
+    "name_en": "Mission: Triumph",
+    "name_ja": "Mission: Triumph",
+    "tid": "c9"
+  },
+  {
+    "id": "108302",
+    "name_en": "Immortal Work",
+    "name_ja": "Immortal Work",
+    "tid": "ca"
+  },
+  {
+    "id": "108401",
+    "name_en": "Sublimated Thunder",
+    "name_ja": "霹靂のアウフヘーベン",
+    "tid": "cb"
+  },
+  {
+    "id": "108402",
+    "name_en": "深淵のテルプシコラー",
+    "name_ja": "深淵のテルプシコラー",
+    "tid": "cc"
+  },
+  {
+    "id": "108501",
+    "name_en": "Ever Supreme",
+    "name_ja": "至上であれ",
+    "tid": "cd"
+  },
+  {
+    "id": "108502",
+    "name_en": "蒼炎",
+    "name_ja": "蒼炎",
+    "tid": "ce"
+  },
+  {
+    "id": "108601",
+    "name_en": "愛と熔けよただ熔けよ",
+    "name_ja": "愛と熔けよただ熔けよ",
+    "tid": "cf"
+  },
+  {
+    "id": "108602",
+    "name_en": "解けぬ結い目",
+    "name_ja": "解けぬ結い目",
+    "tid": "cg"
+  },
+  {
+    "id": "108701",
+    "name_en": "Silent Letter",
+    "name_ja": "Silent letter",
+    "tid": "ch"
+  },
+  {
+    "id": "108702",
+    "name_en": "ふわもこアワー",
+    "name_ja": "ふわもこアワー",
+    "tid": "ci"
+  },
+  {
+    "id": "108801",
+    "name_en": "Reversal Illusion",
+    "name_ja": "Reversal Illusion",
+    "tid": "cj"
+  },
+  {
+    "id": "108802",
+    "name_en": "夏雷カスケード！",
+    "name_ja": "夏雷カスケード！",
+    "tid": "ck"
+  },
+  {
+    "id": "108901",
+    "name_en": "Celeste Oath",
+    "name_ja": "Celeste Oath",
+    "tid": "cl"
+  },
+  {
+    "id": "108902",
+    "name_en": "Tidebreaker",
+    "name_ja": "Tidebreaker",
+    "tid": "cm"
+  },
+  {
+    "id": "109001",
+    "name_en": "Queen's Rebirth",
+    "name_ja": "Queen's Rebirth",
+    "tid": "cn"
+  },
+  {
+    "id": "109101",
+    "name_en": "デラックス☆ファウンテン",
+    "name_ja": "デラックス☆ファウンテン",
+    "tid": "co"
+  },
+  {
+    "id": "109102",
+    "name_en": "ジュ・テーム☆バカンス！",
+    "name_ja": "ジュ・テーム☆バカンス！",
+    "tid": "cp"
+  },
+  {
+    "id": "109201",
+    "name_en": "照らすのはわたしの焔",
+    "name_ja": "照らすのはわたしの焔",
+    "tid": "cq"
+  },
+  {
+    "id": "109301",
+    "name_en": "幸せの青い光",
+    "name_ja": "幸せの青い光",
+    "tid": "cr"
+  },
+  {
+    "id": "109302",
+    "name_en": "きせき・おもい・かなで",
+    "name_ja": "きせき・おもい・かなで",
+    "tid": "cs"
+  },
+  {
+    "id": "109401",
+    "name_en": "Faith in the Feral",
+    "name_ja": "Faith in the Feral",
+    "tid": "ct"
+  },
+  {
+    "id": "109402",
+    "name_en": "黄昏の血盟",
+    "name_ja": "黄昏の血盟",
+    "tid": "dl"
+  },
+  {
+    "id": "109501",
+    "name_en": "念い、信ずればこそ",
+    "name_ja": "念い、信ずればこそ",
+    "tid": "cu"
+  },
+  {
+    "id": "109601",
+    "name_en": "知宵欺敵、百戦不殆",
+    "name_ja": "知宵欺敵、百戦不殆",
+    "tid": "cv"
+  },
+  {
+    "id": "109701",
+    "name_en": "スカーレットリリィの高揚",
+    "name_ja": "スカーレットリリィの高揚",
+    "tid": "cw"
+  },
+  {
+    "id": "109801",
+    "name_en": "Luck Runs My Way",
+    "name_ja": "理運開かりて翔る",
+    "tid": "cx"
+  },
+  {
+    "id": "109802",
+    "name_en": "五獣挙りて彩光奏づ",
+    "name_ja": "五獣挙りて彩光奏づ",
+    "tid": "cy"
+  },
+  {
+    "id": "109901",
+    "name_en": "Shine On, Tomakomai! ☆",
+    "name_ja": "かがやけ☆とまこまい",
+    "tid": "cz"
+  },
+  {
+    "id": "109902",
+    "name_en": "とびだせ☆ポッピングシェル",
+    "name_ja": "とびだせ☆ポッピングシェル",
+    "tid": "cA"
+  },
+  {
+    "id": "110001",
+    "name_en": "Never Say Never",
+    "name_ja": "Never Say Never",
+    "tid": "cB"
+  },
+  {
+    "id": "110002",
+    "name_en": "湯守の和心",
+    "name_ja": "湯守の和心",
+    "tid": "cC"
+  },
+  {
+    "id": "110201",
+    "name_en": "ヴィヴァーチェ・ヴォラーレ",
+    "name_ja": "ヴィヴァーチェ・ヴォラーレ",
+    "tid": "cD"
+  },
+  {
+    "id": "110202",
+    "name_en": "ケ・ピアチェーヴォレ！",
+    "name_ja": "ケ・ピアチェーヴォレ！",
+    "tid": "cE"
+  },
+  {
+    "id": "110301",
+    "name_en": "絶対最強☆アピール宣言！",
+    "name_ja": "絶対最強☆アピール宣言！",
+    "tid": "cF"
+  },
+  {
+    "id": "110401",
+    "name_en": "Sunrise Banner—Katsuragi Ace!",
+    "name_ja": "暁の御旗『葛城栄主』！",
+    "tid": "cG"
+  },
+  {
+    "id": "110402",
+    "name_en": "決意一筆",
+    "name_ja": "決意一筆",
+    "tid": "cH"
+  },
+  {
+    "id": "110501",
+    "name_en": "Ad Astra",
+    "name_ja": "アド・アストラ",
+    "tid": "cI"
+  },
+  {
+    "id": "110502",
+    "name_en": "Encounter with U",
+    "name_ja": "Encounter with U",
+    "tid": "cJ"
+  },
+  {
+    "id": "110601",
+    "name_en": "Bang! Miracle Shot ☆",
+    "name_ja": "Bang☆ミラクるわせ！",
+    "tid": "cK"
+  },
+  {
+    "id": "110602",
+    "name_en": "小さな奇跡、フォーユー♪",
+    "name_ja": "小さな奇跡、フォーユー♪",
+    "tid": "cL"
+  },
+  {
+    "id": "110701",
+    "name_en": "Billions of stars",
+    "name_ja": "Billions of stars",
+    "tid": "cM"
+  },
+  {
+    "id": "110702",
+    "name_en": "Romantic Horizon",
+    "name_ja": "Romantic Horizon",
+    "tid": "cN"
+  },
+  {
+    "id": "110801",
+    "name_en": "羅刹、赤翼にて天上へ至らん",
+    "name_ja": "羅刹、赤翼にて天上へ至らん",
+    "tid": "cO"
+  },
+  {
+    "id": "110802",
+    "name_en": "かくて宿りし血は目覚め",
+    "name_ja": "かくて宿りし血は目覚め",
+    "tid": "eb"
+  },
+  {
+    "id": "110901",
+    "name_en": "繋ぐ・繋がる×夢・未来",
+    "name_ja": "繋ぐ・繋がる×夢・未来",
+    "tid": "cP"
+  },
+  {
+    "id": "110902",
+    "name_en": "ずっとずっと輝いて",
+    "name_ja": "ずっとずっと輝いて",
+    "tid": "cQ"
+  },
+  {
+    "id": "111001",
+    "name_en": "Guiding Sea",
+    "name_ja": "Guiding Sea",
+    "tid": "cR"
+  },
+  {
+    "id": "111002",
+    "name_en": "時かけるせせらぎ",
+    "name_ja": "時かけるせせらぎ",
+    "tid": "cS"
+  },
+  {
+    "id": "111101",
+    "name_en": "辿る血脈、芽吹く未来",
+    "name_ja": "辿る血脈、芽吹く未来",
+    "tid": "cT"
+  },
+  {
+    "id": "111201",
+    "name_en": "With All My Heart",
+    "name_ja": "With All My Heart",
+    "tid": "do"
+  },
+  {
+    "id": "111301",
+    "name_en": "ホップステップ・ゲッチュ♡",
+    "name_ja": "ホップステップ・ゲッチュ♡",
+    "tid": "cU"
+  },
+  {
+    "id": "111302",
+    "name_en": "渚のヴィーナスタイム♡",
+    "name_ja": "渚のヴィーナスタイム♡",
+    "tid": "dN"
+  },
+  {
+    "id": "111401",
+    "name_en": "To Our Vista",
+    "name_ja": "To Our Vista",
+    "tid": "cV"
+  },
+  {
+    "id": "111501",
+    "name_en": "我が覇道、阻むものなし",
+    "name_ja": "我が覇道、阻むものなし",
+    "tid": "cW"
+  },
+  {
+    "id": "111601",
+    "name_en": "烈華の洗礼",
+    "name_ja": "烈華の洗礼",
+    "tid": "cX"
+  },
+  {
+    "id": "111602",
+    "name_en": "不凋なるCattleya",
+    "name_ja": "不凋なるCattleya",
+    "tid": "dw"
+  },
+  {
+    "id": "111701",
+    "name_en": "鋭気のアレグロ",
+    "name_ja": "鋭気のアレグロ",
+    "tid": "cY"
+  },
+  {
+    "id": "111801",
+    "name_en": "悠遠のファーノース",
+    "name_ja": "悠遠のファーノース",
+    "tid": "cZ"
+  },
+  {
+    "id": "111901",
+    "name_en": "『それでは、よき旅を』",
+    "name_ja": "『それでは、よき旅を』",
+    "tid": "d0"
+  },
+  {
+    "id": "111902",
+    "name_en": "夢寐に見る銀世界",
+    "name_ja": "夢寐に見る銀世界",
+    "tid": "d1"
+  },
+  {
+    "id": "112001",
+    "name_en": "無二無三なる一条の路",
+    "name_ja": "無二無三なる一条の路",
+    "tid": "d2"
+  },
+  {
+    "id": "112101",
+    "name_en": "Lame de vent",
+    "name_ja": "Lame de vent",
+    "tid": "d3"
+  },
+  {
+    "id": "112401",
+    "name_en": "ふくらむ夢、先駆の途",
+    "name_ja": "ふくらむ夢、先駆の途",
+    "tid": "d4"
+  },
+  {
+    "id": "112402",
+    "name_en": "暁霞を拓き、朝を掴む",
+    "name_ja": "暁霞を拓き、朝を掴む",
+    "tid": "d5"
+  },
+  {
+    "id": "112701",
+    "name_en": "対象捕捉！正義遂行！",
+    "name_ja": "対象捕捉！正義遂行！",
+    "tid": "d6"
+  },
+  {
+    "id": "112702",
+    "name_en": "剛心鉄壁ガーディアン",
+    "name_ja": "剛心鉄壁ガーディアン",
+    "tid": "e1"
+  },
+  {
+    "id": "112901",
+    "name_en": "Peerless Heroine",
+    "name_ja": "Peerless Heroine",
+    "tid": "d7"
+  },
+  {
+    "id": "113001",
+    "name_en": "咲う花形",
+    "name_ja": "咲う花形",
+    "tid": "d8"
+  },
+  {
+    "id": "113101",
+    "name_en": "¡Qué alegría!",
+    "name_ja": "¡Qué alegría!",
+    "tid": "d9"
+  },
+  {
+    "id": "113201",
+    "name_en": "Circulating Love♡",
+    "name_ja": "Circulating Love♡",
+    "tid": "da"
+  },
+  {
+    "id": "113202",
+    "name_en": "Watch Us Flourish",
+    "name_ja": "Watch Us Flourish",
+    "tid": "db"
+  },
+  {
+    "id": "113301",
+    "name_en": "Weaving History",
+    "name_ja": "Weaving History",
+    "tid": "dc"
+  },
+  {
+    "id": "113401",
+    "name_en": "いずれあなたに咲くフローラ",
+    "name_ja": "いずれあなたに咲くフローラ",
+    "tid": "dx"
+  },
+  {
+    "id": "113501",
+    "name_en": "黄金を訪ねて",
+    "name_ja": "黄金を訪ねて",
+    "tid": "dd"
+  },
+  {
+    "id": "113601",
+    "name_en": "無垢の祈り・ホーリーライト",
+    "name_ja": "無垢の祈り・ホーリーライト",
+    "tid": "dp"
+  },
+  {
+    "id": "113701",
+    "name_en": "想像×創造＝∞",
+    "name_ja": "想像×創造＝∞",
+    "tid": "de"
+  },
+  {
+    "id": "114101",
+    "name_en": "光れ！弾けろ！超新星爆発！",
+    "name_ja": "光れ！弾けろ！超新星爆発！",
+    "tid": "dW"
+  },
+  {
+    "id": "114301",
+    "name_en": "Ring-a-Link",
+    "name_ja": "Ring-a-Link",
+    "tid": "df"
+  },
+  {
+    "id": "114401",
+    "name_en": "エパヌイスマンの大号令",
+    "name_ja": "エパヌイスマンの大号令",
+    "tid": "e5"
+  },
+  {
+    "id": "114501",
+    "name_en": "冠絶タクティクス",
+    "name_ja": "冠絶タクティクス",
+    "tid": "dE"
+  },
+  {
+    "id": "114901",
+    "name_en": "烈々と咲く",
+    "name_ja": "烈々と咲く",
+    "tid": "e4"
+  }
+]

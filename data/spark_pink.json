@@ -1,0 +1,62 @@
+[
+  {
+    "id": "11",
+    "name_en": "Turf",
+    "name_ja": "芝",
+    "tid": "5"
+  },
+  {
+    "id": "12",
+    "name_en": "Dirt",
+    "name_ja": "ダート",
+    "tid": "6"
+  },
+  {
+    "id": "21",
+    "name_en": "Front Runner",
+    "name_ja": "逃げ",
+    "tid": "7"
+  },
+  {
+    "id": "22",
+    "name_en": "Pace Chaser",
+    "name_ja": "先行",
+    "tid": "8"
+  },
+  {
+    "id": "23",
+    "name_en": "Late Surger",
+    "name_ja": "差し",
+    "tid": "9"
+  },
+  {
+    "id": "24",
+    "name_en": "End Closer",
+    "name_ja": "追込",
+    "tid": "a"
+  },
+  {
+    "id": "31",
+    "name_en": "Sprint",
+    "name_ja": "短距離",
+    "tid": "b"
+  },
+  {
+    "id": "32",
+    "name_en": "Mile",
+    "name_ja": "マイル",
+    "tid": "c"
+  },
+  {
+    "id": "33",
+    "name_en": "Medium",
+    "name_ja": "中距離",
+    "tid": "d"
+  },
+  {
+    "id": "34",
+    "name_en": "Long",
+    "name_ja": "長距離",
+    "tid": "e"
+  }
+]

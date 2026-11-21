@@ -47,6 +47,7 @@ from timeline import build_calendar_matrix
 import data_updater
 import veterans as veterans_store
 import veterans_gametora
+import veterans_umadump
 from check_affinity_umamoe import compare_with_umamoe
 
 def resource_path(*parts):
@@ -491,6 +492,43 @@ def api_veterans_import_gametora():
 
     updated = veterans_store.import_veterans(DATA_DIR, parsed)
     return jsonify({"veterans": updated, "imported_count": len(parsed), "skipped_count": skipped_count})
+
+
+@app.route("/api/race_labels")
+def api_race_labels():
+    """race_id -> nome leggibile (per le G1 vinte dei veterani importati)."""
+    return jsonify({race_id: format_race_name(race_id) for race_id in races})
+
+
+@app.route("/api/veterans/import_umadump", methods=["POST"])
+def api_veterans_import_umadump():
+    """
+    Importa veterani da un file di umadump (trained_chara_data.json, il
+    contenuto JSON e' il payload): una lista = inventario completo,
+    sincronizzato (aggiunti i nuovi, cancellati quelli importati da file che
+    non ci sono piu'); un singolo veterano = solo aggiunto. Vedi
+    veterans_umadump.parse_umadump e veterans.sync_imported_veterans.
+    """
+    payload = request.get_json(silent=True)
+    catalogs = {
+        kind: {s["id"]: s for s in data_updater.get_spark_list(DATA_DIR, f"spark_{name}.json")}
+        for kind, name in (("white", "skill"), ("race", "race"), ("blue", "blue"), ("pink", "pink"), ("green", "green"))
+    }
+    try:
+        parsed, skipped, full = veterans_umadump.parse_umadump(
+            payload, data_updater.get_card_characters(DATA_DIR), data_updater.get_saddle_races(DATA_DIR), catalogs,
+        )
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    if request.args.get("single"):
+        # pulsante "veterano singolo": mai una sincronizzazione dell'inventario
+        count = len(parsed) + len(skipped)
+        if count != 1:
+            return jsonify({"error": f"Il file contiene {count} veterani: per un inventario completo usa "
+                                     "\"Importa collezione veterani da file\"."}), 400
+        full = False
+    updated, stats = veterans_store.sync_imported_veterans(DATA_DIR, parsed, full)
+    return jsonify({"veterans": updated, **stats, "skipped_count": len(skipped), "full": full})
 
 
 @app.route("/api/portrait/<path:character>")

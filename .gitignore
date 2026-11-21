@@ -34,3 +34,6 @@ HANDOFF.original.md
 
 # Config locale di Claude Code (permessi specifici di questa macchina)
 .claude/settings.local.json
+
+# export veterani umadump (dati personali)
+trained_chara_data*.json

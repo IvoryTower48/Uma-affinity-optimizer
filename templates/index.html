@@ -82,8 +82,21 @@
         <button type="button" id="veterans-gametora-export-button" data-i18n="btn_veterans_gametora_export">Esporta veterani per Gametora</button>
         <button type="button" id="veterans-gametora-import-button" data-i18n="btn_veterans_gametora_import">Importa veterani da Gametora</button>
         <input type="file" id="veterans-gametora-import-file-input" accept="application/json" style="display:none">
+        <button type="button" id="veterans-umadump-import-button" data-i18n="btn_veterans_umadump_import">Importa veterani da umadump</button>
+        <input type="file" id="veterans-umadump-import-file-input" accept="application/json,.json" style="display:none">
+        <input type="file" id="veterans-any-import-file-input" accept="application/json,.json" style="display:none">
       </div>
       <p id="veterans-gametora-status" class="warning" hidden></p>
+
+      <div class="veterans-list-tools">
+        <input type="search" id="veterans-search-input" data-i18n-placeholder="veterans_search_placeholder" placeholder="Cerca per nome…">
+        <select id="veterans-sort-select">
+          <option value="added" data-i18n="opt_veterans_sort_added">Ordine di inserimento</option>
+          <option value="name" data-i18n="opt_veterans_sort_name">Nome</option>
+          <option value="created" data-i18n="opt_veterans_sort_created">Più recenti</option>
+          <option value="score" data-i18n="opt_veterans_sort_score">Punteggio</option>
+        </select>
+      </div>
 
       <!-- Lista laterale (icona + nome) + pannello di dettaglio per UN SOLO
            veterano alla volta (mai piu' righe identiche ripetute in fila,
@@ -103,7 +116,9 @@
     <div class="modal-box">
       <p class="modal-title" data-i18n="veteran_import_modal_title">Importa veterano</p>
       <div id="veteran-import-list" class="veterans-list"></div>
+      <p class="warning veterans-file-import-status" hidden></p>
       <div class="modal-actions">
+        <button type="button" class="veterans-file-import-button" data-i18n="btn_veterans_file_import">Importa collezione veterani da file (umadump)</button>
         <button type="button" id="veteran-import-cancel-button" class="modal-button-secondary" data-i18n="btn_cancel">Annulla</button>
       </div>
     </div>
@@ -222,8 +237,11 @@
             <button type="button" id="gametora-export-button" data-i18n="btn_gametora_export">Esporta per Gametora</button>
             <button type="button" id="gametora-import-button" data-i18n="btn_gametora_import">Importa da Gametora</button>
             <input type="file" id="gametora-import-file-input" accept="application/json" style="display:none">
+            <button type="button" class="veterans-file-import-button" data-i18n="btn_veterans_file_import">Importa collezione veterani da file (umadump)</button>
+            <button type="button" class="veterans-file-import-button" data-single="1" data-i18n="btn_veteran_single_file_import">Importa veterano singolo da file (umadump)</button>
           </div>
           <p id="gametora-import-status" class="warning" hidden></p>
+          <p class="warning veterans-file-import-status" hidden></p>
           <div id="gametora-import-skipped" class="warning" hidden>
             <p data-i18n="gametora_skipped_note">Nella maggior parte dei casi si tratta di varianti che questo tool non traccia separatamente, perché condividono le stesse aptitude e la stessa carriera del personaggio base ai fini del looping.</p>
             <ul id="gametora-import-skipped-list" class="gametora-skipped-list"></ul>

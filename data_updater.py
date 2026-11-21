@@ -28,16 +28,24 @@ state rimosse):
      ura-objectives.<hash>.json (build_mandatory_races); per quelli che le
      hanno gia', differenze SOLO segnalate,
    - mappe tid Gametora -> nostro id (build_gametora_tid_map & co., per
-     import/export posseduti e veterani). L'hash nel nome del file cambia ad
-     ogni deploy del sito: si risolve via data/manifests/umamusume.json.
+     import/export posseduti e veterani) e card_id del gioco -> nostro id
+     (data/card_characters.json, import veterani da umadump). L'hash nel
+     nome del file cambia ad ogni deploy del sito: si risolve via
+     data/manifests/umamusume.json.
 
-6. Gametora factors.<hash>.json -- catalogo race/white spark
-   (data/spark_race.json, data/spark_skill.json).
+6. Gametora factors.<hash>.json -- catalogo delle spark: race, white
+   (data/spark_race.json, data/spark_skill.json) e, per l'import da
+   umadump, blue/pink/green (data/spark_blue.json, spark_pink.json,
+   spark_green.json).
 
 7. uma.moe character_names.json -- SOLO il nome del costume ("Summer",
    "Christmas"...) di una carta, che character-cards.json non contiene: per
    nominare un costume nuovo e per abbinare la data Global al costume
    giusto. Scaricato al massimo una volta per esecuzione, solo se serve.
+
+8. uma.moe race_to_saddle_mapping.json -- "sella" vinta (win_saddle_id del
+   gioco) -> nostra gara G1 (data/saddle_races.json), per leggere le G1
+   vinte dai veterani importati da umadump.
 
 STORIA (dettagli in HANDOFF.md): il 2026-08-12 Gametora ha spostato i dati
 della pagina per-personaggio al rendering client-side; lo scraping HTML
@@ -71,6 +79,7 @@ SOURCE_KT_URL = (
     "commonMain/kotlin/io/github/mee1080/umaishow/data/Source.kt"
 )
 UMAMOE_CHARACTER_NAMES_URL = "https://uma.moe/resources/current/character_names.json.gz"
+UMAMOE_SADDLE_URL = "https://uma.moe/resources/current/race_to_saddle_mapping.json.gz"
 REQUEST_TIMEOUT = 15
 # Budget di tempo COMPLESSIVO per una singola esecuzione di run_update, oltre
 # al timeout per singola richiesta (REQUEST_TIMEOUT): con poche richieste in
@@ -725,6 +734,58 @@ def get_gametora_char_ids(data_dir) -> dict:
     return _read_json(Path(data_dir) / "gametora_char_ids.json", {})
 
 
+def build_card_characters(cards: list, tid_map: dict, fallback_map: dict) -> dict:
+    """dict[str(card_id)] -> nostro id, per l'import da umadump (che usa il
+    card_id del gioco, non il tid di Gametora): stesso abbinamento delle
+    mappe tid (esatto, poi ripiego sul costume tracciato), solo con la
+    chiave che usa il gioco."""
+    by_tid = {**fallback_map, **tid_map}
+    return {
+        str(card["card_id"]): by_tid[card["tid"]]
+        for card in cards
+        if card.get("card_id") and card.get("tid") in by_tid
+    }
+
+
+def get_card_characters(data_dir) -> dict:
+    return _read_json(Path(data_dir) / "card_characters.json", {})
+
+
+def fetch_umamoe_saddles() -> list | None:
+    """Gare di uma.moe con le loro selle ({race_id, short_name,
+    win_saddles: [{saddle_id, win_saddle_type}]}). None se non raggiungibile."""
+    try:
+        resp = requests.get(UMAMOE_SADDLE_URL, headers=HEADERS, timeout=REQUEST_TIMEOUT)
+        resp.raise_for_status()
+        races = resp.json()["races"]
+        return races if isinstance(races, list) else None
+    except (requests.RequestException, ValueError, KeyError, TypeError):
+        return None
+
+
+def build_saddle_races(saddle_races: list, gametora_race_ids: dict) -> dict:
+    """dict[str(saddle_id)] -> nostro race_id, solo selle di una G1 singola
+    (win_saddle_type 3; le corone sono ignorate: ogni loro G1 ha gia' la
+    propria sella). La gara si riconosce dal race_id del gioco
+    (race_gametora_ids.json); le versioni alternative della stessa G1 (JBC
+    su ippodromi diversi, una seconda Takarazuka Kinen...) hanno un race_id
+    diverso ma lo stesso nome, quindi si abbinano per nome."""
+    our_by_game_id = {game_id: race for race, game_id in gametora_race_ids.items()}
+    g1 = [(r, w["saddle_id"]) for r in saddle_races for w in r.get("win_saddles") or []
+          if w.get("win_saddle_type") == 3]
+    our_by_name = {r.get("short_name"): our_by_game_id[r["race_id"]] for r, _ in g1 if r.get("race_id") in our_by_game_id}
+    result = {}
+    for r, saddle_id in g1:
+        race = our_by_game_id.get(r.get("race_id")) or our_by_name.get(r.get("short_name"))
+        if race:
+            result[str(saddle_id)] = race
+    return result
+
+
+def get_saddle_races(data_dir) -> dict:
+    return _read_json(Path(data_dir) / "saddle_races.json", {})
+
+
 def build_gametora_tid_names(cards: list) -> dict:
     """dict[tid] = nome leggibile Gametora ("Special Week", "Special Week
     (Summer)", ...), per TUTTE le carte con un tid (comprese quelle SENZA un
@@ -780,7 +841,7 @@ def fetch_gametora_factors() -> dict | None:
     return data
 
 
-def _build_spark_list(entries: list) -> list:
+def _build_spark_list(entries: list, name_ja_fallback: bool = False) -> list:
     """Riduce le voci grezze di una categoria di factors.json ai soli campi
     che servono al tool (id, nome inglese/giapponese, race_id se presente,
     tid), scartando quelle senza id o senza alcun nome inglese utilizzabile.
@@ -796,6 +857,8 @@ def _build_spark_list(entries: list) -> list:
     for entry in entries:
         entry_id = entry.get("id")
         name = entry.get("name_en_gl") or entry.get("name_en")
+        if not name and name_ja_fallback:
+            name = entry.get("name_ja")  # spark verdi di carte solo JP: nessun nome inglese
         if not entry_id or not name:
             continue
         item = {
@@ -815,6 +878,23 @@ def build_spark_race_list(factors: dict) -> list:
 
 def build_spark_skill_list(factors: dict) -> list:
     return _build_spark_list(factors.get("skill", []))
+
+
+def build_extra_spark_lists(factors: dict) -> dict:
+    """Cataloghi blue/pink/green (solo per l'import da umadump): blue e pink
+    sono le categorie omonime, green le spark uniche (in 'other', type 3,
+    id = card_id della carta)."""
+    return {
+        "spark_blue.json": _build_spark_list(factors.get("blue", [])),
+        "spark_pink.json": _build_spark_list(factors.get("pink", [])),
+        "spark_green.json": _build_spark_list(
+            [e for e in factors.get("other", []) if e.get("type") == 3], name_ja_fallback=True,
+        ),
+    }
+
+
+def get_spark_list(data_dir, filename: str) -> list:
+    return _read_json(Path(data_dir) / filename, [])
 
 
 def _spark_race_path(data_dir) -> Path:
@@ -1088,6 +1168,12 @@ def run_update(data_dir: str) -> dict:
         if fallback_map != get_gametora_tid_fallback_map(data_dir):
             fallback_map_path.write_text(json.dumps(fallback_map, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
 
+        card_characters = build_card_characters(cards, tid_map, fallback_map)
+        if card_characters != get_card_characters(data_dir):
+            (data_dir / "card_characters.json").write_text(
+                json.dumps(card_characters, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8",
+            )
+
         char_ids = build_gametora_char_ids(cards)
         if char_ids != get_gametora_char_ids(data_dir):
             (data_dir / "gametora_char_ids.json").write_text(
@@ -1120,6 +1206,20 @@ def run_update(data_dir: str) -> dict:
                     json.dumps(spark_skill, ensure_ascii=False, indent=2), encoding="utf-8",
                 )
                 report["spark_lists_updated"] = True
+            for filename, spark_list in build_extra_spark_lists(factors).items():
+                if spark_list and spark_list != get_spark_list(data_dir, filename):
+                    (data_dir / filename).write_text(json.dumps(spark_list, ensure_ascii=False, indent=2), encoding="utf-8")
+                    report["spark_lists_updated"] = True
+
+    # --- Fonte 8: selle uma.moe -> nostre G1 (import veterani da umadump)
+    if not _budget_exceeded(deadline):
+        saddles = fetch_umamoe_saddles()
+        if saddles is not None:
+            saddle_races = build_saddle_races(saddles, _read_json(data_dir / "race_gametora_ids.json", {}))
+            if saddle_races and saddle_races != get_saddle_races(data_dir):
+                (data_dir / "saddle_races.json").write_text(
+                    json.dumps(saddle_races, indent=2, sort_keys=True), encoding="utf-8",
+                )
 
     return report
 
@@ -1328,4 +1428,17 @@ if __name__ == "__main__":
         {"race": "japan_cup", "year": 3, "choice": ""},
         {"race": "blocked:y3_m12_d2", "year": 3, "choice": ""},
     ], rows
+    # Selle: G1 per race_id, versione alternativa per nome, corone ignorate.
+    saddles = [
+        {"race_id": 1105, "short_name": "JBC Classic", "win_saddles": [{"saddle_id": 31, "win_saddle_type": 3}]},
+        {"race_id": 1113, "short_name": "JBC Classic", "win_saddles": [{"saddle_id": 158, "win_saddle_type": 3}]},
+        {"race_id": 1001, "short_name": "February S.", "win_saddles": [
+            {"saddle_id": 9, "win_saddle_type": 0}, {"saddle_id": 30, "win_saddle_type": 3}]},
+        {"race_id": 9999, "short_name": "Altra", "win_saddles": [{"saddle_id": 77, "win_saddle_type": 3}]},
+    ]
+    assert build_saddle_races(saddles, {"jbc_classic": 1105, "february_stakes": 1001}) == {
+        "31": "jbc_classic", "158": "jbc_classic", "30": "february_stakes"}
+    assert build_card_characters(
+        [{"card_id": 100101, "tid": "a"}, {"card_id": 100102, "tid": "b"}, {"card_id": 100201, "tid": "z"}],
+        {"a": "special_week"}, {"b": "special_week"}) == {"100101": "special_week", "100102": "special_week"}
     print("data_updater.py: self-check OK")

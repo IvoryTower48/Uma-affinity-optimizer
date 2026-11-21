@@ -1,0 +1,32 @@
+[
+  {
+    "id": "1",
+    "name_en": "Speed",
+    "name_ja": "スピード",
+    "tid": "0"
+  },
+  {
+    "id": "2",
+    "name_en": "Stamina",
+    "name_ja": "スタミナ",
+    "tid": "1"
+  },
+  {
+    "id": "3",
+    "name_en": "Power",
+    "name_ja": "パワー",
+    "tid": "2"
+  },
+  {
+    "id": "4",
+    "name_en": "Guts",
+    "name_ja": "根性",
+    "tid": "3"
+  },
+  {
+    "id": "5",
+    "name_en": "Wit",
+    "name_ja": "賢さ",
+    "tid": "4"
+  }
+]
