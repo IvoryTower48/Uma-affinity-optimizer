@@ -69,12 +69,18 @@
   --shadow-sm: 0 1px 2px rgba(60, 20, 45, 0.06), 0 1px 1px rgba(60, 20, 45, 0.08);
   --shadow-md: 0 4px 14px rgba(60, 20, 45, 0.10), 0 1px 3px rgba(60, 20, 45, 0.08);
 
-  --fs-xs: 0.75rem;
-  --fs-sm: 0.85rem;
+  /* Scala ~1,2 attorno a base 0,95rem (prima rapporti irregolari 1,10-1,24). */
+  --fs-xs: 0.79rem;
+  --fs-sm: 0.875rem;
   --fs-base: 0.95rem;
-  --fs-md: 1.05rem;
-  --fs-lg: 1.3rem;
-  --fs-xl: 1.55rem;
+  --fs-md: 1.14rem;
+  --fs-lg: 1.37rem;
+  --fs-xl: 1.64rem;
+
+  /* Controlli: altezza minima dei bottoni secondari/terziari e anello di focus
+     unico per tutti gli elementi interattivi. */
+  --control-h-sm: 2rem;
+  --focus-ring: 2px solid var(--primary-text);
 
   color-scheme: light;
 }
@@ -155,6 +161,11 @@ h1, h2, h3 { margin: 0; }
 
 button {
   font-family: inherit;
+}
+
+:where(button, select, input, summary, a, [tabindex]):focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
 }
 
 select, input[type="number"], input[type="text"], input[type="search"] {
@@ -418,7 +429,7 @@ select, input[type="number"], input[type="text"], input[type="search"] {
 }
 
 .ace-ancestor-grid label {
-  font-size: var(--fs-xs);
+  font-size: var(--fs-sm);
   font-weight: 400;
   color: var(--text-muted);
 }
@@ -437,13 +448,6 @@ select, input[type="number"], input[type="text"], input[type="search"] {
   flex: 1;
   min-width: 0;
   font-size: var(--fs-xs);
-}
-
-.ace-slot-veteran-row button,
-.ace-slot-spark-add-row button {
-  font-size: var(--fs-xs);
-  padding: 0.2rem 0.4rem;
-  flex-shrink: 0;
 }
 
 .ace-slot-sparks {
@@ -533,6 +537,7 @@ select, input[type="number"], input[type="text"], input[type="search"] {
   background: var(--bg-sunken);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
+  min-height: var(--control-h-sm);
   padding: 0.3rem 0.65rem;
   font-size: var(--fs-xs);
   font-weight: 600;
@@ -544,7 +549,8 @@ select, input[type="number"], input[type="text"], input[type="search"] {
   color: var(--primary-text);
 }
 
-.lang-button-active, .theme-button-active, .layout-button-active {
+.lang-button-active, .theme-button-active, .layout-button-active,
+.lang-button-active:hover, .theme-button-active:hover, .layout-button-active:hover {
   background: var(--primary-fill);
   border-color: var(--primary-fill);
   color: var(--primary-contrast);
@@ -906,14 +912,55 @@ button:disabled {
   align-items: center;
 }
 
-#owned-sort-direction-button, .owned-select-buttons button {
+/* Bottoni a 3 livelli:
+   - primario: `button` di base (pieno) -- Esegui, Aggiungi veterano, Salva nei modal;
+   - secondario: outline, qui sotto -- import/export, salva/carica, PDF, ordina, seleziona;
+   - terziario: solo testo -- azioni dentro gli slot (Importa, Aggiungi spark). */
+#owned-sort-direction-button,
+.owned-select-buttons button,
+.save-load-buttons button,
+.results-toolbar #pdf-button,
+.modal-button-secondary {
   background: var(--bg-sunken);
   color: var(--primary-text);
   border: 1px solid var(--border-strong);
-  padding: 0.3rem 0.65rem;
-  font-size: var(--fs-xs);
+  min-height: var(--control-h-sm);
+  padding: 0.3rem 0.85rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
   white-space: nowrap;
+}
+
+#owned-sort-direction-button:hover,
+.owned-select-buttons button:hover,
+.save-load-buttons button:hover,
+.results-toolbar #pdf-button:hover:not(:disabled),
+.modal-button-secondary:hover {
+  background: var(--primary-soft-bg);
+}
+
+.save-load-buttons button:disabled,
+.results-toolbar #pdf-button:disabled {
+  background: var(--bg-sunken);
+  border-color: var(--border);
+  color: var(--text-faint);
+}
+
+.ace-slot-veteran-row button,
+.ace-slot-spark-add-row button,
+.spark-b-remove-button {
+  background: none;
+  color: var(--primary-text);
+  min-height: var(--control-h-sm);
+  padding: 0.2rem 0.5rem;
+  font-size: var(--fs-sm);
+  flex-shrink: 0;
+}
+
+.ace-slot-veteran-row button:hover,
+.ace-slot-spark-add-row button:hover,
+.spark-b-remove-button:hover {
+  background: var(--primary-soft-bg);
 }
 
 .owned-select-buttons {
@@ -931,25 +978,21 @@ button:disabled {
   border-top: 1px dashed var(--border);
 }
 
+/* Azioni rare: gruppo etichettato e allineato a destra, lontano da
+   seleziona/ordina che si usano a ogni ricerca. */
+.owned-gametora-buttons { justify-content: flex-end; }
+
+.owned-io-label {
+  margin-right: auto;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
 .save-load-buttons {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 0.5rem;
-}
-
-.save-load-buttons button {
-  background: var(--bg-sunken);
-  color: var(--primary-text);
-  border: 1px solid var(--border-strong);
-  padding: 0.45rem 0.9rem;
-  font-size: var(--fs-sm);
-}
-
-.save-load-buttons button:disabled {
-  background: var(--bg-sunken);
-  border-color: var(--border);
-  color: var(--text-faint);
 }
 
 .pdf-export-status {
@@ -971,20 +1014,6 @@ button:disabled {
   align-items: center;
   gap: 0.6rem;
   margin-bottom: 0.5rem;
-}
-
-.results-toolbar #pdf-button {
-  background: var(--bg-sunken);
-  color: var(--primary-text);
-  border: 1px solid var(--border-strong);
-  padding: 0.45rem 0.9rem;
-  font-size: var(--fs-sm);
-}
-
-.results-toolbar #pdf-button:disabled {
-  background: var(--bg-sunken);
-  border-color: var(--border);
-  color: var(--text-faint);
 }
 
 #results {
@@ -1606,11 +1635,6 @@ details.collapsible-list summary {
   justify-content: space-between;
 }
 
-.spark-b-remove-button {
-  font-size: var(--fs-xs);
-  padding: 0.15rem 0.55rem;
-}
-
 .spark-result { margin-top: 0.9rem; }
 
 .total-loop-affinity { font-size: var(--fs-md); }
@@ -1807,12 +1831,6 @@ details.collapsible-list summary {
   display: flex;
   justify-content: flex-end;
   gap: 0.6rem;
-}
-
-.modal-button-secondary {
-  background: var(--bg-sunken);
-  color: var(--primary-text);
-  border: 1px solid var(--border-strong);
 }
 
 /* Modal Veterani: contenuto piu' ricco (lista + selettore spark + righe per
@@ -2035,15 +2053,12 @@ details.collapsible-list summary {
   color: var(--text-muted);
 }
 
+/* Statico a fine pagina: da fixed copriva timeline e risultati. */
 .credits-footer {
-  position: fixed;
-  right: 0.6rem;
-  bottom: 0.4rem;
+  text-align: right;
+  padding: 0 1.5rem 1rem;
   font-size: var(--fs-xs);
   color: var(--text-faint);
-  opacity: 0.7;
-  pointer-events: none;
-  z-index: 5;
 }
 
 .info-popover {

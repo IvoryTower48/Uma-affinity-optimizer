@@ -37,3 +37,6 @@ HANDOFF.original.md
 
 # export veterani umadump (dati personali)
 trained_chara_data*.json
+
+# Esplorazioni di design (direzioni tipografiche), non codice dell app
+design/
