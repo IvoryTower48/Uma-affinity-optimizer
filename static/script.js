@@ -3136,6 +3136,9 @@ async function runQuery() {
   const minAptitude = getMinAptitude();
   const itThreshold = getIndependentTrainingThreshold();
   results.innerHTML = `<p class="placeholder">${t("calc_in_progress")}</p>`;
+  // Niente doppio invio durante il calcolo; aria-busy per gli screen reader.
+  runButton.disabled = true;
+  results.setAttribute("aria-busy", "true");
 
   try {
     if (mode === "top4") {
@@ -3201,7 +3204,11 @@ async function runQuery() {
       renderAcePlan(data);
     }
   } catch (err) {
-    results.innerHTML = `<p class="placeholder">${t("error_prefix", { message: err.message })}</p>`;
+    // Stile d'errore distinto dal placeholder vuoto (prima erano identici).
+    results.innerHTML = `<p class="error-message" role="alert">${t("error_prefix", { message: err.message })}</p>`;
+  } finally {
+    runButton.disabled = false;
+    results.removeAttribute("aria-busy");
   }
 }
 

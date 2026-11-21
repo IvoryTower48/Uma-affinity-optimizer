@@ -1032,6 +1032,17 @@ button:disabled {
   font-style: italic;
 }
 
+.error-message {
+  color: var(--danger-text);
+  background: var(--danger-bg);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.8rem;
+  margin: 0;
+  font-size: var(--fs-sm);
+}
+
+#results[aria-busy="true"] .placeholder { color: var(--text-muted); }
+
 /* Contenitore dei box .debug-box (bordo tratteggiato, gia' "diverso" di suo):
    qui serve solo a staccarlo da #results, che sta subito sopra. */
 .debug-panel {
@@ -2257,4 +2268,34 @@ details.collapsible-list summary {
   0% { opacity: 0; }
   5%, 85% { opacity: 1; }
   100% { opacity: 0; }
+}
+
+/* =============================================================================
+   Polish (audit design, fase 3)
+   ========================================================================= */
+
+/* Feedback morbido su tutti i controlli cliccabili, non solo sul bottone base. */
+button, .mode-tab-button, .lang-button, .theme-button, .layout-button,
+.ace-slot-spark-chip, .veteran-list-item, .ace-slot-more > summary {
+  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
+
+/* Finestre strette: la timeline torna nel flusso sotto i controlli invece di
+   restare sticky sopra di loro (min-width 300px la faceva sovrapporre). */
+@media (max-width: 900px) {
+  .app-layout { flex-direction: column; align-items: stretch; }
+  .right-panel { position: static; min-width: 0; }
+  [data-layout="classic"] .right-panel { border-left: none; padding-left: 0; }
+}
+
+/* Telefono: le card dei controlli e le soglie di aptitude vanno a capo
+   invece di allargare la pagina (prima ~590px con scroll orizzontale a 375). */
+@media (max-width: 600px) {
+  .controls-row, .action-row { flex-direction: column; align-items: stretch; }
+  .action-row > .control-actions { width: auto; }
+  .min-aptitude-selects { flex-wrap: wrap; }
 }
