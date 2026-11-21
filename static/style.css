@@ -53,6 +53,17 @@
   --status-aptitude-bg: #fac775;
   --status-aptitude-text: #633806;
 
+  /* Spark per categoria, come nel gioco: blu statistiche, rosa aptitude,
+     verde uniche; bianche e di gara neutre (l'oro resta a META/stelle). */
+  --spark-blue-bg: #dde9fb;
+  --spark-blue-text: #1d4f91;
+  --spark-pink-bg: #fbe1ec;
+  --spark-pink-text: #9a2558;
+  --spark-green-bg: #dff1dc;
+  --spark-green-text: #2d6a2a;
+  --spark-white-bg: var(--bg-sunken);
+  --spark-white-text: var(--text);
+
   --radius: 10px;
   --radius-sm: 6px;
   --shadow-sm: 0 1px 2px rgba(60, 20, 45, 0.06), 0 1px 1px rgba(60, 20, 45, 0.08);
@@ -112,6 +123,13 @@
   --status-aptitude-bg: #ef9f27;
   --status-aptitude-text: #633806;
 
+  --spark-blue-bg: #1c2b45;
+  --spark-blue-text: #9cc3f5;
+  --spark-pink-bg: #3f1f2e;
+  --spark-pink-text: #f2a3c5;
+  --spark-green-bg: #1e3320;
+  --spark-green-text: #a6dd9f;
+
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45);
 
@@ -139,7 +157,7 @@ button {
   font-family: inherit;
 }
 
-select, input[type="number"], input[type="text"] {
+select, input[type="number"], input[type="text"], input[type="search"] {
   font-family: inherit;
   font-size: var(--fs-base);
   color: var(--text);
@@ -441,12 +459,30 @@ select, input[type="number"], input[type="text"] {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  background: var(--gold-soft-bg);
-  color: var(--gold-text);
+  background: var(--spark-white-bg);
+  color: var(--spark-white-text);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 0.1rem 0.4rem;
   font-size: var(--fs-xs);
 }
+
+.ace-slot-spark-chip[data-cat="blue"]  { background: var(--spark-blue-bg);  color: var(--spark-blue-text);  border-color: transparent; }
+.ace-slot-spark-chip[data-cat="pink"]  { background: var(--spark-pink-bg);  color: var(--spark-pink-text);  border-color: transparent; }
+.ace-slot-spark-chip[data-cat="green"] { background: var(--spark-green-bg); color: var(--spark-green-text); border-color: transparent; }
+
+/* Importa veterano + aggiungi spark: nascosti finche' non si apre lo slot,
+   cosi' l'ace si legge come albero (personaggio, genitori, nonni). */
+.ace-slot-more > summary {
+  cursor: pointer;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+  width: fit-content;
+}
+
+.ace-slot-more > summary:hover,
+.ace-slot-more[open] > summary { color: var(--primary-text); }
 
 .ace-slot-spark-chip button {
   background: none;
@@ -540,7 +576,10 @@ select, input[type="number"], input[type="text"] {
 
 .mode-tab-button:hover { color: var(--primary-text); }
 
-.mode-tab-active {
+/* :hover incluso: senza, .mode-tab-button:hover (piu' specifico) metteva
+   --primary-text sul fill del tab attivo, testo quasi invisibile. */
+.mode-tab-active,
+.mode-tab-active:hover {
   background: var(--primary-fill);
   border-color: var(--primary-fill);
   color: var(--primary-contrast);
@@ -1856,7 +1895,34 @@ details.collapsible-list summary {
   font-size: 0.55rem;
 }
 
+.veteran-score {
+  flex-shrink: 0;
+  margin-left: auto;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.veteran-score strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.veteran-row .veteran-score {
+  font-size: var(--fs-md);
+}
+
+.veteran-spark-group-label {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  min-width: 2.6rem;
+}
+
+.veteran-spark-group { align-items: center; }
+
 .veteran-list-item-name {
+  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;

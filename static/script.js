@@ -203,6 +203,7 @@ const I18N = {
     btn_close: "Chiudi",
     veterans_empty: "Nessun veterano salvato ancora.",
     btn_import_veteran: "Importa",
+    ace_slot_more: "Importa veterano / spark",
     veteran_import_modal_title: "Importa veterano",
     ace_slot_spark_remove_title: "Rimuovi",
     veteran_parents_title: "Genitori del veterano (diventeranno i nonni, una volta importato come genitore)",
@@ -446,6 +447,7 @@ const I18N = {
     btn_close: "Close",
     veterans_empty: "No veterans saved yet.",
     btn_import_veteran: "Import",
+    ace_slot_more: "Import veteran / spark",
     veteran_import_modal_title: "Import veteran",
     ace_slot_spark_remove_title: "Remove",
     veteran_parents_title: "Veteran's parents (become grandparents once imported as a parent)",
@@ -3789,6 +3791,7 @@ function buildSparkEditor(whiteSparks, raceSparks, onSave) {
   combined.forEach(spark => {
     const chip = document.createElement("span");
     chip.className = "ace-slot-spark-chip";
+    chip.dataset.cat = spark.sparkType;
     chip.textContent = `${spark.name_en} ${"★".repeat(spark.stars)}`;
     const removeBtn = document.createElement("button");
     removeBtn.type = "button";
@@ -3916,6 +3919,7 @@ function renderVeteransList() {
     nameSpan.className = "veteran-list-item-name";
     nameSpan.textContent = v.name;
     item.appendChild(nameSpan);
+    if (v.rank_score != null) item.appendChild(buildVeteranScore(v));
     item.addEventListener("click", () => {
       selectedVeteranId = v.id;
       renderVeteransList();
@@ -3951,6 +3955,17 @@ function veteranRankLabel(rank) {
   return VETERAN_RANK_LABELS[rank - 1] || "UG";
 }
 
+// Rango + punteggio, usato sia nella lista sia nell'intestazione del dettaglio.
+function buildVeteranScore(v) {
+  const el = document.createElement("span");
+  el.className = "veteran-score";
+  el.title = t("veteran_info_score", { score: v.rank_score });
+  const rank = document.createElement("strong");
+  rank.textContent = veteranRankLabel(v.rank);
+  el.append(rank, ` ${v.rank_score}`);
+  return el;
+}
+
 // Dati in sola lettura di un veterano importato (o di un suo genitore):
 // spark blu/rosa/verdi e G1 vinte. Niente per un veterano creato a mano.
 function buildImportedSparkInfo(entity) {
@@ -3961,10 +3976,23 @@ function buildImportedSparkInfo(entity) {
     ["veteran_sparks_pink", entity.pink_sparks],
     ["veteran_sparks_green", entity.green_sparks],
   ];
+  // Chip colorate per categoria (sola lettura): sono le spark che decidono
+  // un genitore, quindi devono pesare almeno quanto quelle bianche.
   groups.forEach(([key, sparks]) => {
     if (!sparks || sparks.length === 0) return;
-    const line = document.createElement("p");
-    line.textContent = `${t(key)}: ` + sparks.map(s => `${s.name_en} ${"★".repeat(s.stars)}`).join(", ");
+    const line = document.createElement("div");
+    line.className = "ace-slot-sparks veteran-spark-group";
+    const label = document.createElement("span");
+    label.className = "veteran-spark-group-label";
+    label.textContent = t(key);
+    line.appendChild(label);
+    sparks.forEach(s => {
+      const chip = document.createElement("span");
+      chip.className = "ace-slot-spark-chip";
+      chip.dataset.cat = key.replace("veteran_sparks_", "");
+      chip.textContent = `${s.name_en} ${"★".repeat(s.stars)}`;
+      line.appendChild(chip);
+    });
     wrap.appendChild(line);
   });
   if (entity.won_races) {
@@ -3998,14 +4026,15 @@ function renderVeteranDetail() {
   removeBtn.type = "button";
   removeBtn.textContent = t("btn_remove");
   removeBtn.addEventListener("click", () => deleteVeteran(v.id));
-  row.append(nameInput, charLabel, removeBtn);
+  row.append(nameInput, charLabel);
+  if (v.rank_score != null) row.appendChild(buildVeteranScore(v));
+  row.appendChild(removeBtn);
   veteranDetailEl.appendChild(row);
 
   if (v.source) {
     const info = document.createElement("p");
     info.className = "veteran-info-line";
     const parts = [t("veteran_info_imported")];
-    if (v.rank_score != null) parts.push(`${t("veteran_info_score", { score: v.rank_score })} (${veteranRankLabel(v.rank)})`);
     if (v.created_at) parts.push(t("veteran_info_created", { date: v.created_at.slice(0, 10) }));
     if (v.is_locked) parts.push(t("veteran_info_locked"));
     info.textContent = parts.join(" · ");
@@ -4273,6 +4302,7 @@ function renderAceSlotSparks(aceIndex, role) {
   combined.forEach(spark => {
     const chip = document.createElement("span");
     chip.className = "ace-slot-spark-chip";
+    chip.dataset.cat = spark.sparkType;
     chip.textContent = `${spark.name_en} ${"★".repeat(spark.stars)}`;
     const removeBtn = document.createElement("button");
     removeBtn.type = "button";

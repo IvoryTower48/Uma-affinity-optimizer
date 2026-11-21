@@ -340,11 +340,13 @@
                       <label data-i18n="{{ label_key }}">{{ label_text }}</label>
                       <select class="ace-slot-select" data-ace-index="{{ i }}" data-role="{{ role }}"></select>
 
+                      <div class="ace-slot-sparks" data-ace-index="{{ i }}" data-role="{{ role }}"></div>
+
+                      <details class="ace-slot-more">
+                      <summary data-i18n="ace_slot_more">Importa veterano / spark</summary>
                       <div class="ace-slot-veteran-row">
                         <button type="button" class="ace-slot-veteran-import-button" data-ace-index="{{ i }}" data-role="{{ role }}" data-i18n="btn_import_veteran">Importa</button>
                       </div>
-
-                      <div class="ace-slot-sparks" data-ace-index="{{ i }}" data-role="{{ role }}"></div>
 
                       <div class="ace-slot-spark-add-row">
                         <select class="ace-slot-spark-picker" data-ace-index="{{ i }}" data-role="{{ role }}">
@@ -357,6 +359,7 @@
                         </select>
                         <button type="button" class="ace-slot-spark-add-button" data-ace-index="{{ i }}" data-role="{{ role }}" data-i18n="btn_add">Aggiungi</button>
                       </div>
+                      </details>
                     </div>
                     {% endfor %}
                   </div>
