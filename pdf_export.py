@@ -24,7 +24,7 @@ from reportlab.pdfgen import canvas as pdfcanvas
 
 from cycle_analysis import derive_cycle_spark_plan_from_signature_sparks
 from data_loader import load_character_info
-from data_updater import HEADERS, get_gametora_char_ids
+from data_updater import HEADERS, get_card_costumes, get_gametora_char_ids
 from display_names import format_character_name, format_race_name
 from naming import base_character
 
@@ -104,6 +104,33 @@ def fetch_character_portrait_image(character, data_dir):
             cache_path.write_bytes(img_resp.content)
             return str(cache_path)
     return None
+
+
+# Miniatura del costume esatto (card_id) di un veterano, 2026-11-22: i
+# costumi con le stesse aptitude sono accorpati in un solo personaggio, il
+# ritratto base non li distingue. Solo per la UI, mai per i calcoli.
+CARD_PORTRAIT_URL = "https://gametora.com/images/umamusume/characters/thumb/chara_stand_{char_id}_{card_id}.png"
+
+
+def fetch_card_portrait_image(card_id, data_dir):
+    """Path locale (scaricato o in cache) della miniatura del costume, o
+    None se la carta non e' nota o l'immagine non e' raggiungibile."""
+    card = get_card_costumes(data_dir).get(str(card_id))
+    if card is None:
+        return None
+    cache_path = Path(data_dir) / "image_cache" / "cards" / f"{card_id}.png"
+    if cache_path.exists():
+        return str(cache_path)
+    try:
+        resp = requests.get(CARD_PORTRAIT_URL.format(char_id=card["char_id"], card_id=card_id),
+                            headers=HEADERS, timeout=REQUEST_TIMEOUT)
+    except requests.RequestException:
+        return None
+    if resp.status_code != 200:
+        return None
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    cache_path.write_bytes(resp.content)
+    return str(cache_path)
 
 
 # --- Costruzione del documento PDF (1-2 pagine, illustrato) -----------------

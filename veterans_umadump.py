@@ -83,6 +83,7 @@ def parse_umadump(data, card_characters: dict, saddle_races: dict, catalogs: dic
             continue
         veteran = {
             "character": character,
+            "card_id": item["card_id"],  # costume vero, solo per i ritratti (i calcoli usano 'character')
             "memo": (item.get("memo") or "").strip(),
             "source": {"type": "umadump", "viewer_id": item.get("viewer_id"),
                        "trained_chara_id": item["trained_chara_id"]},
@@ -100,6 +101,7 @@ def parse_umadump(data, card_characters: dict, saddle_races: dict, catalogs: dic
             if slot and parent_character:
                 veteran[slot] = {
                     "character": parent_character,
+                    "card_id": ancestor.get("card_id"),  # costume vero, solo per i ritratti
                     "won_races": _won_races(ancestor.get("win_saddle_id_array"), saddle_races),
                     **_sparks(ancestor.get("factor_info_array"), catalogs),
                 }
@@ -144,6 +146,7 @@ if __name__ == "__main__":
     assert v["race_sparks"][0]["stars"] == 2 and v["green_sparks"][0]["spark_id"] == "104601"
     assert v["won_races"] == ["february_stakes"] and v["memo"] == "x" and v["is_locked"] is True
     assert v["parent1"]["character"] == "smart_falcon" and v["parent1"]["won_races"] == ["february_stakes"]
+    assert v["card_id"] == 104601 and v["parent1"]["card_id"] == 104601
     assert v["parent2"] is None  # personaggio non riconosciuto: genitore ignoto, non inventato
     assert parse_umadump(vet, cards, {}, catalogs)[2] is False
     try:

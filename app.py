@@ -43,7 +43,7 @@ from cycle_analysis import (
     suggest_anchor_grandparents, suggest_anchor_grandparent_pairs,
     anchor_signature_spark_plan, apply_anchor_spark_plan,
 )
-from ace_planner import plan_ace_group
+from ace_planner import ALL_ROLES as ACE_ROLES, plan_ace_group
 from timeline import build_calendar_matrix
 import data_updater
 import veterans as veterans_store
@@ -308,6 +308,13 @@ def api_gametora_tid_names():
     return jsonify(data_updater.get_gametora_tid_names(DATA_DIR))
 
 
+@app.route("/api/card_costumes")
+def api_card_costumes():
+    """{card_id: {char_id, costume}} (data/card_costumes.json): etichetta del
+    costume vero dei veterani nella UI. Mai usato nei calcoli."""
+    return jsonify(data_updater.get_card_costumes(DATA_DIR))
+
+
 @app.route("/api/spark_race")
 def api_spark_race():
     """
@@ -492,6 +499,17 @@ def api_portrait(character):
     mai un'icona di immagine rotta.
     """
     path = pdf_export.fetch_character_portrait_image(character, DATA_DIR)
+    if path is None:
+        abort(404)
+    return send_file(path)
+
+
+@app.route("/api/portrait/card/<int:card_id>")
+def api_card_portrait(card_id):
+    """Miniatura del costume esatto di un veterano (vedi
+    pdf_export.fetch_card_portrait_image). 404 se non disponibile: il
+    frontend ripiega sul ritratto base del personaggio."""
+    path = pdf_export.fetch_card_portrait_image(card_id, DATA_DIR)
     if path is None:
         abort(404)
     return send_file(path)
@@ -1021,26 +1039,6 @@ def api_rental_loop():
     })
 
 
-def _ace_slots_response(aces, parent_slots, grandparent_slots):
-    """Converte parent_slots/grandparent_slots (chiavi interne di
-    ace_planner) nella forma per-ace usata dal payload/risposta JSON:
-    dict[ace] -> dict[ruolo] -> personaggio o None."""
-    out = {}
-    for ace in aces:
-        p1 = parent_slots.get((ace, "parent1"))
-        p2 = parent_slots.get((ace, "parent2"))
-        gp1a = gp1b = gp2a = gp2b = None
-        if p1 is not None:
-            gp1a, gp1b = grandparent_slots.get(p1, [None, None])
-        if p2 is not None:
-            gp2a, gp2b = grandparent_slots.get(p2, [None, None])
-        out[ace] = {
-            "parent1": p1, "parent2": p2,
-            "gp1a": gp1a, "gp1b": gp1b, "gp2a": gp2a, "gp2b": gp2b,
-        }
-    return out
-
-
 @app.route("/api/ace_plan", methods=["POST"])
 def api_ace_plan():
     """
@@ -1058,22 +1056,15 @@ def api_ace_plan():
       slots: dict[ace] -> dict[ruolo] -> personaggio o null. Ruoli: parent1,
         parent2, gp1a, gp1b (nonni via parent1), gp2a, gp2b (via parent2). Un
         ruolo null/assente viene suggerito automaticamente. I nonni arrivano
-        solo da un veterano importato come genitore (la UI non li fa scegliere
+        solo da un veterano aggiunto come genitore (la UI non li fa scegliere
         a mano): con parent1_veteran/parent2_veteran = true i nonni di quel
-        ramo sono fissi e un null resta ignoto, mai suggerito. Un nonno
-        indicato per un ace il cui genitore risulta condiviso con un altro ace
-        deve coincidere con quanto indicato dall'altro (altrimenti 400) -- il
-        nonno appartiene alla carta genitore, non al singolo ace.
-      shared_groups: lista di gruppi [[ace, ruolo], ...] (ruolo: parent1/
-        parent2) da riempire con lo STESSO personaggio quando ancora liberi
-        in tutti gli ace del gruppo -- usato per riusare la stessa carta
-        genitore su piu' ace (tipicamente con lo stesso stile di corsa)
-        invece di allevarne una per ciascuno.
+        ramo sono fissi e un null resta ignoto, mai suggerito. Ogni ace e' un
+        albero indipendente: lo stesso personaggio puo' essere genitore di piu'
+        ace, anche con nonni diversi.
     """
     payload = request.get_json()
     aces_input = payload.get("aces", [])
     raw_slots = payload.get("slots", {})
-    raw_shared_groups = payload.get("shared_groups", [])
     try:
         mode, global_only, owned, min_aptitude, matrix, universe, warning = request_filters(payload)
     except ValueError as e:
@@ -1099,54 +1090,24 @@ def api_ace_plan():
     if len(aces) != len({base_character(a) for a in aces}):
         return jsonify({"error": "Due ace non possono condividere lo stesso nome base."}), 400
 
-    parent_slots = {}
-    for ace in aces:
-        ace_slots = raw_slots.get(ace, {})
-        parent_slots[(ace, "parent1")] = ace_slots.get("parent1") or None
-        parent_slots[(ace, "parent2")] = ace_slots.get("parent2") or None
-
-    grandparent_slots = {}
-    fixed_gp_parents = set()
-    for ace in aces:
-        ace_slots = raw_slots.get(ace, {})
-        for parent, gp_a_key, gp_b_key, veteran_key in (
-            (parent_slots[(ace, "parent1")], "gp1a", "gp1b", "parent1_veteran"),
-            (parent_slots[(ace, "parent2")], "gp2a", "gp2b", "parent2_veteran"),
-        ):
-            if parent is None:
-                continue
-            if ace_slots.get(veteran_key):
-                fixed_gp_parents.add(parent)
-            gp_a = ace_slots.get(gp_a_key) or None
-            gp_b = ace_slots.get(gp_b_key) or None
-            if gp_a is None and gp_b is None:
-                continue
-            existing = grandparent_slots.setdefault(parent, [None, None])
-            for i, val in enumerate((gp_a, gp_b)):
-                if val is None:
-                    continue
-                if existing[i] is not None and existing[i] != val:
-                    return jsonify({
-                        "error": f"Nonni diversi indicati per lo stesso genitore "
-                                 f"condiviso '{parent}'."
-                    }), 400
-                existing[i] = val
-
-    shared_groups = [[tuple(pair) for pair in group] for group in raw_shared_groups]
+    slots = {ace: {role: raw_slots.get(ace, {}).get(role) or None for role in ACE_ROLES} for ace in aces}
+    fixed_branches = {
+        ace: {role for role in ("parent1", "parent2") if raw_slots.get(ace, {}).get(f"{role}_veteran")}
+        for ace in aces
+    }
     candidate_pool = restrict_to_owned(universe, owned)
 
     try:
         result = plan_ace_group(
-            aces, parent_slots, grandparent_slots, shared_groups,
-            candidate_pool, matrix, name_map, character_ids, id_weights,
-            calendar, races, aptitudes, mode, min_aptitude, fixed_gp_parents,
+            aces, slots, fixed_branches, candidate_pool, matrix, name_map, character_ids, id_weights,
+            calendar, races, aptitudes, mode, min_aptitude,
         )
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
 
     return jsonify({
         "aces": aces,
-        "slots": _ace_slots_response(aces, result["parent_slots"], result["grandparent_slots"]),
+        "slots": result["slots"],
         "cycles": result["cycles"],
         "total_affinity": result["total_affinity"],
         "warning": warning,

@@ -47,6 +47,11 @@ from pathlib import Path
 
 from display_names import format_character_name
 
+def _card_id_from_green(holder: dict):
+    greens = holder.get("green_sparks") or []
+    return int(greens[0]["spark_id"]) if greens and str(greens[0].get("spark_id", "")).isdigit() else None
+
+
 def _normalize_all(veterans: list) -> tuple[list, bool]:
     """Aggiunge i campi assenti nei record scritti prima che esistessero --
     solo in lettura, ma essendo una migrazione la scrive UNA SOLA VOLTA (vedi
@@ -62,6 +67,13 @@ def _normalize_all(veterans: list) -> tuple[list, bool]:
     changed = False
     counts = {}
     for v in veterans:
+        # Costume vero (card_id, 2026-11-22) per i veterani importati prima:
+        # l'id della spark verde E' il card_id della carta. Fissato una volta,
+        # cosi' modificare le spark nel tool non cambia il costume.
+        for holder in (v, v.get("parent1"), v.get("parent2")):
+            if holder is not None and "card_id" not in holder:
+                holder["card_id"] = _card_id_from_green(holder)
+                changed = True
         if "parent1" not in v:
             v["parent1"] = None
             changed = True

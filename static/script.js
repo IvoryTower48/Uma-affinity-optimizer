@@ -38,7 +38,6 @@ const rentalFixedSelects = Array.from(document.querySelectorAll(".rental-fixed-s
 const aceField = document.getElementById("ace-field");
 const aceCharacterSelects = Array.from(document.querySelectorAll(".ace-character-select"));
 const aceSlotSelects = Array.from(document.querySelectorAll(".ace-slot-select"));
-const aceShareCheckboxes = Array.from(document.querySelectorAll(".ace-share-checkbox"));
 const runButton = document.getElementById("run-button");
 const saveButton = document.getElementById("save-button");
 const loadButton = document.getElementById("load-button");
@@ -190,7 +189,7 @@ const I18N = {
     rental_total_label: "Total Loop Affinity",
     opt_mode_ace: "Pianifica ace (PvP)",
     ace_section_title: "Pianifica ace (PvP)",
-    ace_intro: "Fino a 3 ace (i veterani schierabili in PvP), uno per tab. Per ogni genitore scegli un personaggio, aggiungi un veterano o lascia \"(automatico)\" per farlo suggerire. I nonni non si scelgono: sono i genitori del veterano aggiunto, altrimenti li suggerisce il calcolo. Se più ace condividono lo stesso stile di corsa, puoi condividere lo stesso genitore tra loro.",
+    ace_intro: "Fino a 3 ace (i veterani schierabili in PvP), uno per tab. Per ogni genitore scegli un personaggio, aggiungi un veterano o lascia \"(automatico)\" per farlo suggerire. I nonni non si scelgono: sono i genitori del veterano aggiunto, altrimenti li suggerisce il calcolo.",
     label_ace_parent1: "Genitore 1",
     label_ace_parent2: "Genitore 2",
     label_ace_gp1a: "Nonno/a 1a",
@@ -206,8 +205,6 @@ const I18N = {
     ace_spark_summary_empty: "Nessuna spark nota: aggiungi un veterano come genitore.",
     ace_results_hint: "Albero e affinità di ogni ace nella sua tab.",
     opt_auto: "(automatico)",
-    label_ace_share_parent1: "Genitore 1 condiviso da:",
-    label_ace_share_parent2: "Genitore 2 condiviso da:",
     ace_heading: "Piano ace",
     ace_total_label: "Affinità totale",
     rental_partial_note: "Nonni ignoti: alcuni termini non sono calcolati (mostrati come N/D), il totale copre solo quelli noti.",
@@ -463,7 +460,7 @@ const I18N = {
     rental_total_label: "Total Loop Affinity",
     opt_mode_ace: "Plan aces (PvP)",
     ace_section_title: "Plan aces (PvP)",
-    ace_intro: "Up to 3 aces (the veterans you can field in PvP), one per tab. For each parent pick a character, add a veteran or leave \"(auto)\" to get one suggested. Grandparents are not picked: they are the added veteran's parents, otherwise the calculation suggests them. If several aces share the same running style, they can share the same parent.",
+    ace_intro: "Up to 3 aces (the veterans you can field in PvP), one per tab. For each parent pick a character, add a veteran or leave \"(auto)\" to get one suggested. Grandparents are not picked: they are the added veteran's parents, otherwise the calculation suggests them.",
     label_ace_parent1: "Parent 1",
     label_ace_parent2: "Parent 2",
     label_ace_gp1a: "Grandparent 1a",
@@ -479,8 +476,6 @@ const I18N = {
     ace_spark_summary_empty: "No known sparks: add a veteran as a parent.",
     ace_results_hint: "Each ace's tree and affinity are in its tab.",
     opt_auto: "(auto)",
-    label_ace_share_parent1: "Parent 1 shared by:",
-    label_ace_share_parent2: "Parent 2 shared by:",
     ace_heading: "Ace plan",
     ace_total_label: "Total affinity",
     rental_partial_note: "Grandparents unknown: some terms aren't computed (shown as N/A), the total only covers the known ones.",
@@ -1031,7 +1026,9 @@ function characterInitials(character) {
   return words.slice(0, 2).map(w => w[0].toUpperCase()).join("");
 }
 
-function buildPortraitWrap(character) {
+// cardId (facoltativo): costume esatto di un veterano. Se la sua miniatura
+// non si carica, si ripiega sul ritratto base del personaggio.
+function buildPortraitWrap(character, cardId) {
   const wrap = document.createElement("div");
   wrap.className = "portrait-wrap";
   const fallback = document.createElement("span");
@@ -1041,10 +1038,14 @@ function buildPortraitWrap(character) {
   wrap.appendChild(fallback);
   const img = document.createElement("img");
   img.className = "portrait-img";
-  img.src = `/api/portrait/${encodeURIComponent(character)}`;
+  const baseSrc = `/api/portrait/${encodeURIComponent(character)}`;
+  img.src = cardId ? `/api/portrait/card/${cardId}` : baseSrc;
   img.alt = "";
   img.loading = "lazy";
-  img.addEventListener("error", () => { img.style.display = "none"; });
+  img.addEventListener("error", () => {
+    if (cardId && !img.src.endsWith(baseSrc)) img.src = baseSrc;
+    else img.style.display = "none";
+  });
   wrap.appendChild(img);
   return wrap;
 }
@@ -1306,11 +1307,9 @@ function getRentalFixedMembers() {
 }
 
 // Costruisce il payload di /api/ace_plan dai controlli #ace-field: aces (1-3
-// personaggi), slots (dict[ace] -> dict[ruolo] -> personaggio o null) e
-// shared_groups (coppie [ace,ruolo] da riempire con lo stesso personaggio,
-// una per ruolo genitore -- vedi ace_planner.plan_ace_group). Gli slot/
-// checkbox si riferiscono all'INDICE del blocco (1/2/3), tradotto qui nel
-// personaggio effettivo scelto in quella posizione.
+// personaggi) e slots (dict[ace] -> dict[ruolo] -> personaggio o null, vedi
+// ace_planner.plan_ace_group). Gli slot si riferiscono all'INDICE del blocco
+// (1/2/3), tradotto qui nel personaggio effettivo scelto in quella posizione.
 function getAcePayload() {
   const [ace1, ace2, ace3] = aceCharacterSelects.map(s => s.value);
   const indexToCharacter = { 1: ace1 || null, 2: ace2 || null, 3: ace3 || null };
@@ -1330,16 +1329,7 @@ function getAcePayload() {
     BRANCH_GP_ROLES[role].forEach(gp => { slots[character][gp] = getSlotData(aceIndex, gp).character || null; });
   });
 
-  const groupsByRole = { parent1: [], parent2: [] };
-  aceShareCheckboxes.forEach(cb => {
-    if (!cb.checked) return;
-    const character = indexToCharacter[Number(cb.dataset.aceIndex)];
-    if (!character) return;
-    groupsByRole[cb.dataset.role].push([character, cb.dataset.role]);
-  });
-  const shared_groups = Object.values(groupsByRole).filter(g => g.length >= 2);
-
-  return { aces, slots, shared_groups };
+  return { aces, slots };
 }
 
 function visibleItems() {
@@ -2640,7 +2630,7 @@ function buildCycleTable(cycles) {
 // omessi per il figlio (non ha una sua Individual Affinity, e' il centro
 // dell'albero -- stesso motivo per cui la tabella classica non gliene
 // mostra una).
-function buildGenealogyNode(character, ia, breakdownTerms) {
+function buildGenealogyNode(character, ia, breakdownTerms, cardId) {
   const node = document.createElement("div");
   if (character == null) {
     node.className = "genealogy-node genealogy-node-unknown";
@@ -2649,7 +2639,7 @@ function buildGenealogyNode(character, ia, breakdownTerms) {
   }
   node.className = "genealogy-node";
   node.title = breakdownTerms ? formatBreakdownTooltip(breakdownTerms) : formatCharacterName(character);
-  node.appendChild(buildPortraitWrap(character));
+  node.appendChild(buildPortraitWrap(character, cardId));
   const name = document.createElement("div");
   name.className = "genealogy-node-name";
   name.textContent = formatCharacterName(character);
@@ -3320,13 +3310,13 @@ async function runQuery() {
       if (!resp.ok) throw new Error(translateServerMessage(data.error) || t("error_unknown"));
       renderRentalResult(data);
     } else if (mode === "ace") {
-      const { aces, slots, shared_groups } = getAcePayload();
+      const { aces, slots } = getAcePayload();
       const resp = await fetch("/api/ace_plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           aces, mode: calendarMode, global_only: globalOnly, owned, min_aptitude: minAptitude,
-          slots, shared_groups,
+          slots,
         }),
       });
       const data = await resp.json();
@@ -3948,12 +3938,14 @@ function renderVeteransList() {
   shown.forEach(v => {
     const item = document.createElement("div");
     item.className = "veteran-list-item" + (v.id === selectedVeteranId ? " selected" : "");
-    item.appendChild(buildPortraitWrap(v.character));
+    item.appendChild(buildPortraitWrap(v.character, v.card_id));
     const nameSpan = document.createElement("span");
     nameSpan.className = "veteran-list-item-name";
     nameSpan.textContent = v.name;
     nameSpan.title = v.name;  // nomi lunghi troncati con ellissi
     item.appendChild(nameSpan);
+    const costumeTag = buildCostumeTag(v.card_id);
+    if (costumeTag) item.appendChild(costumeTag);
     item.appendChild(buildVeteranScore(v));
     item.addEventListener("click", () => {
       selectedVeteranId = v.id;
@@ -4175,7 +4167,34 @@ function addVeteranToAce(v, aceIndex, role) {
   slotSelect(aceIndex, role).closest(".ace-slot-block").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+// Costume di ogni carta (data/card_costumes.json): {card_id: {char_id,
+// costume}}, costume "" = originale. Solo per ritratti ed etichette dei
+// veterani; i calcoli usano sempre 'character'.
+let cardCostumes = null;
+
+// Nomi scelti dall'utente (2026-11-22) dove quello automatico e' sbagliato;
+// gli altri costumi, anche futuri, usano il codice Gametora leggibile.
+const COSTUME_LABELS = {
+  uaf: "UAF", gff: "GFF", larc: "L'Arc", five_point_five_anni: "5.5th Anniversary", tracen_ken: "Tracen-ken",
+};
+
+function costumeLabel(cardId) {
+  const costume = cardCostumes && cardCostumes[cardId] && cardCostumes[cardId].costume;
+  if (!costume) return "";
+  return COSTUME_LABELS[costume] || costume.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+}
+
+function buildCostumeTag(cardId) {
+  const label = costumeLabel(cardId);
+  if (!label) return null;  // costume originale o sconosciuto: basta il ritratto
+  const el = document.createElement("span");
+  el.className = "costume-tag";
+  el.textContent = label;
+  return el;
+}
+
 async function loadVeterans() {
+  if (!cardCostumes) cardCostumes = await fetch("/api/card_costumes").then(r => r.json()).catch(() => ({}));
   veteransCache = await fetch("/api/veterans").then(r => r.json());
   renderVeteransList();
 }
@@ -4402,18 +4421,17 @@ async function initAceSlotAuxiliaryUI() {
 
 // Veterano nello slot genitore (aceIndex, role): i suoi genitori diventano i
 // 2 nonni del ramo (un genitore ignoto resta "ignoto", mai suggerito). I dati
-// vanno messi PRIMA del "change": lo specchio sui genitori condivisi li copia
-// nel momento del dispatch.
+// vanno messi PRIMA del "change": le regole e il ridisegno che innesca li leggono.
 function importVeteranIntoSlot(aceIndex, role, veteran) {
-  aceSlotData[aceSlotKey(aceIndex, role)] = { veteran: veteran.name, ...copySparks(veteran) };
+  aceSlotData[aceSlotKey(aceIndex, role)] = { veteran: veteran.name, card_id: veteran.card_id, ...copySparks(veteran) };
   [veteran.parent1, veteran.parent2].forEach((gp, i) => {
     aceSlotData[aceSlotKey(aceIndex, BRANCH_GP_ROLES[role][i])] = gp
-      ? { character: gp.character, ...copySparks(gp) }
+      ? { character: gp.character, card_id: gp.card_id, ...copySparks(gp) }
       : { unknown: true };
   });
   const select = slotSelect(aceIndex, role);
   select.value = veteran.character;
-  select.dispatchEvent(new Event("change"));  // innesca enforceNoSelfParent/specchio/ridisegno
+  select.dispatchEvent(new Event("change"));  // innesca enforceNoSelfParent/ridisegno
 }
 
 // Chi occupa uno slot: scelto o importato, altrimenti il suggerimento
@@ -4444,7 +4462,10 @@ function buildAceNode(aceIndex, role) {
   const cycle = aceCycle(aceIndex);
   const node = buildGenealogyNode(
     anc.character, cycle ? cycle.individual_affinity[role] : undefined, cycle ? cycle.breakdown[role] : undefined,
+    anc.data.card_id,
   );
+  const costumeTag = buildCostumeTag(anc.data.card_id);
+  if (costumeTag) node.appendChild(costumeTag);
   const tag = anc.data.veteran || (anc.suggested ? t("ace_tree_suggested") : "");
   if (tag) {
     const el = document.createElement("div");
@@ -4471,7 +4492,7 @@ function buildAceSparkSummary(aceIndex) {
       const entries = byCat[cat] = byCat[cat] || {};
       const e = entries[s.spark_id] = entries[s.spark_id] || { name: s.name_en, total: 0, carriers: [] };
       e.total += s.stars;
-      e.carriers.push({ character: anc.character, role, stars: s.stars });
+      e.carriers.push({ character: anc.character, cardId: anc.data.card_id, role, stars: s.stars });
     }));
   });
 
@@ -4500,9 +4521,10 @@ function buildAceSparkSummary(aceIndex) {
         item.dataset.cat = cat;
         item.textContent = `${e.name} ${e.total}★`;
         e.carriers.forEach(c => {
-          const portrait = buildPortraitWrap(c.character);
+          const portrait = buildPortraitWrap(c.character, c.cardId);
           portrait.classList.add("ace-spark-carrier");
-          portrait.title = `${t(`label_ace_${c.role}`)}: ${formatCharacterName(c.character)} ${"★".repeat(c.stars)}`;
+          const costume = costumeLabel(c.cardId);
+          portrait.title = `${t(`label_ace_${c.role}`)}: ${formatCharacterName(c.character)}${costume ? ` (${costume})` : ""} ${"★".repeat(c.stars)}`;
           item.appendChild(portrait);
         });
         list.appendChild(item);
@@ -4551,7 +4573,7 @@ function renderAceTree(aceIndex) {
   summary.appendChild(buildAceSparkSummary(aceIndex));
 }
 
-// Un solo ridisegno per raffica di eventi (import, specchio, enforceNoSelfParent
+// Un solo ridisegno per raffica di eventi (import, enforceNoSelfParent
 // ne scatenano diversi di fila).
 function scheduleAceRender() {
   if (aceRenderQueued) return;
@@ -4588,18 +4610,11 @@ aceTabButtons.forEach(b => b.addEventListener("click", () => setAceTab(b.dataset
 let veteranImportTarget = null;
 
 // Motivo per cui 'character' non puo' andare nello slot genitore (aceIndex,
-// role), anche negli altri ace che lo condividono; null se puo'. Solo per
-// parent1/parent2: i nonni seguono le regole gia' esistenti.
+// role); null se puo'.
 function parentSlotConflict(character, aceIndex, role) {
-  if (role !== "parent1" && role !== "parent2") return null;
   const other = role === "parent1" ? "parent2" : "parent1";
-  const group = sharedGroupForRole(role);
-  const aces = group.includes(String(aceIndex)) ? group : [String(aceIndex)];
-  for (const ace of aces) {
-    const aceChar = document.querySelector(`.ace-character-select[data-ace-index="${ace}"]`).value;
-    if (sameBase(character, aceChar)) return t("ace_conflict_self", { ace });
-    if (sameBase(character, slotSelect(ace, other).value)) return t("ace_conflict_both_parents", { ace });
-  }
+  if (sameBase(character, aceCharSelect(aceIndex).value)) return t("ace_conflict_self", { ace: aceIndex });
+  if (sameBase(character, slotSelect(aceIndex, other).value)) return t("ace_conflict_both_parents", { ace: aceIndex });
   return null;
 }
 
@@ -4688,7 +4703,9 @@ function buildVeteranPick(v) {
   pick.type = "button";
   pick.className = "veteran-pick";
   pick.title = v.name;  // il nome distingue le copie (vedi veterans.py)
-  pick.appendChild(buildPortraitWrap(v.character));
+  pick.appendChild(buildPortraitWrap(v.character, v.card_id));
+  const costumeTag = buildCostumeTag(v.card_id);
+  if (costumeTag) pick.appendChild(costumeTag);
   pick.appendChild(buildVeteranScore(v));
   (v.pink_sparks || []).forEach(s => {
     const pink = document.createElement("span");
@@ -4776,25 +4793,7 @@ veteranImportModal.addEventListener("click", event => {
   if (event.target === veteranImportModal) closeVeteranImportModal();  // click fuori dal box chiude, come gli altri modal
 });
 
-// --- Piano ace: specchio automatico sui genitori condivisi -----------------
-// Se "Genitore N condiviso da" e' attivo su piu' ace, scegliere o importare
-// il genitore in UNO di quegli slot lo specchia SUBITO negli altri (stesso
-// ruolo), insieme al veterano e ai nonni che porta: condividere un genitore
-// vuol dire condividere la stessa carta fisica, quindi gli stessi nonni
-// (ace_planner.build_established unifica i nonni per personaggio-genitore).
-//
-// "Sorgente" dello specchio: lo slot appena modificato, se ha un valore;
-// altrimenti il primo membro del gruppo che ne ha gia' uno (serve quando si
-// attiva la spunta "condiviso" DOPO aver gia' scelto qualcosa in uno slot).
-// Il controllo "valore gia' uguale, non ridispatchare" su ogni <select>
-// evita un ping-pong infinito di eventi 'change' tra i membri del gruppo.
-
-function sharedGroupForRole(role) {
-  return aceShareCheckboxes
-    .filter(cb => cb.dataset.role === role && cb.checked)
-    .map(cb => cb.dataset.aceIndex);
-}
-
+// --- Piano ace: regole sui genitori -----------------------------------------
 function slotSelect(aceIndex, role) {
   return document.querySelector(`.ace-slot-select[data-ace-index="${aceIndex}"][data-role="${role}"]`);
 }
@@ -4803,44 +4802,11 @@ function aceCharSelect(aceIndex) {
   return document.querySelector(`.ace-character-select[data-ace-index="${aceIndex}"]`);
 }
 
-function pickSyncSource(groupIndexes, role, preferred) {
-  const hasValue = idx => !!slotSelect(idx, role).value;
-  if (preferred && hasValue(preferred)) return preferred;
-  return groupIndexes.find(hasValue) || null;
-}
-
-function setSlotIfDifferent(aceIndex, role, character) {
-  const select = slotSelect(aceIndex, role);
-  if (select.value !== character) {
-    select.value = character;
-    select.dispatchEvent(new Event("change"));
-  }
-}
-
-function mirrorSharedSlot(preferredSourceAceIndex, role) {
-  const groupIndexes = sharedGroupForRole(role);
-  if (groupIndexes.length < 2) return;
-  const sourceAceIndex = pickSyncSource(groupIndexes, role, preferredSourceAceIndex);
-  if (!sourceAceIndex) return;
-
-  groupIndexes.forEach(targetAceIndex => {
-    if (targetAceIndex === sourceAceIndex) return;
-    // dati del ramo PRIMA del dispatch: il "change" sintetico non li azzera.
-    [role, ...BRANCH_GP_ROLES[role]].forEach(r => {
-      const data = aceSlotData[aceSlotKey(sourceAceIndex, r)];
-      if (data) aceSlotData[aceSlotKey(targetAceIndex, r)] = structuredClone(data);
-      else delete aceSlotData[aceSlotKey(targetAceIndex, r)];
-    });
-    setSlotIfDifferent(targetAceIndex, role, slotSelect(sourceAceIndex, role).value);
-  });
-}
-
 // Mai un personaggio genitore di se' stesso, ne' lo stesso personaggio come
 // genitore 1 e 2. Le regole usano il NOME BASE (varianti incluse, come nel
 // gioco, 2026-11-22): niente Oguri Cap (Xmas) genitore di Oguri Cap, niente
 // El Condor Pasa genitore 1 e El Condor Pasa (Og) genitore 2. Un cambio che
-// crea un conflitto viene annullato subito (torna "automatico") e innesca
-// comunque "change", cosi' lo specchio propaga l'annullamento. changedRole =
+// crea un conflitto viene annullato subito (torna "automatico"). changedRole =
 // lo slot appena cambiato: in un conflitto genitore1/genitore2 e' lui a essere
 // svuotato. I nonni vengono dal veterano (in gioco gia' validi) o dal calcolo.
 function sameBase(a, b) {
@@ -4875,18 +4841,10 @@ aceSlotSelects.forEach(select => {
   select.addEventListener("change", event => {
     const { aceIndex, role } = select.dataset;
     // Un cambio genuino dell'utente (event.isTrusted) toglie il veterano e i
-    // suoi nonni; i dispatch programmatici (import, specchio, annullamento)
-    // hanno gia' impostato i dati giusti prima del "change".
+    // suoi nonni; i dispatch programmatici (import, annullamento) hanno gia'
+    // impostato i dati giusti prima del "change".
     if (event.isTrusted) clearBranch(aceIndex, role);
     enforceNoSelfParent(aceIndex, role);
-    mirrorSharedSlot(aceIndex, role);
-    aceInputChanged();
-  });
-});
-
-aceShareCheckboxes.forEach(cb => {
-  cb.addEventListener("change", () => {
-    if (cb.checked) mirrorSharedSlot(cb.dataset.aceIndex, cb.dataset.role);  // togliere la spunta non "despecchia" nulla
     aceInputChanged();
   });
 });

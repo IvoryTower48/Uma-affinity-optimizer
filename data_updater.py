@@ -29,7 +29,8 @@ state rimosse):
      hanno gia', differenze SOLO segnalate,
    - mappe tid Gametora -> nostro id (build_gametora_tid_map & co., per
      import/export posseduti e veterani) e card_id del gioco -> nostro id
-     (data/card_characters.json, import veterani da umadump). L'hash nel
+     (data/card_characters.json, import veterani da umadump), costume di
+     ogni carta (data/card_costumes.json, ritratti dei veterani). L'hash nel
      nome del file cambia ad ogni deploy del sito: si risolve via
      data/manifests/umamusume.json.
 
@@ -751,6 +752,23 @@ def get_card_characters(data_dir) -> dict:
     return _read_json(Path(data_dir) / "card_characters.json", {})
 
 
+def build_card_costumes(cards: list) -> dict:
+    """dict[str(card_id)] = {char_id, costume}: per ogni carta il char_id
+    Gametora (serve all'URL della miniatura del costume) e il tipo di costume
+    ("summer", "christmas", ...; "" = originale). Solo per mostrare il costume
+    vero dei veterani (2026-11-22): i calcoli usano sempre il nostro id
+    personaggio, dove i costumi con le stesse aptitude restano accorpati."""
+    return {
+        str(card["card_id"]): {"char_id": card["char_id"], "costume": card.get("version") or ""}
+        for card in cards
+        if card.get("card_id") and card.get("char_id")
+    }
+
+
+def get_card_costumes(data_dir) -> dict:
+    return _read_json(Path(data_dir) / "card_costumes.json", {})
+
+
 def fetch_umamoe_saddles() -> list | None:
     """Gare di uma.moe con le loro selle ({race_id, short_name,
     win_saddles: [{saddle_id, win_saddle_type}]}). None se non raggiungibile."""
@@ -1174,6 +1192,12 @@ def run_update(data_dir: str) -> dict:
                 json.dumps(card_characters, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8",
             )
 
+        card_costumes = build_card_costumes(cards)
+        if card_costumes != get_card_costumes(data_dir):
+            (data_dir / "card_costumes.json").write_text(
+                json.dumps(card_costumes, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8",
+            )
+
         char_ids = build_gametora_char_ids(cards)
         if char_ids != get_gametora_char_ids(data_dir):
             (data_dir / "gametora_char_ids.json").write_text(
@@ -1441,4 +1465,8 @@ if __name__ == "__main__":
     assert build_card_characters(
         [{"card_id": 100101, "tid": "a"}, {"card_id": 100102, "tid": "b"}, {"card_id": 100201, "tid": "z"}],
         {"a": "special_week"}, {"b": "special_week"}) == {"100101": "special_week", "100102": "special_week"}
+    assert build_card_costumes(
+        [{"card_id": 100601, "char_id": 1006}, {"card_id": 100602, "char_id": 1006, "version": "christmas"},
+         {"card_id": 100701}]) == {"100601": {"char_id": 1006, "costume": ""},
+                                   "100602": {"char_id": 1006, "costume": "christmas"}}
     print("data_updater.py: self-check OK")

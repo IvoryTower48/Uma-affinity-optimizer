@@ -1,0 +1,1098 @@
+{
+  "100101": {
+    "char_id": 1001,
+    "costume": ""
+  },
+  "100102": {
+    "char_id": 1001,
+    "costume": "summer"
+  },
+  "100103": {
+    "char_id": 1001,
+    "costume": "commander"
+  },
+  "100201": {
+    "char_id": 1002,
+    "costume": ""
+  },
+  "100202": {
+    "char_id": 1002,
+    "costume": "summer"
+  },
+  "100301": {
+    "char_id": 1003,
+    "costume": ""
+  },
+  "100302": {
+    "char_id": 1003,
+    "costume": "anime_collab"
+  },
+  "100303": {
+    "char_id": 1003,
+    "costume": "fall_festival"
+  },
+  "100401": {
+    "char_id": 1004,
+    "costume": ""
+  },
+  "100402": {
+    "char_id": 1004,
+    "costume": "summer"
+  },
+  "100403": {
+    "char_id": 1004,
+    "costume": "new_year"
+  },
+  "100501": {
+    "char_id": 1005,
+    "costume": ""
+  },
+  "100502": {
+    "char_id": 1005,
+    "costume": "ballroom"
+  },
+  "100503": {
+    "char_id": 1005,
+    "costume": "cheerleader"
+  },
+  "100601": {
+    "char_id": 1006,
+    "costume": ""
+  },
+  "100602": {
+    "char_id": 1006,
+    "costume": "christmas"
+  },
+  "100603": {
+    "char_id": 1006,
+    "costume": "anime_collab"
+  },
+  "100701": {
+    "char_id": 1007,
+    "costume": ""
+  },
+  "100702": {
+    "char_id": 1007,
+    "costume": "summer"
+  },
+  "100703": {
+    "char_id": 1007,
+    "costume": "larc"
+  },
+  "100801": {
+    "char_id": 1008,
+    "costume": ""
+  },
+  "100802": {
+    "char_id": 1008,
+    "costume": "christmas"
+  },
+  "100901": {
+    "char_id": 1009,
+    "costume": ""
+  },
+  "100902": {
+    "char_id": 1009,
+    "costume": "christmas"
+  },
+  "100903": {
+    "char_id": 1009,
+    "costume": "shuntaisai"
+  },
+  "101001": {
+    "char_id": 1010,
+    "costume": ""
+  },
+  "101002": {
+    "char_id": 1010,
+    "costume": "camping"
+  },
+  "101003": {
+    "char_id": 1010,
+    "costume": "valentine"
+  },
+  "101101": {
+    "char_id": 1011,
+    "costume": ""
+  },
+  "101102": {
+    "char_id": 1011,
+    "costume": "fantasy"
+  },
+  "101103": {
+    "char_id": 1011,
+    "costume": "new_year"
+  },
+  "101201": {
+    "char_id": 1012,
+    "costume": ""
+  },
+  "101202": {
+    "char_id": 1012,
+    "costume": "wedding"
+  },
+  "101301": {
+    "char_id": 1013,
+    "costume": ""
+  },
+  "101302": {
+    "char_id": 1013,
+    "costume": "anime_collab"
+  },
+  "101303": {
+    "char_id": 1013,
+    "costume": "summer"
+  },
+  "101401": {
+    "char_id": 1014,
+    "costume": ""
+  },
+  "101402": {
+    "char_id": 1014,
+    "costume": "fantasy"
+  },
+  "101501": {
+    "char_id": 1015,
+    "costume": ""
+  },
+  "101502": {
+    "char_id": 1015,
+    "costume": "new_year"
+  },
+  "101601": {
+    "char_id": 1016,
+    "costume": ""
+  },
+  "101602": {
+    "char_id": 1016,
+    "costume": "blaze"
+  },
+  "101701": {
+    "char_id": 1017,
+    "costume": ""
+  },
+  "101702": {
+    "char_id": 1017,
+    "costume": "fall_festival"
+  },
+  "101703": {
+    "char_id": 1017,
+    "costume": "halloween"
+  },
+  "101801": {
+    "char_id": 1018,
+    "costume": ""
+  },
+  "101802": {
+    "char_id": 1018,
+    "costume": "wedding"
+  },
+  "101803": {
+    "char_id": 1018,
+    "costume": "halloween"
+  },
+  "101901": {
+    "char_id": 1019,
+    "costume": ""
+  },
+  "101902": {
+    "char_id": 1019,
+    "costume": "halloween"
+  },
+  "102001": {
+    "char_id": 1020,
+    "costume": ""
+  },
+  "102002": {
+    "char_id": 1020,
+    "costume": "ballroom"
+  },
+  "102003": {
+    "char_id": 1020,
+    "costume": "summer"
+  },
+  "102101": {
+    "char_id": 1021,
+    "costume": ""
+  },
+  "102102": {
+    "char_id": 1021,
+    "costume": "fall_festival"
+  },
+  "102201": {
+    "char_id": 1022,
+    "costume": ""
+  },
+  "102202": {
+    "char_id": 1022,
+    "costume": "wedding"
+  },
+  "102203": {
+    "char_id": 1022,
+    "costume": "tracen_ken"
+  },
+  "102301": {
+    "char_id": 1023,
+    "costume": ""
+  },
+  "102302": {
+    "char_id": 1023,
+    "costume": "christmas"
+  },
+  "102303": {
+    "char_id": 1023,
+    "costume": "mecha"
+  },
+  "102401": {
+    "char_id": 1024,
+    "costume": ""
+  },
+  "102402": {
+    "char_id": 1024,
+    "costume": "wedding"
+  },
+  "102403": {
+    "char_id": 1024,
+    "costume": "halloween"
+  },
+  "102501": {
+    "char_id": 1025,
+    "costume": ""
+  },
+  "102502": {
+    "char_id": 1025,
+    "costume": "valentine"
+  },
+  "102503": {
+    "char_id": 1025,
+    "costume": "wedding"
+  },
+  "102601": {
+    "char_id": 1026,
+    "costume": ""
+  },
+  "102602": {
+    "char_id": 1026,
+    "costume": "valentine"
+  },
+  "102701": {
+    "char_id": 1027,
+    "costume": ""
+  },
+  "102702": {
+    "char_id": 1027,
+    "costume": "valentine"
+  },
+  "102801": {
+    "char_id": 1028,
+    "costume": ""
+  },
+  "102802": {
+    "char_id": 1028,
+    "costume": "halloween"
+  },
+  "102901": {
+    "char_id": 1029,
+    "costume": ""
+  },
+  "102902": {
+    "char_id": 1029,
+    "costume": "valentine"
+  },
+  "102903": {
+    "char_id": 1029,
+    "costume": "shuntaisai"
+  },
+  "103001": {
+    "char_id": 1030,
+    "costume": ""
+  },
+  "103002": {
+    "char_id": 1030,
+    "costume": "halloween"
+  },
+  "103003": {
+    "char_id": 1030,
+    "costume": "gff"
+  },
+  "103101": {
+    "char_id": 1031,
+    "costume": ""
+  },
+  "103102": {
+    "char_id": 1031,
+    "costume": "valentine"
+  },
+  "103103": {
+    "char_id": 1031,
+    "costume": "island"
+  },
+  "103201": {
+    "char_id": 1032,
+    "costume": ""
+  },
+  "103202": {
+    "char_id": 1032,
+    "costume": "summer"
+  },
+  "103203": {
+    "char_id": 1032,
+    "costume": "alt"
+  },
+  "103301": {
+    "char_id": 1033,
+    "costume": ""
+  },
+  "103302": {
+    "char_id": 1033,
+    "costume": "christmas"
+  },
+  "103401": {
+    "char_id": 1034,
+    "costume": ""
+  },
+  "103402": {
+    "char_id": 1034,
+    "costume": "fall_festival"
+  },
+  "103501": {
+    "char_id": 1035,
+    "costume": ""
+  },
+  "103502": {
+    "char_id": 1035,
+    "costume": "steampunk"
+  },
+  "103503": {
+    "char_id": 1035,
+    "costume": "uaf"
+  },
+  "103601": {
+    "char_id": 1036,
+    "costume": ""
+  },
+  "103602": {
+    "char_id": 1036,
+    "costume": "halloween"
+  },
+  "103701": {
+    "char_id": 1037,
+    "costume": ""
+  },
+  "103702": {
+    "char_id": 1037,
+    "costume": "valentine"
+  },
+  "103703": {
+    "char_id": 1037,
+    "costume": "summer_trip"
+  },
+  "103801": {
+    "char_id": 1038,
+    "costume": ""
+  },
+  "103802": {
+    "char_id": 1038,
+    "costume": "wedding"
+  },
+  "103901": {
+    "char_id": 1039,
+    "costume": ""
+  },
+  "103902": {
+    "char_id": 1039,
+    "costume": "fall_festival"
+  },
+  "104001": {
+    "char_id": 1040,
+    "costume": ""
+  },
+  "104002": {
+    "char_id": 1040,
+    "costume": "fall_festival"
+  },
+  "104003": {
+    "char_id": 1040,
+    "costume": "island"
+  },
+  "104101": {
+    "char_id": 1041,
+    "costume": ""
+  },
+  "104102": {
+    "char_id": 1041,
+    "costume": "sports_fest"
+  },
+  "104103": {
+    "char_id": 1041,
+    "costume": "ballroom"
+  },
+  "104201": {
+    "char_id": 1042,
+    "costume": ""
+  },
+  "104202": {
+    "char_id": 1042,
+    "costume": "halloween"
+  },
+  "104301": {
+    "char_id": 1043,
+    "costume": ""
+  },
+  "104302": {
+    "char_id": 1043,
+    "costume": "five_point_five_anni"
+  },
+  "104401": {
+    "char_id": 1044,
+    "costume": ""
+  },
+  "104402": {
+    "char_id": 1044,
+    "costume": "wedding"
+  },
+  "104501": {
+    "char_id": 1045,
+    "costume": ""
+  },
+  "104502": {
+    "char_id": 1045,
+    "costume": "halloween"
+  },
+  "104503": {
+    "char_id": 1045,
+    "costume": "warfare"
+  },
+  "104601": {
+    "char_id": 1046,
+    "costume": ""
+  },
+  "104602": {
+    "char_id": 1046,
+    "costume": "grand_live"
+  },
+  "104603": {
+    "char_id": 1046,
+    "costume": "parade"
+  },
+  "104701": {
+    "char_id": 1047,
+    "costume": ""
+  },
+  "104702": {
+    "char_id": 1047,
+    "costume": "autumn"
+  },
+  "104801": {
+    "char_id": 1048,
+    "costume": ""
+  },
+  "104802": {
+    "char_id": 1048,
+    "costume": "summer_trip"
+  },
+  "104803": {
+    "char_id": 1048,
+    "costume": "halloween"
+  },
+  "104901": {
+    "char_id": 1049,
+    "costume": ""
+  },
+  "104902": {
+    "char_id": 1049,
+    "costume": "christmas"
+  },
+  "105001": {
+    "char_id": 1050,
+    "costume": ""
+  },
+  "105002": {
+    "char_id": 1050,
+    "costume": "steampunk"
+  },
+  "105003": {
+    "char_id": 1050,
+    "costume": "mecha"
+  },
+  "105101": {
+    "char_id": 1051,
+    "costume": ""
+  },
+  "105102": {
+    "char_id": 1051,
+    "costume": "wedding"
+  },
+  "105201": {
+    "char_id": 1052,
+    "costume": ""
+  },
+  "105202": {
+    "char_id": 1052,
+    "costume": "new_year"
+  },
+  "105301": {
+    "char_id": 1053,
+    "costume": ""
+  },
+  "105302": {
+    "char_id": 1053,
+    "costume": "summer_trip"
+  },
+  "105401": {
+    "char_id": 1054,
+    "costume": ""
+  },
+  "105501": {
+    "char_id": 1055,
+    "costume": ""
+  },
+  "105502": {
+    "char_id": 1055,
+    "costume": "halloween"
+  },
+  "105601": {
+    "char_id": 1056,
+    "costume": ""
+  },
+  "105602": {
+    "char_id": 1056,
+    "costume": "full_armor"
+  },
+  "105701": {
+    "char_id": 1057,
+    "costume": ""
+  },
+  "105702": {
+    "char_id": 1057,
+    "costume": "new_year"
+  },
+  "105801": {
+    "char_id": 1058,
+    "costume": ""
+  },
+  "105802": {
+    "char_id": 1058,
+    "costume": "halloween"
+  },
+  "105901": {
+    "char_id": 1059,
+    "costume": ""
+  },
+  "105902": {
+    "char_id": 1059,
+    "costume": "camping"
+  },
+  "106001": {
+    "char_id": 1060,
+    "costume": ""
+  },
+  "106002": {
+    "char_id": 1060,
+    "costume": "cheerleader"
+  },
+  "106003": {
+    "char_id": 1060,
+    "costume": "new_year"
+  },
+  "106101": {
+    "char_id": 1061,
+    "costume": ""
+  },
+  "106102": {
+    "char_id": 1061,
+    "costume": "cheerleader"
+  },
+  "106103": {
+    "char_id": 1061,
+    "costume": "wedding"
+  },
+  "106201": {
+    "char_id": 1062,
+    "costume": ""
+  },
+  "106202": {
+    "char_id": 1062,
+    "costume": "sports_fest"
+  },
+  "106301": {
+    "char_id": 1063,
+    "costume": ""
+  },
+  "106302": {
+    "char_id": 1063,
+    "costume": "new_year"
+  },
+  "106401": {
+    "char_id": 1064,
+    "costume": ""
+  },
+  "106402": {
+    "char_id": 1064,
+    "costume": "christmas"
+  },
+  "106501": {
+    "char_id": 1065,
+    "costume": ""
+  },
+  "106502": {
+    "char_id": 1065,
+    "costume": "ballroom"
+  },
+  "106601": {
+    "char_id": 1066,
+    "costume": ""
+  },
+  "106701": {
+    "char_id": 1067,
+    "costume": ""
+  },
+  "106702": {
+    "char_id": 1067,
+    "costume": "new_year"
+  },
+  "106703": {
+    "char_id": 1067,
+    "costume": "larc"
+  },
+  "106801": {
+    "char_id": 1068,
+    "costume": ""
+  },
+  "106802": {
+    "char_id": 1068,
+    "costume": "new_year"
+  },
+  "106803": {
+    "char_id": 1068,
+    "costume": "anime_collab"
+  },
+  "106901": {
+    "char_id": 1069,
+    "costume": ""
+  },
+  "106902": {
+    "char_id": 1069,
+    "costume": "ballroom"
+  },
+  "107001": {
+    "char_id": 1070,
+    "costume": ""
+  },
+  "107002": {
+    "char_id": 1070,
+    "costume": "twinkle"
+  },
+  "107101": {
+    "char_id": 1071,
+    "costume": ""
+  },
+  "107102": {
+    "char_id": 1071,
+    "costume": "ballroom"
+  },
+  "107201": {
+    "char_id": 1072,
+    "costume": ""
+  },
+  "107202": {
+    "char_id": 1072,
+    "costume": "warfare"
+  },
+  "107301": {
+    "char_id": 1073,
+    "costume": ""
+  },
+  "107401": {
+    "char_id": 1074,
+    "costume": ""
+  },
+  "107402": {
+    "char_id": 1074,
+    "costume": "christmas"
+  },
+  "107403": {
+    "char_id": 1074,
+    "costume": "summer"
+  },
+  "107501": {
+    "char_id": 1075,
+    "costume": ""
+  },
+  "107601": {
+    "char_id": 1076,
+    "costume": ""
+  },
+  "107602": {
+    "char_id": 1076,
+    "costume": "new_year"
+  },
+  "107701": {
+    "char_id": 1077,
+    "costume": ""
+  },
+  "107702": {
+    "char_id": 1077,
+    "costume": "christmas"
+  },
+  "107703": {
+    "char_id": 1077,
+    "costume": "tracen_ken"
+  },
+  "107801": {
+    "char_id": 1078,
+    "costume": ""
+  },
+  "107802": {
+    "char_id": 1078,
+    "costume": "valentine"
+  },
+  "107901": {
+    "char_id": 1079,
+    "costume": ""
+  },
+  "108001": {
+    "char_id": 1080,
+    "costume": ""
+  },
+  "108002": {
+    "char_id": 1080,
+    "costume": "onsen"
+  },
+  "108101": {
+    "char_id": 1081,
+    "costume": ""
+  },
+  "108201": {
+    "char_id": 1082,
+    "costume": ""
+  },
+  "108202": {
+    "char_id": 1082,
+    "costume": "ballroom"
+  },
+  "108301": {
+    "char_id": 1083,
+    "costume": ""
+  },
+  "108302": {
+    "char_id": 1083,
+    "costume": "halloween"
+  },
+  "108401": {
+    "char_id": 1084,
+    "costume": ""
+  },
+  "108402": {
+    "char_id": 1084,
+    "costume": "ballroom"
+  },
+  "108501": {
+    "char_id": 1085,
+    "costume": ""
+  },
+  "108502": {
+    "char_id": 1085,
+    "costume": "ballroom"
+  },
+  "108601": {
+    "char_id": 1086,
+    "costume": ""
+  },
+  "108602": {
+    "char_id": 1086,
+    "costume": "wedding"
+  },
+  "108701": {
+    "char_id": 1087,
+    "costume": ""
+  },
+  "108702": {
+    "char_id": 1087,
+    "costume": "valentine"
+  },
+  "108801": {
+    "char_id": 1088,
+    "costume": ""
+  },
+  "108802": {
+    "char_id": 1088,
+    "costume": "summer"
+  },
+  "108901": {
+    "char_id": 1089,
+    "costume": ""
+  },
+  "108902": {
+    "char_id": 1089,
+    "costume": "summer"
+  },
+  "109001": {
+    "char_id": 1090,
+    "costume": ""
+  },
+  "109101": {
+    "char_id": 1091,
+    "costume": ""
+  },
+  "109102": {
+    "char_id": 1091,
+    "costume": "summer"
+  },
+  "109201": {
+    "char_id": 1092,
+    "costume": ""
+  },
+  "109301": {
+    "char_id": 1093,
+    "costume": ""
+  },
+  "109302": {
+    "char_id": 1093,
+    "costume": "autumn"
+  },
+  "109401": {
+    "char_id": 1094,
+    "costume": ""
+  },
+  "109402": {
+    "char_id": 1094,
+    "costume": "cheerleader"
+  },
+  "109501": {
+    "char_id": 1095,
+    "costume": ""
+  },
+  "109601": {
+    "char_id": 1096,
+    "costume": ""
+  },
+  "109701": {
+    "char_id": 1097,
+    "costume": ""
+  },
+  "109801": {
+    "char_id": 1098,
+    "costume": ""
+  },
+  "109802": {
+    "char_id": 1098,
+    "costume": "parade"
+  },
+  "109901": {
+    "char_id": 1099,
+    "costume": ""
+  },
+  "109902": {
+    "char_id": 1099,
+    "costume": "summer_trip"
+  },
+  "110001": {
+    "char_id": 1100,
+    "costume": ""
+  },
+  "110002": {
+    "char_id": 1100,
+    "costume": "onsen"
+  },
+  "110201": {
+    "char_id": 1102,
+    "costume": ""
+  },
+  "110202": {
+    "char_id": 1102,
+    "costume": "valentine"
+  },
+  "110301": {
+    "char_id": 1103,
+    "costume": ""
+  },
+  "110401": {
+    "char_id": 1104,
+    "costume": ""
+  },
+  "110402": {
+    "char_id": 1104,
+    "costume": "new_year"
+  },
+  "110501": {
+    "char_id": 1105,
+    "costume": ""
+  },
+  "110502": {
+    "char_id": 1105,
+    "costume": "autumn"
+  },
+  "110601": {
+    "char_id": 1106,
+    "costume": ""
+  },
+  "110602": {
+    "char_id": 1106,
+    "costume": "autumn"
+  },
+  "110701": {
+    "char_id": 1107,
+    "costume": ""
+  },
+  "110702": {
+    "char_id": 1107,
+    "costume": "ballroom"
+  },
+  "110801": {
+    "char_id": 1108,
+    "costume": ""
+  },
+  "110802": {
+    "char_id": 1108,
+    "costume": "halloween"
+  },
+  "110901": {
+    "char_id": 1109,
+    "costume": ""
+  },
+  "110902": {
+    "char_id": 1109,
+    "costume": "fairytale"
+  },
+  "111001": {
+    "char_id": 1110,
+    "costume": ""
+  },
+  "111002": {
+    "char_id": 1110,
+    "costume": "wedding"
+  },
+  "111101": {
+    "char_id": 1111,
+    "costume": ""
+  },
+  "111201": {
+    "char_id": 1112,
+    "costume": ""
+  },
+  "111301": {
+    "char_id": 1113,
+    "costume": ""
+  },
+  "111302": {
+    "char_id": 1113,
+    "costume": "summer"
+  },
+  "111401": {
+    "char_id": 1114,
+    "costume": ""
+  },
+  "111501": {
+    "char_id": 1115,
+    "costume": ""
+  },
+  "111601": {
+    "char_id": 1116,
+    "costume": ""
+  },
+  "111602": {
+    "char_id": 1116,
+    "costume": "wedding"
+  },
+  "111701": {
+    "char_id": 1117,
+    "costume": ""
+  },
+  "111801": {
+    "char_id": 1118,
+    "costume": ""
+  },
+  "111901": {
+    "char_id": 1119,
+    "costume": ""
+  },
+  "111902": {
+    "char_id": 1119,
+    "costume": "christmas"
+  },
+  "112001": {
+    "char_id": 1120,
+    "costume": ""
+  },
+  "112101": {
+    "char_id": 1121,
+    "costume": ""
+  },
+  "112401": {
+    "char_id": 1124,
+    "costume": ""
+  },
+  "112402": {
+    "char_id": 1124,
+    "costume": "new_year"
+  },
+  "112701": {
+    "char_id": 1127,
+    "costume": ""
+  },
+  "112702": {
+    "char_id": 1127,
+    "costume": "five_point_five_anni"
+  },
+  "112901": {
+    "char_id": 1129,
+    "costume": ""
+  },
+  "113001": {
+    "char_id": 1130,
+    "costume": ""
+  },
+  "113101": {
+    "char_id": 1131,
+    "costume": ""
+  },
+  "113201": {
+    "char_id": 1132,
+    "costume": ""
+  },
+  "113202": {
+    "char_id": 1132,
+    "costume": "beyond_dreams"
+  },
+  "113301": {
+    "char_id": 1133,
+    "costume": ""
+  },
+  "113401": {
+    "char_id": 1134,
+    "costume": ""
+  },
+  "113501": {
+    "char_id": 1135,
+    "costume": ""
+  },
+  "113601": {
+    "char_id": 1136,
+    "costume": ""
+  },
+  "113701": {
+    "char_id": 1137,
+    "costume": ""
+  },
+  "114101": {
+    "char_id": 1141,
+    "costume": ""
+  },
+  "114301": {
+    "char_id": 1143,
+    "costume": ""
+  },
+  "114401": {
+    "char_id": 1144,
+    "costume": ""
+  },
+  "114501": {
+    "char_id": 1145,
+    "costume": ""
+  },
+  "114901": {
+    "char_id": 1149,
+    "costume": ""
+  }
+}
