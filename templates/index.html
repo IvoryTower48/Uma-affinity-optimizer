@@ -113,7 +113,7 @@
 
   <div id="veteran-import-modal" class="modal-overlay" hidden>
     <div class="modal-box veteran-picker-box">
-      <p class="modal-title" id="veteran-import-title">Importa veterano</p>
+      <p class="modal-title" id="veteran-import-title">Aggiungi veterano</p>
 
       <!-- Filtri spark (tutti in AND): categoria, spark, stelle minime, e se
            contano solo le spark del veterano o anche quelle dei suoi genitori
@@ -122,6 +122,7 @@
         <select id="veteran-filter-category">
           <option value="pink" data-i18n="veteran_sparks_pink">Rosa</option>
           <option value="blue" data-i18n="veteran_sparks_blue">Blu</option>
+          <option value="green" data-i18n="veteran_sparks_green">Verde</option>
           <option value="white" data-i18n="veteran_filter_cat_white">Bianca (abilità/gara)</option>
         </select>
         <select id="veteran-filter-spark"></select>
@@ -137,14 +138,14 @@
         </select>
       </div>
       <div id="veteran-filter-list" class="ace-slot-sparks"></div>
-      <p id="veteran-picker-count" class="veteran-info-line"></p>
-
-      <div id="veteran-import-list" class="veteran-picker-grid"></div>
-      <p class="warning veterans-file-import-status" hidden></p>
-      <div class="modal-actions">
-        <button type="button" class="veterans-file-import-button" data-i18n="btn_veterans_file_import">Importa collezione veterani da file (umadump)</button>
+      <!-- Annulla sopra la griglia: la collezione si importa gia' dalla sezione
+           veterani, qui non serve un secondo pulsante di import. -->
+      <div class="veteran-picker-count-row">
+        <p id="veteran-picker-count" class="veteran-info-line"></p>
         <button type="button" id="veteran-import-cancel-button" class="modal-button-secondary" data-i18n="btn_cancel">Annulla</button>
       </div>
+
+      <div id="veteran-import-list" class="veteran-picker-grid"></div>
     </div>
   </div>
 
@@ -329,54 +330,50 @@
 
             <div id="ace-field" class="ace-field control-card">
               <p class="field-section-title" data-i18n="ace_section_title">Pianifica ace (PvP)</p>
-              <p class="field-intro" data-i18n="ace_intro">Fino a 3 ace (i veterani schierabili in PvP): scegli genitori/nonni manualmente per una spark importante, lascia "(automatico)" per farli suggerire. Se piu' ace condividono lo stesso stile di corsa, puoi condividere lo stesso genitore tra loro invece di allevarne uno per ciascuno.</p>
+              <p class="field-intro" data-i18n="ace_intro">Fino a 3 ace (i veterani schierabili in PvP), uno per tab. Per ogni genitore scegli un personaggio, aggiungi un veterano o lascia "(automatico)" per farlo suggerire. I nonni non si scelgono: sono i genitori del veterano aggiunto, altrimenti li suggerisce il calcolo.</p>
 
               <div class="ace-veterans-row">
                 <button type="button" id="veterans-open-button" data-i18n="btn_manage_veterans">Gestisci veterani…</button>
               </div>
 
+              <!-- Un ace alla volta, a tab: l'albero (ace, 2 genitori, 4 nonni) e il
+                   riepilogo spark dei 6 antenati si disegnano in JS (renderAceTree).
+                   I nonni non si scelgono: vengono dal veterano importato come
+                   genitore, altrimenti li suggerisce il calcolo. -->
+              <div class="ace-tabs" role="tablist">
+                {% for i in range(1, 4) %}
+                <button type="button" class="ace-tab-button{% if i == 1 %} mode-tab-active{% endif %}" role="tab" data-ace-index="{{ i }}">Ace {{ i }}</button>
+                {% endfor %}
+              </div>
+
               <div class="ace-slots">
                 {% for i in range(1, 4) %}
-                <div class="ace-slot-block" data-ace-index="{{ i }}">
-                  <label class="ace-slot-block-label">Ace {{ i }}</label>
-                  <select class="ace-character-select" data-ace-index="{{ i }}"></select>
-
-                  <div class="ace-ancestor-grid">
-                    {% for role, label_key, label_text in [
-                      ("parent1", "label_ace_parent1", "Genitore 1"),
-                      ("parent2", "label_ace_parent2", "Genitore 2"),
-                      ("gp1a", "label_ace_gp1a", "Nonno/a 1a"),
-                      ("gp1b", "label_ace_gp1b", "Nonno/a 1b"),
-                      ("gp2a", "label_ace_gp2a", "Nonno/a 2a"),
-                      ("gp2b", "label_ace_gp2b", "Nonno/a 2b"),
-                    ] %}
-                    <div class="ace-slot-cell">
-                      <label data-i18n="{{ label_key }}">{{ label_text }}</label>
-                      <select class="ace-slot-select" data-ace-index="{{ i }}" data-role="{{ role }}"></select>
-
-                      <div class="ace-slot-sparks" data-ace-index="{{ i }}" data-role="{{ role }}"></div>
-
-                      <details class="ace-slot-more">
-                      <summary data-i18n="ace_slot_more">Importa veterano / spark</summary>
-                      <div class="ace-slot-veteran-row">
-                        <button type="button" class="ace-slot-veteran-import-button" data-ace-index="{{ i }}" data-role="{{ role }}" data-i18n="btn_import_veteran">Importa</button>
+                <div class="ace-slot-block" data-ace-index="{{ i }}"{% if i != 1 %} hidden{% endif %}>
+                  <div class="ace-tree" data-ace-index="{{ i }}">
+                    <div class="ace-tree-tier ace-tree-gp" data-ace-index="{{ i }}"></div>
+                    <div class="ace-tree-tier ace-tree-parents">
+                      {% for role, label_key, label_text in [
+                        ("parent1", "label_ace_parent1", "Genitore 1"),
+                        ("parent2", "label_ace_parent2", "Genitore 2"),
+                      ] %}
+                      <div class="ace-parent-cell" data-ace-index="{{ i }}" data-role="{{ role }}">
+                        <label data-i18n="{{ label_key }}">{{ label_text }}</label>
+                        <div class="ace-node-slot" data-ace-index="{{ i }}" data-role="{{ role }}"></div>
+                        <select class="ace-slot-select" data-ace-index="{{ i }}" data-role="{{ role }}"></select>
+                        <button type="button" class="ace-slot-veteran-import-button" data-ace-index="{{ i }}" data-role="{{ role }}" data-i18n="btn_import_veteran">Aggiungi veterano</button>
                       </div>
-
-                      <div class="ace-slot-spark-add-row">
-                        <select class="ace-slot-spark-picker" data-ace-index="{{ i }}" data-role="{{ role }}">
-                          <option value="" data-i18n="opt_spark_picker_placeholder">-- scegli una spark --</option>
-                        </select>
-                        <select class="ace-slot-spark-stars" data-ace-index="{{ i }}" data-role="{{ role }}">
-                          <option value="1">1★</option>
-                          <option value="2">2★</option>
-                          <option value="3">3★</option>
-                        </select>
-                        <button type="button" class="ace-slot-spark-add-button" data-ace-index="{{ i }}" data-role="{{ role }}" data-i18n="btn_add">Aggiungi</button>
-                      </div>
-                      </details>
+                      {% endfor %}
                     </div>
-                    {% endfor %}
+                    <div class="ace-tree-tier ace-tree-child">
+                      <div class="ace-child-cell">
+                        <label data-i18n="label_ace_child">Ace</label>
+                        <div class="ace-node-slot" data-ace-index="{{ i }}" data-role="ace"></div>
+                        <select class="ace-character-select" data-ace-index="{{ i }}"></select>
+                        <div class="ace-overall" data-ace-index="{{ i }}"></div>
+                      </div>
+                    </div>
                   </div>
+                  <div class="ace-spark-summary" data-ace-index="{{ i }}"></div>
                 </div>
                 {% endfor %}
               </div>

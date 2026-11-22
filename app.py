@@ -1057,9 +1057,12 @@ def api_ace_plan():
       mode, global_only, owned, min_aptitude: stessi filtri degli altri endpoint.
       slots: dict[ace] -> dict[ruolo] -> personaggio o null. Ruoli: parent1,
         parent2, gp1a, gp1b (nonni via parent1), gp2a, gp2b (via parent2). Un
-        ruolo null/assente viene suggerito automaticamente. Un nonno indicato
-        per un ace il cui genitore risulta condiviso con un altro ace deve
-        coincidere con quanto indicato dall'altro (altrimenti 400) -- il
+        ruolo null/assente viene suggerito automaticamente. I nonni arrivano
+        solo da un veterano importato come genitore (la UI non li fa scegliere
+        a mano): con parent1_veteran/parent2_veteran = true i nonni di quel
+        ramo sono fissi e un null resta ignoto, mai suggerito. Un nonno
+        indicato per un ace il cui genitore risulta condiviso con un altro ace
+        deve coincidere con quanto indicato dall'altro (altrimenti 400) -- il
         nonno appartiene alla carta genitore, non al singolo ace.
       shared_groups: lista di gruppi [[ace, ruolo], ...] (ruolo: parent1/
         parent2) da riempire con lo STESSO personaggio quando ancora liberi
@@ -1103,14 +1106,17 @@ def api_ace_plan():
         parent_slots[(ace, "parent2")] = ace_slots.get("parent2") or None
 
     grandparent_slots = {}
+    fixed_gp_parents = set()
     for ace in aces:
         ace_slots = raw_slots.get(ace, {})
-        for parent, gp_a_key, gp_b_key in (
-            (parent_slots[(ace, "parent1")], "gp1a", "gp1b"),
-            (parent_slots[(ace, "parent2")], "gp2a", "gp2b"),
+        for parent, gp_a_key, gp_b_key, veteran_key in (
+            (parent_slots[(ace, "parent1")], "gp1a", "gp1b", "parent1_veteran"),
+            (parent_slots[(ace, "parent2")], "gp2a", "gp2b", "parent2_veteran"),
         ):
             if parent is None:
                 continue
+            if ace_slots.get(veteran_key):
+                fixed_gp_parents.add(parent)
             gp_a = ace_slots.get(gp_a_key) or None
             gp_b = ace_slots.get(gp_b_key) or None
             if gp_a is None and gp_b is None:
@@ -1133,7 +1139,7 @@ def api_ace_plan():
         result = plan_ace_group(
             aces, parent_slots, grandparent_slots, shared_groups,
             candidate_pool, matrix, name_map, character_ids, id_weights,
-            calendar, races, aptitudes, mode, min_aptitude,
+            calendar, races, aptitudes, mode, min_aptitude, fixed_gp_parents,
         )
     except ValueError as e:
         return jsonify({"error": str(e)}), 400

@@ -104,7 +104,7 @@ def _known_members(aces, parent_slots, grandparent_slots):
 
 def plan_ace_group(aces, parent_slots, grandparent_slots, parent_share_groups,
                     candidate_pool, matrix, name_map, character_ids, id_weights,
-                    calendar, races, aptitudes, mode, min_aptitude):
+                    calendar, races, aptitudes, mode, min_aptitude, fixed_gp_parents=()):
     """
     aces: lista di 1-3 personaggi.
     parent_slots: dict[(ace, 'parent1'/'parent2')] -> personaggio o None
@@ -121,6 +121,8 @@ def plan_ace_group(aces, parent_slots, grandparent_slots, parent_share_groups,
       gia' valori diversi assegnati (input contraddittorio).
     candidate_pool: personaggi tra cui cercare (gia' filtrati a monte per
       Global/posseduti, come altrove nel progetto).
+    fixed_gp_parents: genitori i cui nonni sono gia' fissati (veterano
+      importato): mai suggeriti, un nonno None resta ignoto.
 
     Ritorna dict {parent_slots, grandparent_slots, cycles, total_affinity}.
     """
@@ -170,6 +172,8 @@ def plan_ace_group(aces, parent_slots, grandparent_slots, parent_share_groups,
 
     known_parents = sorted({v for v in parent_slots.values() if v is not None})
     for parent in known_parents:
+        if parent in fixed_gp_parents:
+            continue
         gps = grandparent_slots.setdefault(parent, [None, None])
         target_aces = sorted({ace for (ace, role), v in parent_slots.items() if v == parent})
         for i in range(2):
@@ -243,6 +247,16 @@ def _demo():
             matrix=matrix, name_map=name_map, character_ids=character_ids, id_weights=id_weights,
             calendar=calendar, races=races, aptitudes=aptitudes, mode="mant", min_aptitude={},
         )
+        # Nonni fissati da un veterano: un nonno ignoto resta ignoto.
+        fixed = plan_ace_group(
+            ["ace1"],
+            parent_slots={("ace1", "parent1"): "cand_good", ("ace1", "parent2"): "cand_bad"},
+            grandparent_slots={"cand_good": ["gp1", None]},
+            parent_share_groups=[], candidate_pool=candidate_pool,
+            matrix=matrix, name_map=name_map, character_ids=character_ids, id_weights=id_weights,
+            calendar=calendar, races=races, aptitudes=aptitudes, mode="mant", min_aptitude={},
+            fixed_gp_parents={"cand_good"},
+        )
     finally:
         cycle_analysis.resolve_group_achievable = orig
         globals()["resolve_group_achievable"] = orig
@@ -251,6 +265,8 @@ def _demo():
     assert shared == "cand_good", f"Atteso cand_good come genitore condiviso, trovato {shared}"
     assert result["parent_slots"][("ace2", "parent1")] == shared, "Il genitore condiviso deve essere identico per entrambi gli ace"
     assert len(result["cycles"]) == 2, "Devono risultare 2 cicli, uno per ace"
+    assert fixed["grandparent_slots"]["cand_good"] == ["gp1", None], "Nonni fissati non vanno suggeriti"
+    assert fixed["grandparent_slots"]["cand_bad"][0] == "gp2", "Nonni del genitore non veterano vanno suggeriti"
 
     # Regole genitori per nome base (varianti incluse).
     for slots in ({("oguri_cap", "parent1"): "oguri_cap_og_xmas"},
