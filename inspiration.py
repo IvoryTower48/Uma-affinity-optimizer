@@ -34,15 +34,6 @@ DEFAULT_BASE_RATES = {
     "race": {"1": 1, "2": 2, "3": 3},
 }
 
-# blu/rosa/verde: ogni personaggio ne ha esattamente una (una stat spark, una
-# aptitude spark, una unique skill) -- si aggregano direttamente tra
-# antenati, nessuna identita' da tracciare.
-# bianca/gara: un personaggio puo' portarne multiple e diverse tra loro --
-# l'aggregazione "probabilita' di ereditare ALMENO UNA VOLTA" va fatta per
-# NOME di skill, non per categoria (vedi combined_chance_by_skill sotto).
-CATEGORIES_WITH_IDENTITY = {"white", "race"}
-
-
 def inspiration_chance(base_rates: dict, category: str, stars: int, individual_affinity: float) -> float:
     """
     Probabilita' (percentuale, 0-100+) che una spark venga ereditata in un
@@ -92,28 +83,6 @@ def inspiration_table(base_rates: dict, individual_affinity: float) -> dict:
             p = min(inspiration_chance(base_rates, category, int(stars_key), individual_affinity), 100.0)
             table[category][stars_key] = combined_chance([p, p])
     return table
-
-
-def validate_base_rates(payload_dict: dict) -> dict:
-    """
-    Merge di un dict parziale (es. da un payload JSON) sopra i default,
-    poi validazione: solleva ValueError se una categoria/valore di stelle
-    non e' tra le note, o un tasso non e' un numero tra 0 e 100. Stesso
-    pattern di config.validate_min_aptitude.
-    """
-    merged = {cat: dict(stars) for cat, stars in DEFAULT_BASE_RATES.items()}
-    for cat, stars_dict in (payload_dict or {}).items():
-        if cat not in DEFAULT_BASE_RATES:
-            raise ValueError(f"Categoria spark sconosciuta: {cat}")
-        if not isinstance(stars_dict, dict):
-            raise ValueError(f"Valore non valido per la categoria {cat}: atteso un oggetto stelle->tasso.")
-        for star_key, rate in stars_dict.items():
-            if star_key not in ("1", "2", "3"):
-                raise ValueError(f"Stelle non valide per {cat}: {star_key}")
-            if not isinstance(rate, (int, float)) or isinstance(rate, bool) or not (0 <= rate <= 100):
-                raise ValueError(f"Tasso non valido per {cat} {star_key}: {rate}")
-            merged[cat][star_key] = rate
-    return merged
 
 
 if __name__ == "__main__":

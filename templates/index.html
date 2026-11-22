@@ -177,16 +177,6 @@
               <button type="button" class="mode-tab-button" data-mode-choice="rental" data-i18n="opt_mode_rental">Loop con genitore in prestito (solo posseduti)</button>
               <button type="button" class="mode-tab-button" data-mode-choice="ace" data-i18n="opt_mode_ace">Pianifica ace (PvP)</button>
             </div>
-            <!-- Il <select> resta nel DOM (solo nascosto): tutta la logica esistente
-                 (updateFieldVisibility, salvataggio/caricamento, payload verso il
-                 server) legge/scrive modeSelect.value, non serve toccarla altrove.
-                 I tab sopra si limitano a pilotarlo. -->
-            <select id="mode-select" hidden>
-              <option value="top4" data-i18n="opt_mode_top4">Top-4 compatibili con un personaggio (candidati posseduti)</option>
-              <option value="loop" data-i18n="opt_mode_loop">Miglior loop a 5 (solo posseduti)</option>
-              <option value="rental" data-i18n="opt_mode_rental">Loop con genitore in prestito (solo posseduti)</option>
-              <option value="ace" data-i18n="opt_mode_ace">Pianifica ace (PvP)</option>
-            </select>
 
             <div>
               <label data-i18n="label_calendar">Vincolo di calendario</label>
@@ -194,12 +184,6 @@
                 <button type="button" class="mode-tab-button" data-calendar-choice="career" data-i18n="opt_calendar_career">Con vincoli di carriera normale</button>
                 <button type="button" class="mode-tab-button" data-calendar-choice="mant" data-i18n="opt_calendar_mant">Nessun vincolo (Make A New Track)</button>
               </div>
-              <!-- Stesso schema di #mode-tabs sopra: il <select> resta la fonte di
-                   verita' (letto/scritto ovunque altrove), solo nascosto. -->
-              <select id="calendar-select" hidden>
-                <option value="career" data-i18n="opt_calendar_career">Con vincoli di carriera normale</option>
-                <option value="mant" data-i18n="opt_calendar_mant">Nessun vincolo (Make A New Track)</option>
-              </select>
             </div>
 
             <div class="checkbox-field">

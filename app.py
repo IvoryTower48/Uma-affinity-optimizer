@@ -166,6 +166,18 @@ def get_universe(global_only):
     return apply_global_filter(ALL_CHARACTERS, releases)
 
 
+def request_filters(payload):
+    """Filtri comuni a tutte le ricerche: (mode, global_only, owned,
+    min_aptitude, matrix, universe, warning). ValueError se min_aptitude non
+    e' valido."""
+    mode = payload.get("mode", "career")
+    global_only = bool(payload.get("global_only", False))
+    min_aptitude = validate_min_aptitude(payload.get("min_aptitude"))
+    universe, warning = get_universe(global_only)
+    return (mode, global_only, payload.get("owned", []), min_aptitude,
+            get_matrix(mode, min_aptitude), universe, warning)
+
+
 def restrict_to_owned(characters, owned):
     """Se 'owned' e' una lista non vuota, restringe 'characters' alla loro intersezione."""
     if not owned:
@@ -523,21 +535,15 @@ def api_characters():
 def api_top4():
     payload = request.get_json()
     name_input = payload.get("character", "")
-    mode = payload.get("mode", "career")
-    global_only = bool(payload.get("global_only", False))
-    owned = payload.get("owned", [])
     debug = bool(payload.get("debug", False))
     aptitude_override_by_character = payload.get("aptitude_override") or {}
     try:
-        min_aptitude = validate_min_aptitude(payload.get("min_aptitude"))
+        mode, global_only, owned, min_aptitude, matrix, universe, warning = request_filters(payload)
         it_threshold = validate_independent_training_threshold(
             payload.get("independent_training_threshold"),
         )
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
-    matrix = get_matrix(mode, min_aptitude)
-
-    universe, warning = get_universe(global_only)
     # il personaggio richiesto puo' anche non essere posseduto (si valuta un
     # target futuro); solo i CANDIDATI proposti vengono ristretti ai posseduti.
     targets = resolve_targets(name_input, universe)
@@ -686,18 +692,12 @@ def api_pink_spark():
     """
     payload = request.get_json()
     name_input = payload.get("character", "")
-    mode = payload.get("mode", "career")
-    global_only = bool(payload.get("global_only", False))
-    owned = payload.get("owned", [])
     raw_spark_plan = payload.get("spark_plan", {})
     raw_character_spark_plan = payload.get("character_spark_plan", {})
     try:
-        min_aptitude = validate_min_aptitude(payload.get("min_aptitude"))
+        mode, global_only, owned, min_aptitude, matrix, universe, warning = request_filters(payload)
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
-    matrix = get_matrix(mode, min_aptitude)
-
-    universe, warning = get_universe(global_only)
     targets = resolve_targets(name_input, universe)
     if not targets:
         msg = f"Personaggio '{name_input}' non trovato"
@@ -776,18 +776,12 @@ def api_pink_spark():
 @app.route("/api/loop", methods=["POST"])
 def api_loop():
     payload = request.get_json()
-    mode = payload.get("mode", "career")
-    global_only = bool(payload.get("global_only", False))
-    owned = payload.get("owned", [])
     must_include_input = [x for x in payload.get("must_include", []) if x]
     pool_size = int(payload.get("pool_size", 20))
     try:
-        min_aptitude = validate_min_aptitude(payload.get("min_aptitude"))
+        mode, global_only, owned, min_aptitude, matrix, universe, warning = request_filters(payload)
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
-    matrix = get_matrix(mode, min_aptitude)
-
-    universe, warning = get_universe(global_only)
     # per il loop, l'INTERO gruppo deve venire dai posseduti (altrimenti il
     # loop non sarebbe realizzabile in pratica).
     universe = restrict_to_owned(universe, owned)
@@ -859,19 +853,13 @@ def api_rental_loop():
         (il resto viene cercato per massimizzare l'affinita' congiunta con l'anchor).
     """
     payload = request.get_json()
-    mode = payload.get("mode", "career")
-    global_only = bool(payload.get("global_only", False))
-    owned = payload.get("owned", [])
     try:
-        min_aptitude = validate_min_aptitude(payload.get("min_aptitude"))
+        mode, global_only, owned, min_aptitude, matrix, universe, warning = request_filters(payload)
         it_threshold = validate_independent_training_threshold(
             payload.get("independent_training_threshold"),
         )
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
-    matrix = get_matrix(mode, min_aptitude)
-
-    universe, warning = get_universe(global_only)
 
     def resolve_single(name_input, label):
         targets = resolve_targets(name_input, universe)
@@ -1081,18 +1069,12 @@ def api_ace_plan():
     """
     payload = request.get_json()
     aces_input = payload.get("aces", [])
-    mode = payload.get("mode", "career")
-    global_only = bool(payload.get("global_only", False))
-    owned = payload.get("owned", [])
     raw_slots = payload.get("slots", {})
     raw_shared_groups = payload.get("shared_groups", [])
     try:
-        min_aptitude = validate_min_aptitude(payload.get("min_aptitude"))
+        mode, global_only, owned, min_aptitude, matrix, universe, warning = request_filters(payload)
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
-    matrix = get_matrix(mode, min_aptitude)
-
-    universe, warning = get_universe(global_only)
 
     if not (1 <= len(aces_input) <= 3):
         return jsonify({"error": "Servono da 1 a 3 ace."}), 400

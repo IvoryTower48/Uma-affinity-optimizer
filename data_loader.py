@@ -4,11 +4,8 @@ Carica tutti i dataset dal filesystem e li normalizza in strutture Python sempli
 (dict/set), cosi' il resto dello script non dipende da pandas per la logica di calcolo.
 """
 import os
-import re
 from datetime import date
 import pandas as pd
-
-SLOT_PATTERN = re.compile(r"^y([123])_m(0[1-9]|1[0-2])_d([12])$")
 
 
 def load_base_affinity_data(data_dir):

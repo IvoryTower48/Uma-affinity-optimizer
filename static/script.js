@@ -1,8 +1,11 @@
-const modeSelect = document.getElementById("mode-select");
+// Modalita' e vincolo di calendario correnti: li scrivono i tab (vedi setMode).
+const MODES = ["top4", "loop", "rental", "ace"];
+const CALENDARS = ["career", "mant"];
+let currentMode = "top4";
+let currentCalendar = "career";
 const modeTabs = document.getElementById("mode-tabs");
 const characterField = document.getElementById("character-field");
 const characterSelect = document.getElementById("character-select");
-const calendarSelect = document.getElementById("calendar-select");
 const calendarTabs = document.getElementById("calendar-tabs");
 const globalOnlyCheckbox = document.getElementById("global-only-checkbox");
 const minAptitudeSelects = Array.from(document.querySelectorAll(".min-aptitude-select"));
@@ -790,7 +793,6 @@ const langToggle = makeToggleControl(
     rerenderLastRun();
   },
 );
-const setLang = langToggle.set;
 
 const themeToggle = makeToggleControl(
   themeSwitch, ".theme-button", "themeChoice", "theme-button-active", THEME_STORAGE_KEY, ["light", "dark"],
@@ -799,7 +801,6 @@ const themeToggle = makeToggleControl(
     document.documentElement.dataset.theme = theme;
   },
 );
-const setTheme = themeToggle.set;
 const applyThemeButtons = () => themeToggle.applyButtons(currentTheme);
 
 const layoutToggle = makeToggleControl(
@@ -814,10 +815,9 @@ const layoutToggle = makeToggleControl(
     renderOwnedList();
     // Cambio layout = colonne dell'ace-field di larghezza diversa: ricalcola
     // (vedi lo stesso ragionamento in updateFieldVisibility sopra).
-    if (modeSelect.value === "ace") [...aceCharacterSelects, ...aceSlotSelects].forEach(fitSelectFont);
+    if (currentMode === "ace") [...aceCharacterSelects, ...aceSlotSelects].forEach(fitSelectFont);
   },
 );
-const setLayoutMode = layoutToggle.set;
 const applyLayoutButtons = () => layoutToggle.applyButtons(layoutMode);
 
 // --- Pannello Impostazioni (icona ingranaggio nell'header) -----------------
@@ -1030,7 +1030,7 @@ function updateFieldVisibility() {
   // il display:flex di .control-card in style.css -- un inline style
   // "block" avrebbe priorita' sulla classe e romperebbe l'impilamento
   // verticale label/select dei campi con piu' coppie (es. #rental-field).
-  const mode = modeSelect.value;
+  const mode = currentMode;
   characterField.style.display = mode === "top4" ? "" : "none";
   loopField.style.display = mode === "loop" ? "" : "none";
   rentalField.style.display = mode === "rental" ? "" : "none";
@@ -1041,43 +1041,36 @@ function updateFieldVisibility() {
   // niente -- va rifatta ora che tornano visibili e misurabili.
   if (mode === "ace") [...aceCharacterSelects, ...aceSlotSelects].forEach(fitSelectFont);
 }
-modeSelect.addEventListener("change", updateFieldVisibility);
 
-// Tab della modalita' d'uso: il <select> nascosto resta la fonte di verita'
-// (letto/scritto ovunque altrove nel file), i tab si limitano a pilotarlo e
-// a specchiarne lo stato attivo -- stesso schema di lang/theme/layout-switch,
-// ma senza persistenza in localStorage (il modo non lo era nemmeno prima).
+function setMode(mode) {
+  currentMode = mode;
+  updateFieldVisibility();
+}
+
+// Tab della modalita' d'uso: specchiano currentMode (non persistito).
 function applyModeTabButtons() {
   modeTabs.querySelectorAll(".mode-tab-button").forEach(btn => {
-    btn.classList.toggle("mode-tab-active", btn.dataset.modeChoice === modeSelect.value);
+    btn.classList.toggle("mode-tab-active", btn.dataset.modeChoice === currentMode);
   });
 }
 modeTabs.querySelectorAll(".mode-tab-button").forEach(btn => {
   btn.addEventListener("click", () => {
-    if (btn.dataset.modeChoice === modeSelect.value) return;
-    modeSelect.value = btn.dataset.modeChoice;
-    modeSelect.dispatchEvent(new Event("change"));
+    if (btn.dataset.modeChoice !== currentMode) setMode(btn.dataset.modeChoice);
   });
 });
 updateFieldVisibility();
 
-// Tab del vincolo di calendario: stesso identico schema dei tab di modalita'
-// sopra (stessa classe .mode-tab-button/-active, resa "identica" su
-// richiesta esplicita). Nessun listener "change" preesistente su
-// calendarSelect da preservare (il suo valore viene solo letto al bisogno),
-// quindi qui basta pilotare il <select> nascosto e specchiare lo stato
-// attivo -- niente updateFieldVisibility-like da richiamare.
+// Tab del vincolo di calendario: stesso schema dei tab di modalita' (stessa
+// classe .mode-tab-button/-active); currentCalendar si legge solo al bisogno.
 function applyCalendarTabButtons() {
   calendarTabs.querySelectorAll(".mode-tab-button").forEach(btn => {
-    btn.classList.toggle("mode-tab-active", btn.dataset.calendarChoice === calendarSelect.value);
+    btn.classList.toggle("mode-tab-active", btn.dataset.calendarChoice === currentCalendar);
   });
 }
-calendarSelect.addEventListener("change", applyCalendarTabButtons);
 calendarTabs.querySelectorAll(".mode-tab-button").forEach(btn => {
   btn.addEventListener("click", () => {
-    if (btn.dataset.calendarChoice === calendarSelect.value) return;
-    calendarSelect.value = btn.dataset.calendarChoice;
-    calendarSelect.dispatchEvent(new Event("change"));
+    currentCalendar = btn.dataset.calendarChoice;
+    applyCalendarTabButtons();
   });
 });
 applyCalendarTabButtons();
@@ -2384,7 +2377,7 @@ async function runSparkPlan(panel, target, signatureSparks) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         character: target,
-        mode: calendarSelect.value,
+        mode: currentCalendar,
         global_only: globalOnlyCheckbox.checked,
         owned: getOwnedSelection(),
         min_aptitude: getMinAptitude(),
@@ -2415,7 +2408,7 @@ async function handleGeneratePdf(oneHop, target, resultBox, statusEl) {
   const payload = sparkResult
     ? {
         target: sparkResult.target,
-        mode: calendarSelect.value,
+        mode: currentCalendar,
         cycles: sparkResult.cycles,
         all_cycle_races: sparkResult.all_cycle_races,
         total_loop_affinity: sparkResult.total_loop_affinity,
@@ -2426,7 +2419,7 @@ async function handleGeneratePdf(oneHop, target, resultBox, statusEl) {
       }
     : {
         target,
-        mode: calendarSelect.value,
+        mode: currentCalendar,
         cycles: oneHop.cycles,
         all_cycle_races: oneHop.all_cycle_races,
         total_loop_affinity: oneHop.total_loop_affinity,
@@ -3181,8 +3174,8 @@ function renderAcePlan(data) {
 }
 
 async function runQuery() {
-  const mode = modeSelect.value;
-  const calendarMode = calendarSelect.value;
+  const mode = currentMode;
+  const calendarMode = currentCalendar;
   const globalOnly = globalOnlyCheckbox.checked;
   const owned = getOwnedSelection();
   const minAptitude = getMinAptitude();
@@ -3274,7 +3267,7 @@ runButton.addEventListener("click", runQuery);
 //   - controlli (mode/calendario/filtri/posseduti/lingua) -> riassegnati
 //     direttamente agli elementi del form.
 //   - risultati principali (top4/loop) -> renderTop4(data)/renderLoop(data),
-//     le stesse funzioni gia' usate per il cambio lingua (vedi setLang):
+//     le stesse funzioni gia' usate per il cambio lingua (vedi langToggle):
 //     data e' l'intera risposta "congelata" del server al momento della
 //     ricerca, quindi il rendering e' bit-per-bit identico.
 //   - pannello spark (Modalita' A/B, se presenti): l'input dell'utente viene
@@ -3320,8 +3313,8 @@ function buildSaveData() {
     saved_at: new Date().toISOString(),
     lang: currentLang,
     controls: {
-      mode: modeSelect.value,
-      calendar_mode: calendarSelect.value,
+      mode: currentMode,
+      calendar_mode: currentCalendar,
       global_only: globalOnlyCheckbox.checked,
       debug: debugCheckbox.checked,
       owned: getOwnedSelection(),
@@ -3426,8 +3419,8 @@ async function restoreFromSave(save) {
   }
 
   const controls = save.controls || {};
-  if (controls.mode) modeSelect.value = controls.mode;
-  if (controls.calendar_mode) calendarSelect.value = controls.calendar_mode;
+  if (MODES.includes(controls.mode)) currentMode = controls.mode;
+  if (CALENDARS.includes(controls.calendar_mode)) currentCalendar = controls.calendar_mode;
   if (typeof controls.global_only === "boolean") globalOnlyCheckbox.checked = controls.global_only;
   if (typeof controls.debug === "boolean") debugCheckbox.checked = controls.debug;
   if (typeof controls.owned_sort_descending === "boolean") ownedSortDescending = controls.owned_sort_descending;
@@ -4125,10 +4118,7 @@ function addVeteranToAce(v, aceIndex, role) {
   importVeteranIntoSlot(aceIndex, role, v);
   closeVeteransModal();
   closeVeteranImportModal();
-  if (modeSelect.value !== "ace") {
-    modeSelect.value = "ace";
-    modeSelect.dispatchEvent(new Event("change"));
-  }
+  if (currentMode !== "ace") setMode("ace");
   slotSelect(aceIndex, role).closest(".ace-slot-block").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
