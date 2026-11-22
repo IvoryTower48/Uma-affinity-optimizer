@@ -422,7 +422,9 @@ select, input[type="number"], input[type="text"], input[type="search"] {
    un taglio a meta' parola -- il nome completo resta comunque disponibile
    come title (tooltip nativo al passaggio del mouse). */
 .ace-character-select,
-.ace-ancestor-grid select {
+.ace-ancestor-grid select,
+.must-include-selects select,
+.rental-fixed-selects select {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -782,11 +784,23 @@ button:disabled {
 
 .owned-list input { width: auto; }
 
+/* Menu affiancati a griglia invece che uno per riga a tutta larghezza
+   (5 righe vuote nel caso peggiore, il loop). */
 .must-include-selects, .rental-fixed-selects {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));  /* una riga sola, niente 4+1 */
   gap: 0.4rem;
 }
+
+.rental-fixed-selects { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+@media (max-width: 900px) {
+  .must-include-selects, .rental-fixed-selects {
+    grid-template-columns: repeat(auto-fill, minmax(11.5rem, 1fr));
+  }
+}
+
+.must-include-selects select, .rental-fixed-selects select { min-width: 0; }
 
 .min-aptitude-selects {
   display: flex;
@@ -992,6 +1006,13 @@ button:disabled {
 /* Azioni rare: gruppo etichettato e allineato a destra, lontano da
    seleziona/ordina che si usano a ogni ricerca. */
 .owned-gametora-buttons { justify-content: flex-end; }
+
+/* Seconda riga (veterani): stesso gruppo, niente secondo separatore. */
+.owned-gametora-buttons.owned-io-row {
+  margin-top: 0.5rem;
+  padding-top: 0;
+  border-top: none;
+}
 
 .owned-io-label {
   margin-right: auto;

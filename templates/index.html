@@ -241,12 +241,16 @@
                come select/deselect/ordina sopra -- volutamente in fondo alla card e
                con lo stile "secondario" (.save-load-buttons, stesso di Salva/Carica)
                invece che i bottoni pieni di select/deselect. -->
+          <!-- Due righe: la collezione dei posseduti (Gametora) e i veterani (umadump). -->
           <div class="save-load-buttons owned-gametora-buttons">
-            <span class="owned-io-label" data-i18n="label_owned_io">Importa / esporta</span>
+            <span class="owned-io-label" data-i18n="label_owned_io_collection">Collezione (Gametora)</span>
             <button type="button" id="gametora-export-button" data-i18n="btn_gametora_export">Esporta per Gametora</button>
             <button type="button" id="gametora-import-button" data-i18n="btn_gametora_import">Importa da Gametora</button>
             <button type="button" id="gametora-restore-button" data-i18n="btn_gametora_restore">Ripristina collezione Gametora</button>
             <input type="file" id="gametora-import-file-input" accept="application/json" style="display:none">
+          </div>
+          <div class="save-load-buttons owned-gametora-buttons owned-io-row">
+            <span class="owned-io-label" data-i18n="label_owned_io_veterans">Veterani (umadump)</span>
             <button type="button" class="veterans-file-import-button" data-i18n="btn_veterans_file_import">Importa collezione veterani da file (umadump)</button>
             <button type="button" class="veterans-file-import-button" data-single="1" data-i18n="btn_veteran_single_file_import">Importa veterano singolo da file (umadump)</button>
           </div>

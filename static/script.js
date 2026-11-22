@@ -220,7 +220,8 @@ const I18N = {
     veterans_empty: "Nessun veterano salvato ancora.",
     btn_import_veteran: "Importa",
     ace_slot_more: "Importa veterano / spark",
-    label_owned_io: "Importa / esporta",
+    label_owned_io_collection: "Collezione (Gametora)",
+    label_owned_io_veterans: "Veterani (umadump)",
     btn_veterans_topbar: "Veterani",
     btn_veteran_add_to_ace: "Aggiungi all'ace",
     ace_conflict_self: "Non può essere genitore di se stesso (Ace {ace}, varianti comprese).",
@@ -485,7 +486,8 @@ const I18N = {
     veterans_empty: "No veterans saved yet.",
     btn_import_veteran: "Import",
     ace_slot_more: "Import veteran / spark",
-    label_owned_io: "Import / export",
+    label_owned_io_collection: "Collection (Gametora)",
+    label_owned_io_veterans: "Veterans (umadump)",
     btn_veterans_topbar: "Veterans",
     btn_veteran_add_to_ace: "Add to ace",
     ace_conflict_self: "Cannot be its own parent (Ace {ace}, variants included).",
@@ -1042,6 +1044,8 @@ function updateFieldVisibility() {
   // quindi fitSelectFont (chiamata al popolamento) non poteva calcolare
   // niente -- va rifatta ora che tornano visibili e misurabili.
   if (mode === "ace") [...aceCharacterSelects, ...aceSlotSelects].forEach(fitSelectFont);
+  if (mode === "loop") mustIncludeSelects.forEach(fitSelectFont);
+  if (mode === "rental") rentalFixedSelects.forEach(fitSelectFont);
 }
 
 function setMode(mode) {
@@ -1159,6 +1163,7 @@ function populateOwnedOnlySelects() {
         });
         if (current && !names.includes(current)) removed++;
         select.value = names.includes(current) ? current : "";
+        fitSelectFont(select);
       });
       const container = document.querySelector(containerSelector);
       let note = container.nextElementSibling;
@@ -1934,7 +1939,7 @@ rentalFixedSelects.forEach(select => select.addEventListener("change", refreshRe
 // Ri-adatta il font-size al nome appena scelto (vedi fitSelectFont sopra):
 // una select stretta puo' far stare un nome corto a piena taglia e uno
 // lungo no, quindi va ricalcolato ad ogni cambio, non solo al popolamento.
-[...aceCharacterSelects, ...aceSlotSelects].forEach(select => {
+[...aceCharacterSelects, ...aceSlotSelects, ...mustIncludeSelects, ...rentalFixedSelects].forEach(select => {
   select.addEventListener("change", () => fitSelectFont(select));
 });
 
@@ -3508,6 +3513,7 @@ async function restoreFromSave(save) {
       if (rentalFixedSelects[i]) rentalFixedSelects[i].value = name;
     });
   }
+  [...mustIncludeSelects, ...rentalFixedSelects].forEach(fitSelectFont);
   buildRentalSparkPanel();  // piano spark mai salvato/ripristinato (temporaneo per definizione): riparte vuoto
 
   if (save.last_run && save.last_run.type === "top4") {
