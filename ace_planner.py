@@ -60,6 +60,18 @@ def _validate_aces(aces):
         raise ValueError("Due ace non possono condividere lo stesso nome base.")
 
 
+def _validate_parents(aces, parent_slots):
+    """Regole del gioco sui genitori scelti, per nome base (varianti incluse):
+    mai genitore di se stesso, mai lo stesso personaggio come genitore 1 e 2."""
+    for ace in aces:
+        p1, p2 = parent_slots.get((ace, "parent1")), parent_slots.get((ace, "parent2"))
+        for parent in (p1, p2):
+            if parent and base_character(parent) == base_character(ace):
+                raise ValueError(f"Un ace non puo' essere genitore di se stesso: '{ace}' / '{parent}'.")
+        if p1 and p2 and base_character(p1) == base_character(p2):
+            raise ValueError(f"Lo stesso personaggio non puo' essere genitore 1 e 2 dello stesso ace: '{p1}' / '{p2}'.")
+
+
 def build_established(aces, parent_slots, grandparent_slots):
     """
     parent_slots: dict[(ace, 'parent1'/'parent2')] -> personaggio o None.
@@ -113,6 +125,7 @@ def plan_ace_group(aces, parent_slots, grandparent_slots, parent_share_groups,
     Ritorna dict {parent_slots, grandparent_slots, cycles, total_affinity}.
     """
     _validate_aces(aces)
+    _validate_parents(aces, parent_slots)
     parent_slots = dict(parent_slots)
     grandparent_slots = {k: list(v) for k, v in grandparent_slots.items()}
 
@@ -238,6 +251,16 @@ def _demo():
     assert shared == "cand_good", f"Atteso cand_good come genitore condiviso, trovato {shared}"
     assert result["parent_slots"][("ace2", "parent1")] == shared, "Il genitore condiviso deve essere identico per entrambi gli ace"
     assert len(result["cycles"]) == 2, "Devono risultare 2 cicli, uno per ace"
+
+    # Regole genitori per nome base (varianti incluse).
+    for slots in ({("oguri_cap", "parent1"): "oguri_cap_og_xmas"},
+                  {("ace1", "parent1"): "el_condor_pasa", ("ace1", "parent2"): "el_condor_pasa_og"}):
+        try:
+            _validate_parents(list({k[0] for k in slots}), slots)
+            raise AssertionError(f"Atteso ValueError per {slots}")
+        except ValueError:
+            pass
+    _validate_parents(["ace1"], {("ace1", "parent1"): "el_condor_pasa", ("ace1", "parent2"): "agnes_digital"})
     print("ace_planner: self-check OK")
 
 

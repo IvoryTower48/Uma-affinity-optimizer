@@ -19,6 +19,7 @@ const ownedSortDirectionButton = document.getElementById("owned-sort-direction-b
 const selectAllButton = document.getElementById("select-all-button");
 const selectNoneButton = document.getElementById("select-none-button");
 const gametoraExportButton = document.getElementById("gametora-export-button");
+const gametoraRestoreButton = document.getElementById("gametora-restore-button");
 const gametoraImportButton = document.getElementById("gametora-import-button");
 const gametoraImportFileInput = document.getElementById("gametora-import-file-input");
 const gametoraImportStatus = document.getElementById("gametora-import-status");
@@ -117,8 +118,8 @@ const I18N = {
     label_auto_update: "Aggiorna automaticamente i dati da internet (nuovi personaggi/gare, una volta al giorno)",
     note_auto_update: "Disattivato di default: attivalo solo se vuoi che il programma si connetta a internet da solo. La modifica ha effetto dal prossimo avvio.",
     label_mode: "Modalità di utilizzo",
-    opt_mode_top4: "Top-4 compatibili con un personaggio",
-    opt_mode_loop: "Miglior loop a 5",
+    opt_mode_top4: "Top-4 compatibili con un personaggio (candidati posseduti)",
+    opt_mode_loop: "Miglior loop a 5 (solo posseduti)",
     label_calendar: "Vincolo di calendario",
     opt_calendar_career: "Con vincoli di carriera normale",
     opt_calendar_mant: "Nessun vincolo (Make A New Track)",
@@ -151,13 +152,17 @@ const I18N = {
     sort_descending: "↓ Discendente",
     btn_gametora_export: "Esporta collezione per Gametora",
     btn_gametora_import: "Importa collezione da Gametora",
+    btn_gametora_restore: "Ripristina collezione Gametora",
+    gametora_restore_none: "Nessuna collezione importata o esportata con Gametora finora.",
+    gametora_restore_import: "Ripristinata l'ultima collezione importata da Gametora ({date}): {count} personaggi.",
+    gametora_restore_export: "Ripristinata l'ultima collezione esportata per Gametora ({date}): {count} personaggi.",
     gametora_import_error: "Import fallito: {message}",
     gametora_import_success: "{count} personaggi posseduti importati da Gametora ({unmatched} non riconosciuti, ignorati).",
     gametora_skipped_note: "Nella maggior parte dei casi si tratta di varianti che questo tool non traccia separatamente, perché condividono le stesse aptitude e la stessa carriera del personaggio base ai fini del looping:",
     label_character: "Personaggio",
     label_loop_include: "Personaggi da includere nel loop (fino a 5, opzionale)",
     opt_none: "-- nessuno --",
-    opt_mode_rental: "Loop con genitore in prestito",
+    opt_mode_rental: "Loop con genitore in prestito (solo posseduti)",
     rental_section_title: "Loop con genitore in prestito",
     rental_intro: "Il genitore è obbligatorio e viene utilizzato in ogni step del ciclo; i nonni sono opzionali ma aiutano a calcolare correttamente l'affinità massima.",
     label_rental_anchor: "Genitore preso in prestito",
@@ -214,6 +219,8 @@ const I18N = {
     label_owned_io: "Importa / esporta",
     btn_veterans_topbar: "Veterani",
     btn_veteran_add_to_ace: "Aggiungi all'ace",
+    ace_conflict_self: "Non può essere genitore di se stesso (Ace {ace}, varianti comprese).",
+    ace_conflict_both_parents: "È già l'altro genitore di Ace {ace} (varianti comprese).",
     btn_veteran_delete: "Cancella veterano",
     veteran_delete_confirm: "Cancellare definitivamente {name}? Non si può annullare: andrebbe reimportato.",
     opt_veterans_sort_affinity: "Affinità",
@@ -375,8 +382,8 @@ const I18N = {
     label_auto_update: "Automatically update data from the internet (new characters/races, once a day)",
     note_auto_update: "Off by default: turn it on only if you want the program to connect to the internet on its own. The change takes effect from the next launch.",
     label_mode: "Usage mode",
-    opt_mode_top4: "Top-4 compatible with a character",
-    opt_mode_loop: "Best 5-loop",
+    opt_mode_top4: "Top-4 compatible with a character (owned candidates)",
+    opt_mode_loop: "Best 5-loop (owned only)",
     label_calendar: "Calendar constraint",
     opt_calendar_career: "With normal career constraints",
     opt_calendar_mant: "No constraints (Make A New Track)",
@@ -409,13 +416,17 @@ const I18N = {
     sort_descending: "↓ Descending",
     btn_gametora_export: "Export collection to Gametora",
     btn_gametora_import: "Import collection from Gametora",
+    btn_gametora_restore: "Restore Gametora collection",
+    gametora_restore_none: "No collection imported from or exported to Gametora yet.",
+    gametora_restore_import: "Restored the last collection imported from Gametora ({date}): {count} characters.",
+    gametora_restore_export: "Restored the last collection exported for Gametora ({date}): {count} characters.",
     gametora_import_error: "Import failed: {message}",
     gametora_import_success: "{count} owned characters imported from Gametora ({unmatched} unrecognized, skipped).",
     gametora_skipped_note: "Most of the time these are variants this tool doesn't track separately, since they share the same aptitudes and career as the base character for looping purposes:",
     label_character: "Character",
     label_loop_include: "Characters to include in the loop (up to 5, optional)",
     opt_none: "-- none --",
-    opt_mode_rental: "Loop with a rental parent",
+    opt_mode_rental: "Loop with rental parent (owned only)",
     rental_section_title: "Loop with a rental parent",
     rental_intro: "The parent is mandatory and is used in every step of the cycle; the grandparents are optional but help compute the maximum affinity correctly.",
     label_rental_anchor: "Rental parent",
@@ -472,6 +483,8 @@ const I18N = {
     label_owned_io: "Import / export",
     btn_veterans_topbar: "Veterans",
     btn_veteran_add_to_ace: "Add to ace",
+    ace_conflict_self: "Cannot be its own parent (Ace {ace}, variants included).",
+    ace_conflict_both_parents: "Already the other parent of Ace {ace} (variants included).",
     btn_veteran_delete: "Delete veteran",
     veteran_delete_confirm: "Permanently delete {name}? This cannot be undone: it would have to be imported again.",
     opt_veterans_sort_affinity: "Affinity",
@@ -655,6 +668,10 @@ function t(key, vars) {
 // ancora in elenco, viene mostrato in italiano anche con lingua EN attiva
 // (fallback sicuro, non un errore silente: il testo resta sempre leggibile).
 const SERVER_MESSAGE_TRANSLATIONS = [
+  [/^Un ace non puo' essere genitore di se stesso: '(.+?)' \/ '(.+?)'\.$/,
+    m => `An ace cannot be its own parent: '${m[1]}' / '${m[2]}'.`],
+  [/^Lo stesso personaggio non puo' essere genitore 1 e 2 dello stesso ace: '(.+?)' \/ '(.+?)'\.$/,
+    m => `The same character cannot be both parent 1 and 2 of the same ace: '${m[1]}' / '${m[2]}'.`],
   [/^Il file contiene (\d+) veterani: /,
     m => `The file contains ${m[1]} veterans: for a full inventory use "Import veteran collection from file".`],
   [/^Il file non sembra un export di umadump/,
@@ -1378,6 +1395,7 @@ selectAllButton.addEventListener("click", selectAllOwned);
 selectNoneButton.addEventListener("click", selectNoneOwned);
 
 gametoraExportButton.addEventListener("click", handleGametoraExportClick);
+gametoraRestoreButton.addEventListener("click", restoreGametoraCollection);
 gametoraImportButton.addEventListener("click", () => gametoraImportFileInput.click());
 gametoraImportFileInput.addEventListener("change", () => {
   const file = gametoraImportFileInput.files[0];
@@ -3529,7 +3547,47 @@ async function loadGametoraTidMap() {
 }
 const gametoraTidMapLoadedPromise = loadGametoraTidMap();
 
+// Ultima collezione importata da / esportata per Gametora (2026-11-22), nel
+// browser come i posseduti: "Ripristina" preferisce l'import, altrimenti l'export.
+const GAMETORA_SNAPSHOT_KEY = "uma_tool_gametora_collection_v1";
+
+function readGametoraSnapshots() {
+  try {
+    return JSON.parse(localStorage.getItem(GAMETORA_SNAPSHOT_KEY)) || {};
+  } catch (err) {
+    return {};
+  }
+}
+
+function saveGametoraSnapshot(kind) {
+  const snapshots = readGametoraSnapshots();
+  snapshots[kind] = { owned: Array.from(ownedSelection), at: new Date().toISOString() };
+  try {
+    localStorage.setItem(GAMETORA_SNAPSHOT_KEY, JSON.stringify(snapshots));
+  } catch (err) {
+    // localStorage non disponibile: non bloccante, come savePersistedSettings.
+  }
+}
+
+function restoreGametoraCollection() {
+  const snapshots = readGametoraSnapshots();
+  const kind = snapshots.import ? "import" : (snapshots.export ? "export" : null);
+  if (!kind) {
+    showGametoraImportStatus(t("gametora_restore_none"));
+    return;
+  }
+  const { owned, at } = snapshots[kind];
+  ownedSelection = new Set(owned);  // SOSTITUISCE la selezione attuale, come l'import
+  renderOwnedList();
+  savePersistedSettings();
+  renderGametoraSkippedList([]);
+  showGametoraImportStatus(t(`gametora_restore_${kind}`, {
+    date: new Date(at).toLocaleString(currentLang === "it" ? "it-IT" : "en-GB"), count: owned.length,
+  }));
+}
+
 function handleGametoraExportClick() {
+  saveGametoraSnapshot("export");
   const charCards = {};
   ownedSelection.forEach(id => {
     const tid = gametoraIdToTid[id];
@@ -3602,6 +3660,7 @@ async function handleGametoraImportFile(file) {
       ownedSelection = matched;  // SOSTITUISCE la selezione attuale (scelta confermata dall'utente)
       renderOwnedList();
       savePersistedSettings();
+      saveGametoraSnapshot("import");
       renderGametoraSkippedList(skippedTids);
       showGametoraImportStatus(t("gametora_import_success", { count: matched.size, unmatched: skippedTids.length }));
     } catch (err) {
@@ -4033,6 +4092,17 @@ function renderVeteranDetail() {
   veteranDetailEl.appendChild(parentsRow);
 }
 
+function showVeteranActionWarning(message) {
+  let warning = veteranDetailEl.querySelector(".veteran-action-warning");
+  if (!warning) {
+    warning = document.createElement("p");
+    warning.className = "warning veteran-action-warning";
+    warning.setAttribute("role", "alert");
+    veteranDetailEl.querySelector(".veteran-actions").after(warning);
+  }
+  warning.textContent = message;
+}
+
 // Slot proposto per "Aggiungi all'ace": quello da cui si e' aperto il popup
 // "Importa", altrimenti il primo genitore ancora vuoto (Ace 1 · Genitore 1).
 let lastAceTarget = null;
@@ -4047,6 +4117,11 @@ function defaultAceTarget() {
 }
 
 function addVeteranToAce(v, aceIndex, role) {
+  const conflict = parentSlotConflict(v.character, aceIndex, role);
+  if (conflict) {
+    showVeteranActionWarning(conflict);
+    return;
+  }
   importVeteranIntoSlot(aceIndex, role, v);
   closeVeteransModal();
   closeVeteranImportModal();
@@ -4400,6 +4475,22 @@ function importVeteranIntoSlot(aceIndex, role, veteran) {
 // slot ha aperto il popup, azzerato alla chiusura.
 let veteranImportTarget = null;
 
+// Motivo per cui 'character' non puo' andare nello slot genitore (aceIndex,
+// role), anche negli altri ace che lo condividono; null se puo'. Solo per
+// parent1/parent2: i nonni seguono le regole gia' esistenti.
+function parentSlotConflict(character, aceIndex, role) {
+  if (role !== "parent1" && role !== "parent2") return null;
+  const other = role === "parent1" ? "parent2" : "parent1";
+  const group = sharedGroupForRole(role);
+  const aces = group.includes(String(aceIndex)) ? group : [String(aceIndex)];
+  for (const ace of aces) {
+    const aceChar = document.querySelector(`.ace-character-select[data-ace-index="${ace}"]`).value;
+    if (sameBase(character, aceChar)) return t("ace_conflict_self", { ace });
+    if (sameBase(character, slotSelect(ace, other).value)) return t("ace_conflict_both_parents", { ace });
+  }
+  return null;
+}
+
 // --- Popup veterani: griglia + filtri spark (2026-11-22) --------------------
 // Griglia di ritratti (come i posseduti) con rango e pink spark sotto
 // l'icona, per distinguere i veterani senza aprirli uno per uno. Filtri spark
@@ -4493,6 +4584,12 @@ function buildVeteranPick(v) {
     pink.textContent = `${s.name_en} ${"★".repeat(s.stars)}`;
     pick.appendChild(pink);
   });
+  const conflict = veteranImportTarget
+    && parentSlotConflict(v.character, veteranImportTarget.aceIndex, veteranImportTarget.role);
+  if (conflict) {
+    pick.disabled = true;
+    pick.title = `${v.name} — ${conflict}`;
+  }
   pick.addEventListener("click", () => {
     if (veteranImportTarget) {
       importVeteranIntoSlot(veteranImportTarget.aceIndex, veteranImportTarget.role, v);
@@ -4666,18 +4763,31 @@ function mirrorIfShared(aceIndex, role) {
 // annullato subito (torna "auto"/vuoto) -- innesca comunque "change" sullo
 // slot svuotato, cosi' l'eventuale specchio (mirrorIfShared) propaga anche
 // l'annullamento ai rami condivisi, invece di lasciarli disallineati.
-function enforceNoSelfParent(aceIndex) {
+// Le regole sui genitori usano il NOME BASE (varianti incluse, come nel gioco,
+// 2026-11-22): niente Oguri Cap (Xmas) genitore di Oguri Cap, niente El Condor
+// Pasa genitore 1 e El Condor Pasa (Og) genitore 2. changedRole = lo slot
+// appena cambiato: in un conflitto genitore1/genitore2 e' lui a essere svuotato.
+function sameBase(a, b) {
+  return !!a && !!b && baseCharacter(a) === baseCharacter(b);
+}
+
+function clearSlot(aceIndex, role) {
+  const sel = slotSelect(aceIndex, role);
+  sel.value = "";
+  clearAceSlotSparks(aceIndex, role);
+  sel.dispatchEvent(new Event("change"));
+}
+
+function enforceNoSelfParent(aceIndex, changedRole) {
   const aceCharSelect = document.querySelector(`.ace-character-select[data-ace-index="${aceIndex}"]`);
   const aceChar = aceCharSelect ? aceCharSelect.value : "";
 
   ["parent1", "parent2"].forEach(role => {
-    const sel = slotSelect(aceIndex, role);
-    if (aceChar && sel.value === aceChar) {
-      sel.value = "";
-      clearAceSlotSparks(aceIndex, role);
-      sel.dispatchEvent(new Event("change"));
-    }
+    if (sameBase(aceChar, slotSelect(aceIndex, role).value)) clearSlot(aceIndex, role);
   });
+  if (sameBase(slotSelect(aceIndex, "parent1").value, slotSelect(aceIndex, "parent2").value)) {
+    clearSlot(aceIndex, changedRole === "parent1" ? "parent1" : "parent2");
+  }
 
   const parentValue = {
     parent1: slotSelect(aceIndex, "parent1").value,
@@ -4687,7 +4797,7 @@ function enforceNoSelfParent(aceIndex) {
     ([gpRole, parentRole]) => {
       const parentChar = parentValue[parentRole];
       const gpSel = slotSelect(aceIndex, gpRole);
-      if (parentChar && gpSel.value === parentChar) {
+      if (sameBase(parentChar, gpSel.value)) {
         gpSel.value = "";
         clearAceSlotSparks(aceIndex, gpRole);
         gpSel.dispatchEvent(new Event("change"));
@@ -4711,7 +4821,7 @@ aceSlotSelects.forEach(select => {
     // qui non vanno toccate, altrimenti lo specchio automatico
     // propagherebbe spark vuote invece di quelle appena importate.
     if (event.isTrusted) clearAceSlotSparks(aceIndex, role);
-    enforceNoSelfParent(aceIndex);
+    enforceNoSelfParent(aceIndex, role);
     mirrorIfShared(aceIndex, role);
   });
 });

@@ -2039,6 +2039,16 @@ details.collapsible-list summary {
   border-color: var(--primary-fill);
 }
 
+/* In conflitto con le regole dei genitori per lo slot scelto: visibile ma non cliccabile. */
+.veteran-pick:disabled {
+  background: none;
+  color: var(--text);
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.veteran-pick:disabled:hover { border-color: transparent; }
+
 .veteran-pick .portrait-wrap { width: 48px; height: 48px; font-size: var(--fs-xs); }
 
 .veteran-pick .veteran-score { margin: 0; font-size: var(--fs-sm); }

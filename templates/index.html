@@ -172,9 +172,9 @@
           <div class="control-card">
             <label data-i18n="label_mode">Modalità di utilizzo</label>
             <div class="mode-tabs" id="mode-tabs">
-              <button type="button" class="mode-tab-button" data-mode-choice="top4" data-i18n="opt_mode_top4">Top-4 compatibili con un personaggio</button>
-              <button type="button" class="mode-tab-button" data-mode-choice="loop" data-i18n="opt_mode_loop">Miglior loop a 5</button>
-              <button type="button" class="mode-tab-button" data-mode-choice="rental" data-i18n="opt_mode_rental">Loop con genitore in prestito</button>
+              <button type="button" class="mode-tab-button" data-mode-choice="top4" data-i18n="opt_mode_top4">Top-4 compatibili con un personaggio (candidati posseduti)</button>
+              <button type="button" class="mode-tab-button" data-mode-choice="loop" data-i18n="opt_mode_loop">Miglior loop a 5 (solo posseduti)</button>
+              <button type="button" class="mode-tab-button" data-mode-choice="rental" data-i18n="opt_mode_rental">Loop con genitore in prestito (solo posseduti)</button>
               <button type="button" class="mode-tab-button" data-mode-choice="ace" data-i18n="opt_mode_ace">Pianifica ace (PvP)</button>
             </div>
             <!-- Il <select> resta nel DOM (solo nascosto): tutta la logica esistente
@@ -182,9 +182,9 @@
                  server) legge/scrive modeSelect.value, non serve toccarla altrove.
                  I tab sopra si limitano a pilotarlo. -->
             <select id="mode-select" hidden>
-              <option value="top4" data-i18n="opt_mode_top4">Top-4 compatibili con un personaggio</option>
-              <option value="loop" data-i18n="opt_mode_loop">Miglior loop a 5</option>
-              <option value="rental" data-i18n="opt_mode_rental">Loop con genitore in prestito</option>
+              <option value="top4" data-i18n="opt_mode_top4">Top-4 compatibili con un personaggio (candidati posseduti)</option>
+              <option value="loop" data-i18n="opt_mode_loop">Miglior loop a 5 (solo posseduti)</option>
+              <option value="rental" data-i18n="opt_mode_rental">Loop con genitore in prestito (solo posseduti)</option>
               <option value="ace" data-i18n="opt_mode_ace">Pianifica ace (PvP)</option>
             </select>
 
@@ -261,6 +261,7 @@
             <span class="owned-io-label" data-i18n="label_owned_io">Importa / esporta</span>
             <button type="button" id="gametora-export-button" data-i18n="btn_gametora_export">Esporta per Gametora</button>
             <button type="button" id="gametora-import-button" data-i18n="btn_gametora_import">Importa da Gametora</button>
+            <button type="button" id="gametora-restore-button" data-i18n="btn_gametora_restore">Ripristina collezione Gametora</button>
             <input type="file" id="gametora-import-file-input" accept="application/json" style="display:none">
             <button type="button" class="veterans-file-import-button" data-i18n="btn_veterans_file_import">Importa collezione veterani da file (umadump)</button>
             <button type="button" class="veterans-file-import-button" data-single="1" data-i18n="btn_veteran_single_file_import">Importa veterano singolo da file (umadump)</button>

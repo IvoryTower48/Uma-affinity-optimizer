@@ -68,6 +68,10 @@ app = Flask(
     template_folder=resource_path("templates"),
     static_folder=resource_path("static"),
 )
+# Il template si rilegge se cambia su disco, come gia' succede per script.js:
+# senza, un server avviato prima di una modifica a index.html serviva il
+# template vecchio con lo script nuovo (elementi mancanti, script fermo).
+app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 DATA_DIR = os.path.join(app_dir(), "data")
 
