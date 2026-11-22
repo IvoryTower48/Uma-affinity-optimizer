@@ -163,7 +163,8 @@ const I18N = {
     gametora_import_success: "{count} personaggi posseduti importati da Gametora ({unmatched} non riconosciuti, ignorati).",
     gametora_skipped_note: "Nella maggior parte dei casi si tratta di varianti che questo tool non traccia separatamente, perché condividono le stesse aptitude e la stessa carriera del personaggio base ai fini del looping:",
     label_character: "Personaggio",
-    label_loop_include: "Personaggi da includere nel loop (fino a 5, opzionale)",
+    label_loop_include: "Personaggi da includere nel loop (solo posseduti, fino a 5, opzionale)",
+    owned_only_removed: "Rimossi {count} personaggi non più posseduti.",
     opt_none: "-- nessuno --",
     opt_mode_rental: "Loop con genitore in prestito (solo posseduti)",
     rental_section_title: "Loop con genitore in prestito",
@@ -427,7 +428,8 @@ const I18N = {
     gametora_import_success: "{count} owned characters imported from Gametora ({unmatched} unrecognized, skipped).",
     gametora_skipped_note: "Most of the time these are variants this tool doesn't track separately, since they share the same aptitudes and career as the base character for looping purposes:",
     label_character: "Character",
-    label_loop_include: "Characters to include in the loop (up to 5, optional)",
+    label_loop_include: "Characters to include in the loop (owned only, up to 5, optional)",
+    owned_only_removed: "Removed {count} characters no longer owned.",
     opt_none: "-- none --",
     opt_mode_rental: "Loop with rental parent (owned only)",
     rental_section_title: "Loop with a rental parent",
@@ -1130,6 +1132,53 @@ function globalFilteredCharacterNames() {
     .sort((a, b) => a.localeCompare(b));
 }
 
+// Posseduti (con il filtro Global); nessun posseduto = tutti, come lato server
+// (app.restrict_to_owned).
+function ownedFilteredCharacterNames() {
+  const names = globalFilteredCharacterNames();
+  return ownedSelection.size ? names.filter(n => ownedSelection.has(n)) : names;
+}
+
+// I menu che il server accetta SOLO con personaggi posseduti (2026-11-22):
+// i 5 "da includere" del loop e i 3 "gia' scelti" del rental. Gli altri
+// (Top-4, genitore in prestito e nonni, ace) restano sull'elenco completo.
+// Un personaggio scelto che non e' piu' posseduto viene tolto, con una nota.
+function populateOwnedOnlySelects() {
+  const names = ownedFilteredCharacterNames();
+  [[mustIncludeSelects, ".must-include-selects"], [rentalFixedSelects, ".rental-fixed-selects"]]
+    .forEach(([selects, containerSelector]) => {
+      let removed = 0;
+      selects.forEach(select => {
+        const current = select.value;
+        select.innerHTML = `<option value="">${t("opt_none")}</option>`;
+        names.forEach(name => {
+          const opt = document.createElement("option");
+          opt.value = name;
+          opt.textContent = formatCharacterName(name);
+          select.appendChild(opt);
+        });
+        if (current && !names.includes(current)) removed++;
+        select.value = names.includes(current) ? current : "";
+      });
+      const container = document.querySelector(containerSelector);
+      let note = container.nextElementSibling;
+      if (!note || !note.classList.contains("owned-only-note")) {
+        note = document.createElement("p");
+        note.className = "warning owned-only-note";
+        note.setAttribute("role", "status");
+        container.after(note);
+      }
+      note.textContent = removed ? t("owned_only_removed", { count: removed }) : "";
+      note.hidden = !removed;
+    });
+}
+
+// Ogni cambio della selezione dei posseduti: salva e riallinea i menu sopra.
+function ownedSelectionChanged() {
+  savePersistedSettings();
+  populateOwnedOnlySelects();
+}
+
 // Un veterano e' selezionabile per l'import solo se TUTTI i personaggi che
 // porta con se' (se stesso + i suoi genitori noti, che diventerebbero nonni)
 // passano il filtro -- altrimenti l'import cadrebbe nello stesso bug per lo
@@ -1155,8 +1204,7 @@ function populateMustIncludeSelects() {
     select.value = current;  // se 'current' non e' piu' tra le opzioni, resta vuoto
   };
 
-  mustIncludeSelects.forEach(fillWithNone);
-  rentalFixedSelects.forEach(fillWithNone);
+  populateOwnedOnlySelects();
   fillWithNone(rentalGpASelect);
   fillWithNone(rentalGpBSelect);
 
@@ -1311,7 +1359,7 @@ function renderOwnedListClassic() {
     checkbox.addEventListener("change", () => {
       if (checkbox.checked) ownedSelection.add(c.character);
       else ownedSelection.delete(c.character);
-      savePersistedSettings();
+      ownedSelectionChanged();
     });
 
     wrapper.appendChild(checkbox);
@@ -1353,7 +1401,7 @@ function renderOwnedListModern() {
       if (checkbox.checked) ownedSelection.add(c.character);
       else ownedSelection.delete(c.character);
       chip.classList.toggle("owned-chip-selected", checkbox.checked);
-      savePersistedSettings();
+      ownedSelectionChanged();
     });
 
     const portrait = buildPortraitWrap(c.character);
@@ -1374,14 +1422,14 @@ function selectAllOwned() {
   // come se l'utente spuntasse ogni checkbox attualmente visibile
   visibleItems().forEach(c => ownedSelection.add(c.character));
   renderOwnedList();
-  savePersistedSettings();
+  ownedSelectionChanged();
 }
 
 function selectNoneOwned() {
   // come se l'utente togliesse la spunta da ogni checkbox attualmente visibile
   visibleItems().forEach(c => ownedSelection.delete(c.character));
   renderOwnedList();
-  savePersistedSettings();
+  ownedSelectionChanged();
 }
 
 selectAllButton.addEventListener("click", selectAllOwned);
@@ -3572,7 +3620,7 @@ function restoreGametoraCollection() {
   const { owned, at } = snapshots[kind];
   ownedSelection = new Set(owned);  // SOSTITUISCE la selezione attuale, come l'import
   renderOwnedList();
-  savePersistedSettings();
+  ownedSelectionChanged();
   renderGametoraSkippedList([]);
   showGametoraImportStatus(t(`gametora_restore_${kind}`, {
     date: new Date(at).toLocaleString(currentLang === "it" ? "it-IT" : "en-GB"), count: owned.length,
@@ -3652,7 +3700,7 @@ async function handleGametoraImportFile(file) {
       });
       ownedSelection = matched;  // SOSTITUISCE la selezione attuale (scelta confermata dall'utente)
       renderOwnedList();
-      savePersistedSettings();
+      ownedSelectionChanged();
       saveGametoraSnapshot("import");
       renderGametoraSkippedList(skippedTids);
       showGametoraImportStatus(t("gametora_import_success", { count: matched.size, unmatched: skippedTids.length }));
