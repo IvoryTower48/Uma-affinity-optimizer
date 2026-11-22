@@ -47,9 +47,6 @@ from pathlib import Path
 
 from display_names import format_character_name
 
-PARENT_SLOTS = ("parent1", "parent2")
-
-
 def _normalize_all(veterans: list) -> tuple[list, bool]:
     """Aggiunge i campi assenti nei record scritti prima che esistessero --
     solo in lettura, ma essendo una migrazione la scrive UNA SOLA VOLTA (vedi
@@ -60,8 +57,7 @@ def _normalize_all(veterans: list) -> tuple[list, bool]:
     stesso personaggio (es. piu' "Aston Machan" creati prima di questa
     funzionalita', caso reale segnalato dall'utente 2026-08-15) riceve
     "<Personaggio> #1", "#2", ecc. nell'ordine in cui compaiono nel file,
-    esattamente come se fossero stati creati uno alla volta con
-    add_veteran. Rinominabile dopo (vedi rename_veteran) se l'ordine non
+    esattamente come la numerazione degli import. Rinominabile dopo (vedi rename_veteran) se l'ordine non
     corrisponde a quello reale (non ricostruibile con certezza)."""
     changed = False
     counts = {}
@@ -108,25 +104,6 @@ def _save_veterans(data_dir, veterans: list) -> None:
     path.write_text(json.dumps(veterans, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def add_veteran(data_dir, character: str) -> dict:
-    """Crea un nuovo veterano vuoto (nessuna spark, nessun genitore noto
-    ancora) per 'character'. Nome di default "<Personaggio> #N" (N = quanti
-    veterani con lo stesso personaggio esistono gia' + 1) -- distingue le
-    "copie" fin da subito, rinominabile dopo (vedi rename_veteran). Ritorna
-    il record creato, con 'id' assegnato (uuid4 esadecimale)."""
-    veterans = get_veterans(data_dir)
-    existing_count = sum(1 for v in veterans if v["character"] == character)
-    record = {
-        "id": uuid.uuid4().hex, "character": character,
-        "name": f"{format_character_name(character)} #{existing_count + 1}",
-        "white_sparks": [], "race_sparks": [],
-        "parent1": None, "parent2": None,
-    }
-    veterans.append(record)
-    _save_veterans(data_dir, veterans)
-    return record
-
-
 def rename_veteran(data_dir, veteran_id: str, name: str) -> list:
     """Rinomina un veterano (solo l'etichetta 'name', mai 'character'). Il
     nome non puo' essere vuoto -- se l'utente vuole "resettarlo" sceglie un
@@ -145,28 +122,6 @@ def rename_veteran(data_dir, veteran_id: str, name: str) -> list:
     return veterans
 
 
-def set_veteran_sparks(data_dir, veteran_id: str, white_sparks: list, race_sparks: list) -> list:
-    """Sostituisce per intero le spark PROPRIE del veterano (non quelle dei
-    suoi genitori, vedi set_veteran_parent per quelle) -- stesso principio di
-    sostituzione piena gia' usato li': il chiamante manda sempre la lista
-    completa desiderata (add/rimuovi una spark = ricalcolare la lista lato
-    client e rimandarla tutta), gia' validate a monte (vedi app.py).
-    Sostituisce la vecchia apply_spark_to_veterans (bulk "applica a piu'
-    veterani insieme"), rimossa su richiesta esplicita dell'utente
-    (2026-08-15): con veterani dello stesso personaggio ma copie diverse,
-    quel flusso rendeva troppo facile applicare la spark sbagliata alla
-    copia sbagliata -- ogni veterano si modifica ora individualmente, come
-    i suoi genitori."""
-    veterans = get_veterans(data_dir)
-    veteran = next((v for v in veterans if v["id"] == veteran_id), None)
-    if veteran is None:
-        raise ValueError("Veterano non trovato.")
-    veteran["white_sparks"] = white_sparks
-    veteran["race_sparks"] = race_sparks
-    _save_veterans(data_dir, veterans)
-    return veterans
-
-
 def import_veterans(data_dir, parsed_veterans: list) -> list:
     """
     Crea in blocco veterani gia' completi (personaggio + spark proprie +
@@ -174,7 +129,7 @@ def import_veterans(data_dir, parsed_veterans: list) -> list:
     parent1, parent2}) -- usato dall'import da Gametora
     (vedi veterans_gametora.parse_gametora_import), UN SOLO salvataggio su
     disco invece di N chiamate separate. Il nome di ciascuno segue la
-    stessa numerazione di add_veteran (per personaggio, in base a quanti ne
+    numerazione "<Personaggio> #N" (per personaggio, in base a quanti ne
     esistono gia') -- CONTA anche i veterani appena aggiunti nello stesso
     batch, cosi' piu' veterani importati insieme con lo stesso personaggio
     restano distinti fin da subito, non tutti "#1". Ritorna la lista
@@ -242,42 +197,6 @@ def sync_imported_veterans(data_dir, parsed_veterans: list, full: bool) -> tuple
         stats["added"] += 1
     _save_veterans(data_dir, veterans)
     return veterans, stats
-
-
-def set_veteran_parent(data_dir, veteran_id: str, slot: str, character: str | None,
-                        white_sparks: list, race_sparks: list) -> list:
-    """
-    Imposta (o cancella) un genitore NOTO del veterano -- vedi il commento in
-    cima al modulo per cosa rappresenta. Sostituzione PIENA dello slot (mai
-    un merge): character None/vuoto cancella lo slot per intero, ignorando
-    eventuali spark passate (non avrebbe senso una spark senza un
-    personaggio a cui appartiene). white_sparks/race_sparks gia' validate
-    dal chiamante (vedi app.py), non ricontrollate qui.
-
-    Solleva ValueError se lo slot non e' 'parent1'/'parent2' o il veterano
-    non esiste. Ritorna la lista aggiornata di TUTTI i veterani.
-    """
-    if slot not in PARENT_SLOTS:
-        raise ValueError(f"Slot genitore non valido: '{slot}' (atteso 'parent1' o 'parent2').")
-    veterans = get_veterans(data_dir)
-    veteran = next((v for v in veterans if v["id"] == veteran_id), None)
-    if veteran is None:
-        raise ValueError("Veterano non trovato.")
-
-    if not character:
-        veteran[slot] = None
-    else:
-        # stesso personaggio: si tengono i campi che l'editor non tocca
-        # (spark blu/rosa/verdi e G1 vinte di un genitore importato)
-        previous = veteran[slot] if veteran[slot] and veteran[slot]["character"] == character else {}
-        veteran[slot] = {
-            **previous,
-            "character": character,
-            "white_sparks": white_sparks or [],
-            "race_sparks": race_sparks or [],
-        }
-    _save_veterans(data_dir, veterans)
-    return veterans
 
 
 def delete_veteran(data_dir, veteran_id: str) -> bool:

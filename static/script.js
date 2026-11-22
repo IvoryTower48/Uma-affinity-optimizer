@@ -60,8 +60,6 @@ const metaParentsError = document.getElementById("meta-parents-error");
 const veteransOpenButton = document.getElementById("veterans-open-button");
 const veteransModal = document.getElementById("veterans-modal");
 const veteransCloseButton = document.getElementById("veterans-close-button");
-const veteranAddCharacterSelect = document.getElementById("veteran-add-character-select");
-const veteranAddButton = document.getElementById("veteran-add-button");
 const veteransListEl = document.getElementById("veterans-list");
 const veteranDetailEl = document.getElementById("veteran-detail");
 const veteransGametoraExportButton = document.getElementById("veterans-gametora-export-button");
@@ -77,6 +75,16 @@ const aceSlotSparkPickers = Array.from(document.querySelectorAll(".ace-slot-spar
 const aceSlotSparkAddButtons = Array.from(document.querySelectorAll(".ace-slot-spark-add-button"));
 const veteranImportModal = document.getElementById("veteran-import-modal");
 const veteranImportListEl = document.getElementById("veteran-import-list");
+const veteranImportTitle = document.getElementById("veteran-import-title");
+const veteranFilterCategory = document.getElementById("veteran-filter-category");
+const veteranFilterSpark = document.getElementById("veteran-filter-spark");
+const veteranFilterStars = document.getElementById("veteran-filter-stars");
+const veteranFilterScope = document.getElementById("veteran-filter-scope");
+const veteranFilterAddButton = document.getElementById("veteran-filter-add-button");
+const veteranFilterListEl = document.getElementById("veteran-filter-list");
+const veteranPickerCount = document.getElementById("veteran-picker-count");
+const veteranPickerOpenButton = document.getElementById("veteran-picker-open-button");
+const veteranPickerSort = document.getElementById("veteran-picker-sort");
 const veteranImportCancelButton = document.getElementById("veteran-import-cancel-button");
 
 // Tiene aperta una connessione verso il server per tutta la vita di QUESTA
@@ -196,7 +204,6 @@ const I18N = {
     btn_manage_veterans: "Gestisci veterani…",
     veterans_modal_title: "Veterani",
     veterans_modal_intro: "Genitori/nonni già allevati, con le loro spark: si riusano su più piani. Permanenti, salvati sul tuo PC.",
-    btn_veteran_add: "Aggiungi veterano",
     opt_spark_picker_placeholder: "-- scegli una spark --",
     opt_group_race_spark: "Race spark",
     opt_group_white_spark: "White spark",
@@ -205,6 +212,22 @@ const I18N = {
     btn_import_veteran: "Importa",
     ace_slot_more: "Importa veterano / spark",
     label_owned_io: "Importa / esporta",
+    btn_veterans_topbar: "Veterani",
+    btn_veteran_add_to_ace: "Aggiungi all'ace",
+    btn_veteran_delete: "Cancella veterano",
+    veteran_delete_confirm: "Cancellare definitivamente {name}? Non si può annullare: andrebbe reimportato.",
+    opt_veterans_sort_affinity: "Affinità",
+    veteran_affinity_short: "· aff. {total}",
+    veteran_won_races: "G1 vinte",
+    veteran_lineage_total: "Affinità (senza ace): {total}",
+    veteran_lineage_gp: "Affinità (senza ace): {total} (base {base} + G1 in comune {bonus})",
+    veteran_picker_title_browse: "Veterani",
+    veteran_filter_cat_white: "Bianca (abilità/gara)",
+    veteran_filter_scope_parent: "Solo genitore",
+    veteran_filter_scope_whole: "Intero veterano (con nonni)",
+    btn_veteran_filter_add: "Aggiungi filtro",
+    veteran_picker_count: "{shown} di {total} veterani",
+    veteran_picker_none: "Nessun veterano rispetta tutti i filtri.",
     veteran_import_modal_title: "Importa veterano",
     ace_slot_spark_remove_title: "Rimuovi",
     veteran_parents_title: "Genitori del veterano (diventeranno i nonni, una volta importato come genitore)",
@@ -226,8 +249,6 @@ const I18N = {
     veteran_info_score: "Punteggio {score}",
     veteran_info_created: "creato il {date}",
     veteran_info_locked: "bloccato",
-    veteran_info_imported: "importato da umadump",
-    veteran_won_races: "G1 vinte",
     veteran_won_races_none: "nessuna",
     veteran_sparks_blue: "Blu",
     veteran_sparks_pink: "Rosa",
@@ -441,7 +462,6 @@ const I18N = {
     btn_manage_veterans: "Manage veterans…",
     veterans_modal_title: "Veterans",
     veterans_modal_intro: "Already-bred parents/grandparents, with their sparks: reused across multiple plans. Permanent, saved on your PC.",
-    btn_veteran_add: "Add veteran",
     opt_spark_picker_placeholder: "-- choose a spark --",
     opt_group_race_spark: "Race spark",
     opt_group_white_spark: "White spark",
@@ -450,6 +470,22 @@ const I18N = {
     btn_import_veteran: "Import",
     ace_slot_more: "Import veteran / spark",
     label_owned_io: "Import / export",
+    btn_veterans_topbar: "Veterans",
+    btn_veteran_add_to_ace: "Add to ace",
+    btn_veteran_delete: "Delete veteran",
+    veteran_delete_confirm: "Permanently delete {name}? This cannot be undone: it would have to be imported again.",
+    opt_veterans_sort_affinity: "Affinity",
+    veteran_affinity_short: "· aff. {total}",
+    veteran_won_races: "G1 wins",
+    veteran_lineage_total: "Affinity (without ace): {total}",
+    veteran_lineage_gp: "Affinity (without ace): {total} (base {base} + shared G1 {bonus})",
+    veteran_picker_title_browse: "Veterans",
+    veteran_filter_cat_white: "White (skill/race)",
+    veteran_filter_scope_parent: "Parent only",
+    veteran_filter_scope_whole: "Whole veteran (incl. grandparents)",
+    btn_veteran_filter_add: "Add filter",
+    veteran_picker_count: "{shown} of {total} veterans",
+    veteran_picker_none: "No veteran matches all filters.",
     veteran_import_modal_title: "Import veteran",
     ace_slot_spark_remove_title: "Remove",
     veteran_parents_title: "Veteran's parents (become grandparents once imported as a parent)",
@@ -471,8 +507,6 @@ const I18N = {
     veteran_info_score: "Score {score}",
     veteran_info_created: "created {date}",
     veteran_info_locked: "locked",
-    veteran_info_imported: "imported from umadump",
-    veteran_won_races: "G1 wins",
     veteran_won_races_none: "none",
     veteran_sparks_blue: "Blue",
     veteran_sparks_pink: "Pink",
@@ -3696,7 +3730,7 @@ async function loadSparkCatalog() {
 // gia' alfabetiche in sparkCatalog) -- condiviso da ogni punto in cui si
 // aggiunge una spark a UN singolo bersaglio: i 18 selettori per-slot del
 // piano ace, il proprio editor spark di un veterano e quello di ciascuno
-// dei suoi 2 genitori (vedi buildSparkEditor), stessa struttura ovunque.
+// dei suoi 2 genitori, stessa struttura ovunque.
 function buildSparkPickerOptions(selectEl) {
   const placeholder = selectEl.querySelector("option[value='']");
   selectEl.innerHTML = "";
@@ -3727,47 +3761,6 @@ function populateAceSlotSparkPickers() {
   aceSlotSparkPickers.forEach(buildSparkPickerOptions);
 }
 
-function populateVeteranAddSelect() {
-  const current = veteranAddCharacterSelect.value;
-  const sortedNames = globalFilteredCharacterNames();
-  veteranAddCharacterSelect.innerHTML = "";
-  sortedNames.forEach(name => {
-    const opt = document.createElement("option");
-    opt.value = name;
-    opt.textContent = formatCharacterName(name);
-    veteranAddCharacterSelect.appendChild(opt);
-  });
-  veteranAddCharacterSelect.value = sortedNames.includes(current) ? current : (sortedNames[0] || "");
-}
-
-// Salva per intero uno slot genitore di un veterano (PUT, sostituzione
-// piena -- vedi app.py/veterans.set_veteran_parent): ricarica veteransCache
-// dalla risposta e riDisegna, stesso principio "si salva subito, niente
-// bottone Salva a parte" gia' usato ovunque nel modal Veterani.
-async function saveVeteranParent(veteranId, slot, character, whiteSparks, raceSparks) {
-  const resp = await fetch(`/api/veterans/${veteranId}/parent/${slot}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ character: character || null, white_sparks: whiteSparks, race_sparks: raceSparks }),
-  });
-  if (!resp.ok) return;
-  veteransCache = await resp.json();
-  renderVeteransList();
-}
-
-// Sostituisce per intero le spark PROPRIE di un veterano (non quelle di un
-// suo genitore, vedi saveVeteranParent per quelle).
-async function saveVeteranSparks(veteranId, whiteSparks, raceSparks) {
-  const resp = await fetch(`/api/veterans/${veteranId}/sparks`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ white_sparks: whiteSparks, race_sparks: raceSparks }),
-  });
-  if (!resp.ok) return;
-  veteransCache = await resp.json();
-  renderVeteransList();
-}
-
 async function saveVeteranName(veteranId, name) {
   const resp = await fetch(`/api/veterans/${veteranId}/name`, {
     method: "PUT",
@@ -3779,121 +3772,49 @@ async function saveVeteranName(veteranId, name) {
   renderVeteransList();
 }
 
-// Chip (con rimozione) + riga "aggiungi spark", per UN bersaglio (un
-// veterano o un suo genitore, mai piu' di uno alla volta -- l'applicazione
-// "a piu' veterani insieme" e' stata rimossa su richiesta esplicita
-// dell'utente, 2026-08-15: con piu' veterani dello stesso personaggio
-// (copie diverse, vedi 'name' in veterans.py) era troppo facile applicare
-// la spark alla copia sbagliata). onSave(newWhiteSparks, newRaceSparks)
-// riceve la lista GIA' ricalcolata (add o remove), il chiamante decide dove
-// salvarla (saveVeteranSparks per il veterano stesso, saveVeteranParent per
-// un suo genitore).
-function buildSparkEditor(whiteSparks, raceSparks, onSave) {
-  const wrap = document.createElement("div");
-
+// Chip in sola lettura delle spark bianche/di gara di un veterano o di un suo
+// genitore: i veterani si importano gia' finiti (2026-11-22), niente modifica.
+function buildSparkChips(whiteSparks, raceSparks) {
   const chipRow = document.createElement("div");
   chipRow.className = "ace-slot-sparks";
-  const combined = [
+  [
     ...whiteSparks.map(s => ({ ...s, sparkType: "white" })),
     ...raceSparks.map(s => ({ ...s, sparkType: "race" })),
-  ];
-  combined.forEach(spark => {
+  ].forEach(spark => {
     const chip = document.createElement("span");
     chip.className = "ace-slot-spark-chip";
     chip.dataset.cat = spark.sparkType;
     chip.textContent = `${spark.name_en} ${"★".repeat(spark.stars)}`;
-    const removeBtn = document.createElement("button");
-    removeBtn.type = "button";
-    removeBtn.title = t("ace_slot_spark_remove_title");
-    removeBtn.textContent = "×";
-    removeBtn.addEventListener("click", () => {
-      const newWhite = spark.sparkType === "white"
-        ? whiteSparks.filter(s => s.spark_id !== spark.spark_id) : whiteSparks;
-      const newRace = spark.sparkType === "race"
-        ? raceSparks.filter(s => s.spark_id !== spark.spark_id) : raceSparks;
-      onSave(newWhite, newRace);
-    });
-    chip.appendChild(removeBtn);
     chipRow.appendChild(chip);
   });
-  wrap.appendChild(chipRow);
-
-  const addRow = document.createElement("div");
-  addRow.className = "ace-slot-spark-add-row";
-  const picker = document.createElement("select");
-  picker.innerHTML = `<option value="">${t("opt_spark_picker_placeholder")}</option>`;
-  buildSparkPickerOptions(picker);
-  const starsSelect = document.createElement("select");
-  [1, 2, 3].forEach(n => {
-    const opt = document.createElement("option");
-    opt.value = String(n);
-    opt.textContent = `${n}★`;
-    starsSelect.appendChild(opt);
-  });
-  const addBtn = document.createElement("button");
-  addBtn.type = "button";
-  addBtn.textContent = t("btn_add");
-  addBtn.addEventListener("click", () => {
-    if (!picker.value) return;
-    const [sparkType, sparkId] = picker.value.split(":");
-    const sparkDef = (sparkType === "white" ? sparkCatalog.white : sparkCatalog.race).find(s => s.id === sparkId);
-    if (!sparkDef) return;
-    const stars = Number(starsSelect.value);
-    const targetList = [...(sparkType === "white" ? whiteSparks : raceSparks)];
-    const existing = targetList.find(s => s.spark_id === sparkId);
-    if (existing) existing.stars = stars;
-    else targetList.push({ spark_id: sparkId, name_en: sparkDef.name_en, stars });
-    const newWhite = sparkType === "white" ? targetList : whiteSparks;
-    const newRace = sparkType === "race" ? targetList : raceSparks;
-    onSave(newWhite, newRace);
-  });
-  addRow.append(picker, starsSelect, addBtn);
-  wrap.appendChild(addRow);
-
-  return wrap;
+  return chipRow;
 }
 
-// Un genitore NOTO del veterano (parent1/parent2, vedi veterans.py): scelta
-// del personaggio + le sue spark -- diventera' un NONNO dell'ace quando
-// questo veterano viene importato come genitore diretto (vedi
-// importVeteranIntoSlot).
-function buildVeteranParentEditor(veteran, slot) {
+// Un genitore del veterano (= futuro nonno dell'ace): personaggio, spark e
+// la sua affinita' col veterano (vedi _veteran_lineage_affinity in app.py).
+function buildVeteranParentInfo(veteran, slot) {
   const parent = veteran[slot];
   const wrap = document.createElement("div");
   wrap.className = "veteran-parent-editor";
-
   const label = document.createElement("span");
   label.className = "veteran-parent-label";
   label.textContent = slot === "parent1" ? t("label_ace_parent1") : t("label_ace_parent2");
   wrap.appendChild(label);
-
-  const charSelect = document.createElement("select");
-  charSelect.innerHTML = `<option value="">${t("opt_none")}</option>`;
-  // esclude il veterano stesso: non puo' essere suo proprio genitore, stesso
-  // principio del "mai genitore di se stesso" del piano ace (vedi
-  // enforceNoSelfParent piu' sotto in questo file)
-  globalFilteredCharacterNames()
-    .filter(name => name !== veteran.character)
-    .forEach(name => {
-      const opt = document.createElement("option");
-      opt.value = name;
-      opt.textContent = formatCharacterName(name);
-      charSelect.appendChild(opt);
-    });
-  charSelect.value = parent ? parent.character : "";
-  charSelect.addEventListener("change", () => {
-    // cambiare personaggio azzera le spark: appartenevano al personaggio precedente
-    saveVeteranParent(veteran.id, slot, charSelect.value, [], []);
-  });
-  wrap.appendChild(charSelect);
-
+  const name = document.createElement("p");
+  name.className = "veteran-parent-name";
+  name.textContent = parent ? formatCharacterName(parent.character) : t("opt_none");
+  wrap.appendChild(name);
   if (parent) {
-    wrap.appendChild(buildSparkEditor(parent.white_sparks, parent.race_sparks, (newWhite, newRace) => {
-      saveVeteranParent(veteran.id, slot, parent.character, newWhite, newRace);
-    }));
+    wrap.appendChild(buildSparkChips(parent.white_sparks, parent.race_sparks));
     wrap.appendChild(buildImportedSparkInfo(parent));
+    const g = veteran.affinity && veteran.affinity.grandparents[slot];
+    if (g) {
+      const line = document.createElement("p");
+      line.className = "veteran-lineage-line";
+      line.textContent = t("veteran_lineage_gp", g);
+      wrap.appendChild(line);
+    }
   }
-
   return wrap;
 }
 
@@ -3927,8 +3848,9 @@ function renderVeteransList() {
     const nameSpan = document.createElement("span");
     nameSpan.className = "veteran-list-item-name";
     nameSpan.textContent = v.name;
+    nameSpan.title = v.name;  // nomi lunghi troncati con ellissi
     item.appendChild(nameSpan);
-    if (v.rank_score != null) item.appendChild(buildVeteranScore(v));
+    item.appendChild(buildVeteranScore(v));
     item.addEventListener("click", () => {
       selectedVeteranId = v.id;
       renderVeteransList();
@@ -3947,12 +3869,19 @@ function visibleVeterans() {
   const sort = veteransSortSelect.value;
   if (sort === "name") list.sort((a, b) => a.name.localeCompare(b.name));
   if (sort === "created") list.sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
-  if (sort === "score") list.sort((a, b) => (b.rank_score ?? -1) - (a.rank_score ?? -1));
+  sortVeterans(list, sort);
   return list;
 }
 
 veteransSearchInput.addEventListener("input", () => renderVeteransList());
 veteransSortSelect.addEventListener("change", () => renderVeteransList());
+
+// Ordinamenti numerici condivisi da lista e griglia: dal valore piu' alto.
+function sortVeterans(list, sort) {
+  if (sort === "score") list.sort((a, b) => (b.rank_score ?? -1) - (a.rank_score ?? -1));
+  if (sort === "affinity") list.sort((a, b) => b.affinity.total - a.affinity.total);
+  return list;
+}
 
 // Rank del gioco (1 = G ... 18 = SS+), ricavato dal punteggio dei veterani
 // reali; oltre SS+ (ranghi UG e successivi) si mostra solo "UG".
@@ -3969,9 +3898,18 @@ function buildVeteranScore(v) {
   const el = document.createElement("span");
   el.className = "veteran-score";
   el.title = t("veteran_info_score", { score: v.rank_score });
-  const rank = document.createElement("strong");
-  rank.textContent = veteranRankLabel(v.rank);
-  el.append(rank, ` ${v.rank_score}`);
+  if (v.rank_score != null) {
+    const rank = document.createElement("strong");
+    rank.textContent = veteranRankLabel(v.rank);
+    el.append(rank, ` ${v.rank_score}`);
+  }
+  if (v.affinity) {
+    const aff = document.createElement("span");
+    aff.className = "veteran-affinity";
+    aff.title = t("veteran_lineage_total", { total: v.affinity.total });
+    aff.textContent = t("veteran_affinity_short", { total: v.affinity.total });
+    el.append(aff);
+  }
   return el;
 }
 
@@ -4004,18 +3942,12 @@ function buildImportedSparkInfo(entity) {
     });
     wrap.appendChild(line);
   });
-  if (entity.won_races) {
-    const line = document.createElement("p");
-    line.textContent = `${t("veteran_won_races")}: ` + (entity.won_races.length
-      ? entity.won_races.map(r => raceLabels[r] || r).join(", ") : t("veteran_won_races_none"));
-    wrap.appendChild(line);
-  }
   return wrap;
 }
 
-// Il dettaglio completo (nome/personaggio/rimuovi, spark proprie, i 2
-// genitori) del SOLO veterano selezionato -- stessa struttura di prima,
-// solo renderizzata una volta invece che ripetuta per ogni veterano.
+// Dettaglio del veterano selezionato, in sola lettura (salvo il nome, che
+// distingue le copie): "Aggiungi all'ace" (lo carica come genitore dello
+// slot scelto, i suoi genitori diventano i nonni) accanto a "Cancella veterano".
 function renderVeteranDetail() {
   veteranDetailEl.innerHTML = "";
   const v = veteransCache.find(x => x.id === selectedVeteranId);
@@ -4031,29 +3963,64 @@ function renderVeteranDetail() {
   const charLabel = document.createElement("span");
   charLabel.className = "veteran-row-counts";
   charLabel.textContent = formatCharacterName(v.character);
-  const removeBtn = document.createElement("button");
-  removeBtn.type = "button";
-  removeBtn.textContent = t("btn_remove");
-  removeBtn.addEventListener("click", () => deleteVeteran(v.id));
-  row.append(nameInput, charLabel);
-  if (v.rank_score != null) row.appendChild(buildVeteranScore(v));
-  row.appendChild(removeBtn);
+  row.append(nameInput, charLabel, buildVeteranScore(v));
   veteranDetailEl.appendChild(row);
 
-  if (v.source) {
+  const actions = document.createElement("div");
+  actions.className = "veteran-actions";
+  const targetSelect = document.createElement("select");
+  targetSelect.className = "veteran-ace-target";
+  ["1", "2", "3"].forEach(ace => ["parent1", "parent2"].forEach(role => {
+    const opt = document.createElement("option");
+    opt.value = `${ace}:${role}`;
+    opt.textContent = `Ace ${ace} · ${t(role === "parent1" ? "label_ace_parent1" : "label_ace_parent2")}`;
+    targetSelect.appendChild(opt);
+  }));
+  targetSelect.value = defaultAceTarget();
+  const addBtn = document.createElement("button");
+  addBtn.type = "button";
+  addBtn.textContent = t("btn_veteran_add_to_ace");
+  addBtn.addEventListener("click", () => {
+    const [aceIndex, role] = targetSelect.value.split(":");
+    addVeteranToAce(v, aceIndex, role);
+  });
+  const deleteBtn = document.createElement("button");
+  deleteBtn.type = "button";
+  deleteBtn.className = "modal-button-secondary";
+  deleteBtn.textContent = t("btn_veteran_delete");
+  deleteBtn.addEventListener("click", () => {
+    if (confirm(t("veteran_delete_confirm", { name: v.name }))) deleteVeteran(v.id);
+  });
+  actions.append(targetSelect, addBtn, deleteBtn);
+  veteranDetailEl.appendChild(actions);
+
+  if (v.created_at || v.is_locked) {
     const info = document.createElement("p");
     info.className = "veteran-info-line";
-    const parts = [t("veteran_info_imported")];
+    const parts = [];
     if (v.created_at) parts.push(t("veteran_info_created", { date: v.created_at.slice(0, 10) }));
     if (v.is_locked) parts.push(t("veteran_info_locked"));
     info.textContent = parts.join(" · ");
     veteranDetailEl.appendChild(info);
   }
 
-  veteranDetailEl.appendChild(buildSparkEditor(v.white_sparks, v.race_sparks, (newWhite, newRace) => {
-    saveVeteranSparks(v.id, newWhite, newRace);
-  }));
+  veteranDetailEl.appendChild(buildSparkChips(v.white_sparks, v.race_sparks));
   veteranDetailEl.appendChild(buildImportedSparkInfo(v));
+
+  // G1 vinte: una volta sola, sul veterano (= futuro genitore).
+  if (v.won_races) {
+    const wins = document.createElement("p");
+    wins.className = "veteran-info-line";
+    wins.textContent = `${t("veteran_won_races")}: ` + (v.won_races.length
+      ? v.won_races.map(r => raceLabels[r] || r).join(", ") : t("veteran_won_races_none"));
+    veteranDetailEl.appendChild(wins);
+  }
+  if (v.affinity) {
+    const aff = document.createElement("p");
+    aff.className = "veteran-lineage-line";
+    aff.textContent = t("veteran_lineage_total", { total: v.affinity.total });
+    veteranDetailEl.appendChild(aff);
+  }
 
   const parentsTitle = document.createElement("p");
   parentsTitle.className = "veteran-parents-title";
@@ -4062,8 +4029,32 @@ function renderVeteranDetail() {
 
   const parentsRow = document.createElement("div");
   parentsRow.className = "veteran-parents-row";
-  parentsRow.append(buildVeteranParentEditor(v, "parent1"), buildVeteranParentEditor(v, "parent2"));
+  parentsRow.append(buildVeteranParentInfo(v, "parent1"), buildVeteranParentInfo(v, "parent2"));
   veteranDetailEl.appendChild(parentsRow);
+}
+
+// Slot proposto per "Aggiungi all'ace": quello da cui si e' aperto il popup
+// "Importa", altrimenti il primo genitore ancora vuoto (Ace 1 · Genitore 1).
+let lastAceTarget = null;
+function defaultAceTarget() {
+  if (lastAceTarget) return lastAceTarget;
+  for (const ace of ["1", "2", "3"]) {
+    for (const role of ["parent1", "parent2"]) {
+      if (!slotSelect(ace, role).value) return `${ace}:${role}`;
+    }
+  }
+  return "1:parent1";
+}
+
+function addVeteranToAce(v, aceIndex, role) {
+  importVeteranIntoSlot(aceIndex, role, v);
+  closeVeteransModal();
+  closeVeteranImportModal();
+  if (modeSelect.value !== "ace") {
+    modeSelect.value = "ace";
+    modeSelect.dispatchEvent(new Event("change"));
+  }
+  slotSelect(aceIndex, role).closest(".ace-slot-block").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 async function loadVeterans() {
@@ -4074,7 +4065,6 @@ async function loadVeterans() {
 async function openVeteransModal() {
   await charactersLoadedPromise;
   await loadSparkCatalog();
-  populateVeteranAddSelect();
   await loadVeterans();
   veteransModal.hidden = false;
 }
@@ -4254,19 +4244,6 @@ veteransAnyImportFileInput.addEventListener("change", () => {
   reader.readAsText(file);
 });
 
-veteranAddButton.addEventListener("click", async () => {
-  const character = veteranAddCharacterSelect.value;
-  if (!character) return;
-  const resp = await fetch("/api/veterans", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ character }),
-  });
-  const record = await resp.json();
-  selectedVeteranId = record.id;  // seleziona subito il nuovo veterano, pronto per essere modificato
-  await loadVeterans();
-});
-
 
 // --- Piano ace, passo 2: spark manuali per slot + import da veterano -------
 // Ogni slot (genitore1/2, nonno1a/1b/2a/2b) di OGNI ace ha una propria lista
@@ -4304,6 +4281,9 @@ function renderAceSlotSparks(aceIndex, role) {
   );
   const data = getAceSlotSparks(aceIndex, role);
   container.innerHTML = "";
+  // Slot importato da un veterano: niente x e niente riga "aggiungi spark".
+  const addRow = container.closest(".ace-slot-cell").querySelector(".ace-slot-spark-add-row");
+  if (addRow) addRow.hidden = !!data.locked;
   const combined = [
     ...data.white_sparks.map(s => ({ ...s, sparkType: "white" })),
     ...data.race_sparks.map(s => ({ ...s, sparkType: "race" })),
@@ -4313,6 +4293,8 @@ function renderAceSlotSparks(aceIndex, role) {
     chip.className = "ace-slot-spark-chip";
     chip.dataset.cat = spark.sparkType;
     chip.textContent = `${spark.name_en} ${"★".repeat(spark.stars)}`;
+    container.appendChild(chip);
+    if (data.locked) return;
     const removeBtn = document.createElement("button");
     removeBtn.type = "button";
     removeBtn.title = t("ace_slot_spark_remove_title");
@@ -4325,7 +4307,6 @@ function renderAceSlotSparks(aceIndex, role) {
       mirrorIfShared(aceIndex, role);
     });
     chip.appendChild(removeBtn);
-    container.appendChild(chip);
   });
 }
 
@@ -4376,6 +4357,7 @@ function importVeteranIntoSlot(aceIndex, role, veteran) {
   aceSlotSparks[aceSlotKey(aceIndex, role)] = {
     white_sparks: veteran.white_sparks.map(s => ({ ...s })),  // copia, non riferimento:
     race_sparks: veteran.race_sparks.map(s => ({ ...s })),    // modificarle dopo non deve toccare il veterano salvato
+    locked: true,  // veterano scelto cosi' com'e': spark non modificabili finche' lo slot non cambia personaggio
   };
   renderAceSlotSparks(aceIndex, role);
 
@@ -4396,6 +4378,7 @@ function importVeteranIntoSlot(aceIndex, role, veteran) {
         ? {
           white_sparks: gpData.white_sparks.map(s => ({ ...s })),
           race_sparks: gpData.race_sparks.map(s => ({ ...s })),
+          locked: true,
         }
         : { white_sparks: [], race_sparks: [] };
       renderAceSlotSparks(aceIndex, gpRole);
@@ -4417,33 +4400,158 @@ function importVeteranIntoSlot(aceIndex, role, veteran) {
 // slot ha aperto il popup, azzerato alla chiusura.
 let veteranImportTarget = null;
 
-function renderVeteranImportList() {
-  veteranImportListEl.innerHTML = "";
-  const importable = veteransCache.filter(veteranPassesGlobalFilter);
-  if (importable.length === 0) {
-    const p = document.createElement("p");
-    p.className = "placeholder";
-    p.textContent = t("veterans_empty");
-    veteranImportListEl.appendChild(p);
-    return;
-  }
-  importable.forEach(v => {
-    const row = document.createElement("div");
-    row.className = "veteran-import-row";
-    row.textContent = v.name;  // il nome, non il personaggio: distingue le copie (vedi veterans.py)
-    row.addEventListener("click", () => {
-      importVeteranIntoSlot(veteranImportTarget.aceIndex, veteranImportTarget.role, v);
-      closeVeteranImportModal();
-    });
-    veteranImportListEl.appendChild(row);
+// --- Popup veterani: griglia + filtri spark (2026-11-22) --------------------
+// Griglia di ritratti (come i posseduti) con rango e pink spark sotto
+// l'icona, per distinguere i veterani senza aprirli uno per uno. Filtri spark
+// tutti in AND: ognuno ha categoria (pink/blue/white, con le white che
+// includono le spark di gara), spark, stelle minime e ambito -- "parent" =
+// solo le spark del veterano stesso (il futuro genitore), "whole" = veterano
+// + i suoi 2 genitori (i futuri nonni), con le stelle SOMMATE come conta
+// l'eredita'. Filtri incompatibili -> nessun veterano, nessuna eccezione.
+// Senza slot di destinazione (aperto dalla topbar) e' in consultazione: il
+// click apre il veterano in "Gestisci veterani".
+let veteranFilters = [];
+
+function entitySparks(entity, category) {
+  if (!entity) return [];
+  const tag = (list, type) => (list || []).map(s => ({ ...s, key: `${type}:${s.spark_id}` }));
+  if (category === "white") return [...tag(entity.white_sparks, "white"), ...tag(entity.race_sparks, "race")];
+  return tag(entity[`${category}_sparks`], category);
+}
+
+function veteranSparkStars(veteran, filter) {
+  const holders = filter.scope === "whole" ? [veteran, veteran.parent1, veteran.parent2] : [veteran];
+  return holders.reduce((sum, h) => sum + entitySparks(h, filter.category)
+    .filter(s => s.key === filter.key).reduce((acc, s) => acc + s.stars, 0), 0);
+}
+
+function veteranMatchesFilters(veteran) {
+  return veteranFilters.every(f => veteranSparkStars(veteran, f) >= f.minStars);
+}
+
+// Spark proponibili = quelle presenti davvero tra veterani e loro genitori.
+function populateVeteranFilterSparks() {
+  const category = veteranFilterCategory.value;
+  const byKey = new Map();
+  veteransCache.forEach(v => [v, v.parent1, v.parent2].forEach(h =>
+    entitySparks(h, category).forEach(s => byKey.set(s.key, s.name_en))));
+  const sorted = [...byKey].sort((a, b) => a[1].localeCompare(b[1]));
+  veteranFilterSpark.innerHTML = `<option value="">${t("opt_spark_picker_placeholder")}</option>`;
+  sorted.forEach(([key, name]) => {
+    const opt = document.createElement("option");
+    opt.value = key;
+    opt.textContent = name;
+    veteranFilterSpark.appendChild(opt);
   });
 }
 
-function openVeteranImportModal(aceIndex, role) {
-  veteranImportTarget = { aceIndex, role };
+// Con "intero veterano" le stelle si sommano su 3 portatori: fino a 9.
+function populateVeteranFilterStars() {
+  const max = veteranFilterScope.value === "whole" ? 9 : 3;
+  const previous = Number(veteranFilterStars.value) || 1;
+  veteranFilterStars.innerHTML = "";
+  for (let n = 1; n <= max; n++) {
+    const opt = document.createElement("option");
+    opt.value = String(n);
+    opt.textContent = `≥ ${n}★`;
+    veteranFilterStars.appendChild(opt);
+  }
+  veteranFilterStars.value = String(Math.min(previous, max));
+}
+
+function renderVeteranFilterList() {
+  veteranFilterListEl.innerHTML = "";
+  veteranFilters.forEach((f, idx) => {
+    const chip = document.createElement("span");
+    chip.className = "ace-slot-spark-chip";
+    chip.dataset.cat = f.category;
+    const scope = t(f.scope === "whole" ? "veteran_filter_scope_whole" : "veteran_filter_scope_parent");
+    chip.textContent = `${f.name} ≥ ${f.minStars}★ · ${scope} `;
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.title = t("ace_slot_spark_remove_title");
+    removeBtn.textContent = "×";
+    removeBtn.addEventListener("click", () => {
+      veteranFilters.splice(idx, 1);
+      renderVeteranImportList();
+    });
+    chip.appendChild(removeBtn);
+    veteranFilterListEl.appendChild(chip);
+  });
+}
+
+function buildVeteranPick(v) {
+  const pick = document.createElement("button");
+  pick.type = "button";
+  pick.className = "veteran-pick";
+  pick.title = v.name;  // il nome distingue le copie (vedi veterans.py)
+  pick.appendChild(buildPortraitWrap(v.character));
+  pick.appendChild(buildVeteranScore(v));
+  (v.pink_sparks || []).forEach(s => {
+    const pink = document.createElement("span");
+    pink.className = "veteran-pick-pink";
+    pink.textContent = `${s.name_en} ${"★".repeat(s.stars)}`;
+    pick.appendChild(pink);
+  });
+  pick.addEventListener("click", () => {
+    if (veteranImportTarget) {
+      importVeteranIntoSlot(veteranImportTarget.aceIndex, veteranImportTarget.role, v);
+      closeVeteranImportModal();
+    } else {
+      selectedVeteranId = v.id;
+      veteransSearchInput.value = "";
+      closeVeteranImportModal();
+      openVeteransModal();
+    }
+  });
+  return pick;
+}
+
+function renderVeteranImportList() {
+  renderVeteranFilterList();
+  veteranImportListEl.innerHTML = "";
+  const available = veteransCache.filter(veteranPassesGlobalFilter);
+  const shown = sortVeterans(available.filter(veteranMatchesFilters), veteranPickerSort.value);
+  veteranPickerCount.textContent = t("veteran_picker_count", { shown: shown.length, total: available.length });
+  if (shown.length === 0) {
+    const p = document.createElement("p");
+    p.className = "placeholder";
+    p.textContent = t(available.length ? "veteran_picker_none" : "veterans_empty");
+    veteranImportListEl.appendChild(p);
+    return;
+  }
+  shown.forEach(v => veteranImportListEl.appendChild(buildVeteranPick(v)));
+}
+
+veteranFilterCategory.addEventListener("change", populateVeteranFilterSparks);
+veteranFilterScope.addEventListener("change", populateVeteranFilterStars);
+veteranPickerSort.addEventListener("change", renderVeteranImportList);
+veteranFilterAddButton.addEventListener("click", () => {
+  const key = veteranFilterSpark.value;
+  if (!key) return;
+  veteranFilters.push({
+    category: veteranFilterCategory.value,
+    key,
+    name: veteranFilterSpark.selectedOptions[0].textContent,
+    minStars: Number(veteranFilterStars.value),
+    scope: veteranFilterScope.value,
+  });
+  renderVeteranImportList();
+});
+
+async function openVeteranImportModal(aceIndex, role) {
+  veteranImportTarget = aceIndex ? { aceIndex, role } : null;
+  if (veteranImportTarget) lastAceTarget = `${aceIndex}:${role}`;
+  await charactersLoadedPromise;
+  if (veteransCache.length === 0) await loadVeterans();
+  veteranImportTitle.textContent = t(veteranImportTarget ? "veteran_import_modal_title" : "veteran_picker_title_browse");
+  populateVeteranFilterSparks();
+  populateVeteranFilterStars();
   renderVeteranImportList();
   veteranImportModal.hidden = false;
 }
+
+veteranPickerOpenButton.addEventListener("click", () => openVeteranImportModal());
 
 function closeVeteranImportModal() {
   veteranImportModal.hidden = true;
@@ -4504,6 +4612,7 @@ function copySlotSparks(fromAceIndex, fromRole, toAceIndex, toRole) {
   aceSlotSparks[aceSlotKey(toAceIndex, toRole)] = {
     white_sparks: source.white_sparks.map(s => ({ ...s })),
     race_sparks: source.race_sparks.map(s => ({ ...s })),
+    locked: !!source.locked,
   };
   renderAceSlotSparks(toAceIndex, toRole);
 }

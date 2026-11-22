@@ -25,7 +25,7 @@ data/update_settings.json
 # spark): dato personale di partita, non dato di riferimento condiviso come
 # gli altri file in data/ -- cambia ad ogni uso della feature, non ha senso
 # nella cronologia di un repository condiviso.
-data/veterans.json
+data/veterans*.json
 
 # Note di lavoro interne (handoff tra sessioni), non documentazione per
 # chi scarica il progetto da GitHub.
