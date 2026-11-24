@@ -125,6 +125,7 @@
           <option value="green" data-i18n="veteran_sparks_green">Verde</option>
           <option value="white" data-i18n="veteran_filter_cat_white">Bianca (abilità/gara)</option>
         </select>
+        <input type="search" id="veteran-filter-search" class="spark-search-input" data-i18n-placeholder="spark_search_placeholder" placeholder="Cerca spark…" autocomplete="off">
         <select id="veteran-filter-spark"></select>
         <select id="veteran-filter-stars"></select>
         <select id="veteran-filter-scope">
@@ -330,10 +331,40 @@
 
             <div id="ace-field" class="ace-field control-card">
               <p class="field-section-title" data-i18n="ace_section_title">Pianifica ace (PvP)</p>
-              <p class="field-intro" data-i18n="ace_intro">Fino a 3 ace (i veterani schierabili in PvP), uno per tab. Per ogni genitore scegli un personaggio, aggiungi un veterano o lascia "(automatico)" per farlo suggerire. I nonni non si scelgono: sono i genitori del veterano aggiunto, altrimenti li suggerisce il calcolo.</p>
+              <p class="field-intro" data-i18n="ace_intro">Fino a 3 ace (i veterani schierabili in PvP), uno per tab. Per ogni genitore scegli un personaggio, aggiungi un veterano o lascia "(automatico)": il calcolo ci mette il personaggio o il veterano migliore, secondo l'interruttore qui sotto. I nonni non si scelgono: sono i genitori del veterano, altrimenti li suggerisce il calcolo.</p>
 
               <div class="ace-veterans-row">
                 <button type="button" id="veterans-open-button" data-i18n="btn_manage_veterans">Gestisci veterani…</button>
+              </div>
+
+              <!-- Cosa suggerisce "(automatico)" per i genitori, per tutti gli ace
+                   (2026-11-23): personaggi qualsiasi o veterani importati che
+                   rispettano le condizioni spark (vedi getAceVeteranIds). -->
+              <div class="ace-suggest-row">
+                <span class="ace-suggest-label" data-i18n="label_ace_suggest">Suggerisci</span>
+                <div class="ace-suggest-toggle" role="radiogroup">
+                  <button type="button" class="ace-suggest-button mode-tab-active" role="radio" aria-checked="true" data-suggest="characters" data-i18n="opt_ace_suggest_characters">Personaggi</button>
+                  <button type="button" class="ace-suggest-button" role="radio" aria-checked="false" data-suggest="veterans" data-i18n="opt_ace_suggest_veterans">Veterani</button>
+                </div>
+              </div>
+              <div id="ace-veteran-conditions" class="ace-veteran-conditions" hidden>
+                <p class="field-intro" data-i18n="ace_conditions_intro">Condizioni facoltative che ogni veterano suggerito deve rispettare. Senza un veterano adatto viene suggerito un personaggio.</p>
+                {% for cat, label_text in [("pink", "Rosa"), ("white", "Bianca"), ("blue", "Blu")] %}
+                <div class="ace-condition-row" data-cat="{{ cat }}">
+                  <span class="ace-condition-label" data-i18n="spark_color_{{ cat }}">{{ label_text }}</span>
+                  <div class="ace-condition-controls">
+                  {% if cat == "white" %}
+                  <input type="search" class="ace-condition-search spark-search-input" data-cat="{{ cat }}" data-i18n-placeholder="spark_search_placeholder" placeholder="Cerca spark…" autocomplete="off">
+                  {% endif %}
+                  <select class="ace-condition-spark" data-cat="{{ cat }}"></select>
+                  <select class="ace-condition-stars" data-cat="{{ cat }}"></select>
+                  <select class="ace-condition-scope" data-cat="{{ cat }}">
+                    <option value="parent" data-i18n="veteran_filter_scope_parent">Solo genitore</option>
+                    <option value="whole" data-i18n="ace_condition_scope_whole">Con nonni</option>
+                  </select>
+                  </div>
+                </div>
+                {% endfor %}
               </div>
 
               <!-- Un ace alla volta, a tab: l'albero (ace, 2 genitori, 4 nonni) e il

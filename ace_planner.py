@@ -29,6 +29,12 @@ Ricerca in due fasi per ace (greedy, non esaustiva congiunta):
    (build_cycle_details, Bonus incluso) per scegliere il candidato che
    massimizza la Overall Affinity dell'ace.
 
+Modalita' "veterani" (veteran_pool, 2026-11-23): i genitori da suggerire
+si cercano tra i veterani importati (gia' filtrati a monte per le
+condizioni spark pink/white/blu), valutati con la formula reale completa
+contando i loro nonni veri, che restano fissi come per un veterano aggiunto
+a mano. Nessun veterano ammissibile -> ripiego sul personaggio (fase 1).
+
 ponytail: greedy per slot (prima i genitori, poi i nonni), non una ricerca
 esaustiva congiunta -- puo' mancare l'ottimo quando due slot interagiscono
 forte tra loro. Upgrade: provare combinazioni esaustive di coppie
@@ -83,15 +89,23 @@ def _tree_bases(ace, slots):
 
 
 def plan_ace(ace, slots, fixed_branches, candidate_pool, matrix, name_map, character_ids,
-             id_weights, calendar, races, aptitudes, mode, min_aptitude):
+             id_weights, calendar, races, aptitudes, mode, min_aptitude, veteran_pool=None):
     """
     slots: dict[ruolo] -> personaggio o None (ruoli in ALL_ROLES; None = da
       suggerire). Copia interna, l'input del chiamante non viene modificato.
     fixed_branches: genitori ('parent1'/'parent2') aggiunti da veterano, i
       cui nonni sono quelli del veterano: mai suggeriti, un None resta ignoto.
-    Ritorna (slots completati, ciclo o None se un genitore resta ignoto).
+    veteran_pool: None = genitori suggeriti tra i personaggi (candidate_pool);
+      lista di veterani {id, character, gps: (nonno a, nonno b)} = genitori
+      suggeriti tra questi (gia' filtrati a monte per condizioni spark e
+      Global), scelti con la formula reale contando i loro nonni veri; se
+      nessuno e' ammissibile per uno slot, ripiego su un personaggio.
+    Ritorna (slots completati, ciclo o None se un genitore resta ignoto,
+    picks: dict[ruolo genitore suggerito] -> id del veterano o None = ripiego).
     """
     slots = {role: slots.get(role) or None for role in ALL_ROLES}
+    fixed_branches = set(fixed_branches)
+    picks = {}
 
     def best(score_of):
         exclude = _tree_bases(ace, slots)
@@ -111,10 +125,49 @@ def plan_ace(ace, slots, fixed_branches, candidate_pool, matrix, name_map, chara
         return build_cycle_details(established, matrix, name_map, character_ids, id_weights,
                                    resolved, children=[ace] if ace in established else [])
 
-    # --- Fase 1: genitori, punteggio pairwise (base+gara) verso l'ace ---
+    def best_veteran(role):
+        """Veterano che massimizza la Overall Affinity reale dell'ace con i
+        SUOI nonni. Se l'altro genitore e' ancora da suggerire, al suo posto
+        un segnaposto (miglior personaggio per pair_score) solo per poter
+        valutare l'albero; viene poi scelto davvero al suo turno."""
+        other = "parent2" if role == "parent1" else "parent1"
+        gp_a, gp_b = ROLE_GPS[role]
+        exclude = _tree_bases(ace, slots)
+        best_vet, best_score = None, (float("-inf"),)
+        for vet in veteran_pool:
+            if base_character(vet["character"]) in exclude:
+                continue
+            slots[role] = vet["character"]
+            slots[gp_a], slots[gp_b] = vet["gps"]
+            placeholder = slots[other] is None
+            if placeholder:
+                slots[other] = best(lambda cand: pair_score(ace, cand, matrix))
+            result = cycles()
+            # pari merito (il segnaposto rende l'albero simmetrico): vince chi
+            # ha piu' affinita' diretta con l'ace.
+            score = (result[0]["overall_affinity"] if result else 0, pair_score(ace, vet["character"], matrix))
+            if placeholder:
+                slots[other] = None
+            slots[role] = slots[gp_a] = slots[gp_b] = None
+            if score > best_score:
+                best_score, best_vet = score, vet
+        return best_vet
+
+    # --- Fase 1: genitori, punteggio pairwise (base+gara) verso l'ace, o il
+    # miglior veterano ammissibile (ripiego sul personaggio se nessuno) ---
     for role in ("parent1", "parent2"):
-        if slots[role] is None:
+        if slots[role] is not None:
+            continue
+        vet = best_veteran(role) if veteran_pool is not None else None
+        if vet:
+            slots[role] = vet["character"]
+            slots[ROLE_GPS[role][0]], slots[ROLE_GPS[role][1]] = vet["gps"]
+            fixed_branches.add(role)
+            picks[role] = vet["id"]
+        else:
             slots[role] = best(lambda cand: pair_score(ace, cand, matrix))
+            if veteran_pool is not None:
+                picks[role] = None
 
     # --- Fase 2: nonni, formula reale completa (Bonus genitore<->nonno incluso) ---
     for parent_role, gp_roles in ROLE_GPS.items():
@@ -133,32 +186,34 @@ def plan_ace(ace, slots, fixed_branches, candidate_pool, matrix, name_map, chara
             slots[gp_role] = best(overall_with)
 
     result = cycles()
-    return slots, (result[0] if result else None)
+    return slots, (result[0] if result else None), picks
 
 
 def plan_ace_group(aces, slots, fixed_branches, candidate_pool, matrix, name_map, character_ids,
-                   id_weights, calendar, races, aptitudes, mode, min_aptitude):
+                   id_weights, calendar, races, aptitudes, mode, min_aptitude, veteran_pool=None):
     """
     aces: lista di 1-3 personaggi.
     slots: dict[ace] -> dict[ruolo] -> personaggio o None (vedi plan_ace).
     fixed_branches: dict[ace] -> insieme dei genitori aggiunti da veterano.
     candidate_pool: personaggi tra cui cercare (gia' filtrati a monte per
       Global/posseduti, come altrove nel progetto).
+    veteran_pool: vedi plan_ace (None = suggerimenti tra i personaggi).
     Ogni ace e' pianificato da solo (vedi docstring del modulo).
-    Ritorna dict {slots, cycles, total_affinity}.
+    Ritorna dict {slots, cycles, total_affinity, picks: dict[ace] -> picks di plan_ace}.
     """
     _validate_aces(aces)
-    out_slots, cycles = {}, []
+    out_slots, cycles, picks = {}, [], {}
     for ace in aces:
         ace_slots = slots.get(ace, {})
         _validate_parents([ace], {(ace, r): ace_slots.get(r) for r in ("parent1", "parent2")})
-        out_slots[ace], cycle = plan_ace(
+        out_slots[ace], cycle, picks[ace] = plan_ace(
             ace, ace_slots, fixed_branches.get(ace, set()), candidate_pool, matrix, name_map,
-            character_ids, id_weights, calendar, races, aptitudes, mode, min_aptitude,
+            character_ids, id_weights, calendar, races, aptitudes, mode, min_aptitude, veteran_pool,
         )
         if cycle:
             cycles.append(cycle)
-    return {"slots": out_slots, "cycles": cycles, "total_affinity": sum(c["overall_affinity"] for c in cycles)}
+    return {"slots": out_slots, "cycles": cycles, "picks": picks,
+            "total_affinity": sum(c["overall_affinity"] for c in cycles)}
 
 
 def _demo():
@@ -202,6 +257,13 @@ def _demo():
                    "ace2": {"parent1": "cand_good", "gp1a": "gp3", "gp1b": None}},
             fixed_branches={"ace1": {"parent1"}, "ace2": {"parent1"}}, **common,
         )
+        # Suggerimenti da veterani: v_good (cand_good, nonni gp1/gp2) batte
+        # v_bad; v_bad resta per il genitore 2. Senza veterani: ripiego.
+        vets = plan_ace_group(["ace1"], slots={}, fixed_branches={}, veteran_pool=[
+            {"id": "v_bad", "character": "cand_bad", "gps": ("gp1", None)},
+            {"id": "v_good", "character": "cand_good", "gps": ("gp1", "gp2")},
+        ], **common)
+        no_vets = plan_ace_group(["ace1"], slots={}, fixed_branches={}, veteran_pool=[], **common)
     finally:
         cycle_analysis.resolve_group_achievable = orig
         globals()["resolve_group_achievable"] = orig
@@ -212,6 +274,13 @@ def _demo():
     assert split["slots"]["ace1"]["gp1a"] == "gp1" and split["slots"]["ace2"]["gp1a"] == "gp3"
     assert split["slots"]["ace2"]["gp1b"] is None, "Nonni di un veterano: un ignoto resta ignoto"
     assert split["slots"]["ace1"]["gp2a"] is not None, "Nonni del genitore non veterano vanno suggeriti"
+
+    v = vets["slots"]["ace1"]
+    assert vets["picks"]["ace1"]["parent1"] == "v_good" and (v["gp1a"], v["gp1b"]) == ("gp1", "gp2"), vets
+    assert vets["picks"]["ace1"]["parent2"] == "v_bad" and v["gp2b"] is None, "Nonni del veterano: ignoto resta ignoto"
+    assert no_vets["picks"]["ace1"] == {"parent1": None, "parent2": None}, "Nessun veterano: ripiego"
+    assert no_vets["slots"]["ace1"]["parent1"] == "cand_good", "Ripiego sul miglior personaggio"
+    assert result["picks"]["ace1"] == {}, "Modalita' personaggi: nessun pick"
 
     # Regole genitori per nome base (varianti incluse).
     for slots in ({("oguri_cap", "parent1"): "oguri_cap_og_xmas"},

@@ -1061,6 +1061,10 @@ def api_ace_plan():
         ramo sono fissi e un null resta ignoto, mai suggerito. Ogni ace e' un
         albero indipendente: lo stesso personaggio puo' essere genitore di piu'
         ace, anche con nonni diversi.
+      veteran_ids: assente/null = genitori suggeriti tra i personaggi; lista di
+        id = genitori suggeriti tra QUESTI veterani (la UI li ha gia' filtrati
+        per condizioni spark e Global), con ripiego sul personaggio se nessuno
+        e' ammissibile. Risposta: picks[ace][ruolo] = id veterano o null.
     """
     payload = request.get_json()
     aces_input = payload.get("aces", [])
@@ -1097,10 +1101,20 @@ def api_ace_plan():
     }
     candidate_pool = restrict_to_owned(universe, owned)
 
+    veteran_pool = None
+    if payload.get("veteran_ids") is not None:
+        wanted, known = set(payload["veteran_ids"]), set(universe)
+        veteran_pool = [
+            {"id": v["id"], "character": v["character"],
+             "gps": tuple((v.get(p) or {}).get("character") for p in ("parent1", "parent2"))}
+            for v in veterans_store.get_veterans(DATA_DIR)
+            if v["id"] in wanted and v["character"] in known
+        ]
+
     try:
         result = plan_ace_group(
             aces, slots, fixed_branches, candidate_pool, matrix, name_map, character_ids, id_weights,
-            calendar, races, aptitudes, mode, min_aptitude,
+            calendar, races, aptitudes, mode, min_aptitude, veteran_pool,
         )
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
@@ -1108,6 +1122,7 @@ def api_ace_plan():
     return jsonify({
         "aces": aces,
         "slots": result["slots"],
+        "picks": result["picks"],
         "cycles": result["cycles"],
         "total_affinity": result["total_affinity"],
         "warning": warning,

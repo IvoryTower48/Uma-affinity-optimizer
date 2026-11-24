@@ -189,7 +189,16 @@ const I18N = {
     rental_total_label: "Total Loop Affinity",
     opt_mode_ace: "Pianifica ace (PvP)",
     ace_section_title: "Pianifica ace (PvP)",
-    ace_intro: "Fino a 3 ace (i veterani schierabili in PvP), uno per tab. Per ogni genitore scegli un personaggio, aggiungi un veterano o lascia \"(automatico)\" per farlo suggerire. I nonni non si scelgono: sono i genitori del veterano aggiunto, altrimenti li suggerisce il calcolo.",
+    ace_intro: "Fino a 3 ace (i veterani schierabili in PvP), uno per tab. Per ogni genitore scegli un personaggio, aggiungi un veterano o lascia \"(automatico)\": il calcolo ci mette il personaggio o il veterano migliore, secondo l'interruttore qui sotto. I nonni non si scelgono: sono i genitori del veterano, altrimenti li suggerisce il calcolo.",
+    label_ace_suggest: "Suggerisci",
+    opt_ace_suggest_characters: "Personaggi",
+    opt_ace_suggest_veterans: "Veterani",
+    ace_conditions_intro: "Condizioni facoltative che ogni veterano suggerito deve rispettare. Senza un veterano adatto viene suggerito un personaggio.",
+    opt_condition_none: "-- nessuna --",
+    spark_search_placeholder: "Cerca spark…",
+    ace_condition_scope_whole: "Con nonni",
+    ace_tree_fallback: "nessun veterano adatto",
+    ace_tree_suggested_veteran: "{name} (suggerito)",
     label_ace_parent1: "Genitore 1",
     label_ace_parent2: "Genitore 2",
     label_ace_gp1a: "Nonno/a 1a",
@@ -460,7 +469,16 @@ const I18N = {
     rental_total_label: "Total Loop Affinity",
     opt_mode_ace: "Plan aces (PvP)",
     ace_section_title: "Plan aces (PvP)",
-    ace_intro: "Up to 3 aces (the veterans you can field in PvP), one per tab. For each parent pick a character, add a veteran or leave \"(auto)\" to get one suggested. Grandparents are not picked: they are the added veteran's parents, otherwise the calculation suggests them.",
+    ace_intro: "Up to 3 aces (the veterans you can field in PvP), one per tab. For each parent pick a character, add a veteran or leave \"(auto)\": the calculation fills in the best character or veteran, depending on the switch below. Grandparents are not picked: they are the veteran's parents, otherwise the calculation suggests them.",
+    label_ace_suggest: "Suggest",
+    opt_ace_suggest_characters: "Characters",
+    opt_ace_suggest_veterans: "Veterans",
+    ace_conditions_intro: "Optional conditions every suggested veteran must meet. Without a suitable veteran a character is suggested.",
+    opt_condition_none: "-- none --",
+    spark_search_placeholder: "Search spark…",
+    ace_condition_scope_whole: "With grandparents",
+    ace_tree_fallback: "no suitable veteran",
+    ace_tree_suggested_veteran: "{name} (suggested)",
     label_ace_parent1: "Parent 1",
     label_ace_parent2: "Parent 2",
     label_ace_gp1a: "Grandparent 1a",
@@ -809,6 +827,7 @@ const langToggle = makeToggleControl(
     applyStaticTranslations();
     populateMustIncludeSelects();
     buildRentalSparkPanel();
+    populateAceConditions();
     rerenderLastRun();
   },
 );
@@ -3316,7 +3335,7 @@ async function runQuery() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           aces, mode: calendarMode, global_only: globalOnly, owned, min_aptitude: minAptitude,
-          slots,
+          slots, veteran_ids: getAceVeteranIds(),
         }),
       });
       const data = await resp.json();
@@ -4197,6 +4216,7 @@ async function loadVeterans() {
   if (!cardCostumes) cardCostumes = await fetch("/api/card_costumes").then(r => r.json()).catch(() => ({}));
   veteransCache = await fetch("/api/veterans").then(r => r.json());
   renderVeteransList();
+  populateAceConditions();
 }
 
 async function openVeteransModal() {
@@ -4279,6 +4299,7 @@ veteransGametoraImportFileInput.addEventListener("change", () => {
     }
     veteransCache = data.veterans;
     renderVeteransList();
+    populateAceConditions();
     showVeteransGametoraStatus(t("veterans_gametora_import_success", { count: data.imported_count, skipped: data.skipped_count }));
   };
   reader.readAsText(file);
@@ -4313,6 +4334,7 @@ veteransUmadumpImportFileInput.addEventListener("change", () => {
     }
     veteransCache = data.veterans;
     renderVeteransList();
+    populateAceConditions();
     showVeteransGametoraStatus(t("veterans_umadump_import_success", {
       added: data.added, unchanged: data.unchanged, removed: data.removed, skipped: data.skipped_count,
     }));
@@ -4373,6 +4395,7 @@ veteransAnyImportFileInput.addEventListener("change", () => {
       return;
     }
     veteransCache = data.veterans;
+    populateAceConditions();
     if (!veteranImportModal.hidden) renderVeteranImportList();
     showVeteransFileImportStatus(umadump
       ? t("veterans_umadump_import_success", { added: data.added, unchanged: data.unchanged, removed: data.removed, skipped: data.skipped_count })
@@ -4422,12 +4445,19 @@ async function initAceSlotAuxiliaryUI() {
 // Veterano nello slot genitore (aceIndex, role): i suoi genitori diventano i
 // 2 nonni del ramo (un genitore ignoto resta "ignoto", mai suggerito). I dati
 // vanno messi PRIMA del "change": le regole e il ridisegno che innesca li leggono.
-function importVeteranIntoSlot(aceIndex, role, veteran) {
-  aceSlotData[aceSlotKey(aceIndex, role)] = { veteran: veteran.name, card_id: veteran.card_id, ...copySparks(veteran) };
-  [veteran.parent1, veteran.parent2].forEach((gp, i) => {
-    aceSlotData[aceSlotKey(aceIndex, BRANCH_GP_ROLES[role][i])] = gp
+// Dati di un ramo da veterano: [genitore, nonno a, nonno b] nel formato di aceSlotData.
+function veteranBranchData(veteran) {
+  return [
+    { veteran: veteran.name, card_id: veteran.card_id, ...copySparks(veteran) },
+    ...[veteran.parent1, veteran.parent2].map(gp => gp
       ? { character: gp.character, card_id: gp.card_id, ...copySparks(gp) }
-      : { unknown: true };
+      : { unknown: true }),
+  ];
+}
+
+function importVeteranIntoSlot(aceIndex, role, veteran) {
+  veteranBranchData(veteran).forEach((data, i) => {
+    aceSlotData[aceSlotKey(aceIndex, i === 0 ? role : BRANCH_GP_ROLES[role][i - 1])] = data;
   });
   const select = slotSelect(aceIndex, role);
   select.value = veteran.character;
@@ -4443,7 +4473,24 @@ function aceAncestor(aceIndex, role) {
   if (data.unknown) return { character: null, unknown: true, data };
   const aceChar = aceCharSelect(aceIndex).value;
   const suggested = aceResult && aceResult.slots[aceChar] && aceResult.slots[aceChar][role];
-  return { character: suggested || null, suggested: !!suggested, data };
+  const vetData = suggestedVeteranData(aceChar, role);
+  if (vetData && vetData.unknown) return { character: null, unknown: true, data: vetData };
+  return { character: suggested || null, suggested: !!suggested, data: vetData || data };
+}
+
+// Modalita' "veterani": il ramo di un genitore suggerito viene dal veterano
+// scelto dal server (aceResult.picks[ace][genitore] = id), con i suoi nonni;
+// id null = nessun veterano adatto, ripiego su un personaggio ({fallback}).
+function suggestedVeteranData(aceChar, role) {
+  const picks = aceResult && aceResult.picks && aceResult.picks[aceChar];
+  if (!picks) return null;
+  const parentRole = role in BRANCH_GP_ROLES ? role
+    : Object.keys(BRANCH_GP_ROLES).find(p => BRANCH_GP_ROLES[p].includes(role));
+  if (!(parentRole in picks)) return null;
+  if (picks[parentRole] === null) return role === parentRole ? { fallback: true } : null;
+  const veteran = veteransCache.find(v => v.id === picks[parentRole]);
+  if (!veteran) return null;
+  return veteranBranchData(veteran)[role === parentRole ? 0 : 1 + BRANCH_GP_ROLES[parentRole].indexOf(role)];
 }
 
 function aceCycle(aceIndex) {
@@ -4466,11 +4513,18 @@ function buildAceNode(aceIndex, role) {
   );
   const costumeTag = buildCostumeTag(anc.data.card_id);
   if (costumeTag) node.appendChild(costumeTag);
-  const tag = anc.data.veteran || (anc.suggested ? t("ace_tree_suggested") : "");
+  let tag = anc.data.veteran || (anc.suggested ? t("ace_tree_suggested") : "");
+  if (anc.data.veteran && anc.suggested) tag = t("ace_tree_suggested_veteran", { name: anc.data.veteran });
   if (tag) {
     const el = document.createElement("div");
     el.className = anc.suggested ? "ace-node-tag ace-node-tag-suggested" : "ace-node-tag";
     el.textContent = tag;
+    node.appendChild(el);
+  }
+  if (anc.data.fallback) {
+    const el = document.createElement("div");
+    el.className = "ace-node-tag ace-node-tag-fallback";
+    el.textContent = t("ace_tree_fallback");
     node.appendChild(el);
   }
   return node;
@@ -4648,34 +4702,132 @@ function veteranMatchesFilters(veteran) {
 }
 
 // Spark proponibili = quelle presenti davvero tra veterani e loro genitori.
-function populateVeteranFilterSparks() {
-  const category = veteranFilterCategory.value;
+// Pink e blu nell'ordine del gioco (richiesta utente, 2026-11-24), per
+// spark_id: Turf, Dirt, Sprint, Mile, Medium, Long, Front, Pace, Late, End;
+// Speed, Stamina, Power, Guts, Wit. Le altre categorie in ordine alfabetico.
+const SPARK_GAME_ORDER = {
+  pink: ["11", "12", "31", "32", "33", "34", "21", "22", "23", "24"],
+  blue: ["1", "2", "3", "4", "5"],
+};
+
+function veteranSparkOptions(category) {
   const byKey = new Map();
   veteransCache.forEach(v => [v, v.parent1, v.parent2].forEach(h =>
     entitySparks(h, category).forEach(s => byKey.set(s.key, s.name_en))));
-  const sorted = [...byKey].sort((a, b) => a[1].localeCompare(b[1]));
-  veteranFilterSpark.innerHTML = `<option value="">${t("opt_spark_picker_placeholder")}</option>`;
-  sorted.forEach(([key, name]) => {
+  const order = SPARK_GAME_ORDER[category];
+  if (!order) return [...byKey].sort((a, b) => a[1].localeCompare(b[1]));
+  const rank = key => { const i = order.indexOf(key.split(":")[1]); return i < 0 ? order.length : i; };
+  return [...byKey].sort((a, b) => rank(a[0]) - rank(b[0]) || a[1].localeCompare(b[1]));
+}
+
+// Riempie un menu spark con le sole voci che contengono 'query' (ricerca
+// accanto al menu, 2026-11-24: le white sono centinaia). La scelta corrente
+// resta se ancora presente; altrimenti, con una ricerca attiva, si seleziona
+// la prima corrispondenza (scrivere basta, senza riaprire il menu).
+// Ritorna true se il valore e' cambiato.
+function fillSparkSelect(select, options, placeholder, query = "") {
+  const previous = select.value;
+  const q = query.trim().toLowerCase();
+  const shown = q ? options.filter(([, name]) => name.toLowerCase().includes(q)) : options;
+  select.innerHTML = `<option value="">${placeholder}</option>`;
+  shown.forEach(([key, name]) => {
     const opt = document.createElement("option");
     opt.value = key;
     opt.textContent = name;
-    veteranFilterSpark.appendChild(opt);
+    select.appendChild(opt);
   });
+  const keep = shown.some(([key]) => key === previous);
+  select.value = keep ? previous : (q && shown.length ? shown[0][0] : "");
+  return select.value !== previous;
+}
+
+const veteranFilterSearch = document.getElementById("veteran-filter-search");
+
+function populateVeteranFilterSparks() {
+  fillSparkSelect(veteranFilterSpark, veteranSparkOptions(veteranFilterCategory.value),
+    t("opt_spark_picker_placeholder"), veteranFilterSearch.value);
 }
 
 // Con "intero veterano" le stelle si sommano su 3 portatori: fino a 9.
-function populateVeteranFilterStars() {
-  const max = veteranFilterScope.value === "whole" ? 9 : 3;
-  const previous = Number(veteranFilterStars.value) || 1;
-  veteranFilterStars.innerHTML = "";
+function populateStarsSelect(starsSelect, scope) {
+  const max = scope === "whole" ? 9 : 3;
+  const previous = Number(starsSelect.value) || 1;
+  starsSelect.innerHTML = "";
   for (let n = 1; n <= max; n++) {
     const opt = document.createElement("option");
     opt.value = String(n);
     opt.textContent = `≥ ${n}★`;
-    veteranFilterStars.appendChild(opt);
+    starsSelect.appendChild(opt);
   }
-  veteranFilterStars.value = String(Math.min(previous, max));
+  starsSelect.value = String(Math.min(previous, max));
 }
+
+function populateVeteranFilterStars() {
+  populateStarsSelect(veteranFilterStars, veteranFilterScope.value);
+}
+
+// --- Piano ace: interruttore "Suggerisci" e condizioni spark (2026-11-23) ---
+// Con "Veterani importati" i genitori "(automatico)" vengono cercati dal
+// server SOLO tra i veterani qui ammessi: filtro Global (come il popup) e
+// tutte le condizioni impostate (pink/white/blu, stessa logica dei filtri
+// del popup: stelle minime, solo genitore o sommate coi suoi genitori).
+let aceSuggestMode = "characters";
+const aceSuggestButtons = Array.from(document.querySelectorAll(".ace-suggest-button"));
+const aceVeteranConditions = document.getElementById("ace-veteran-conditions");
+const aceConditionRows = Array.from(document.querySelectorAll(".ace-condition-row"));
+
+function aceConditionControls(row) {
+  return {
+    category: row.dataset.cat,
+    spark: row.querySelector(".ace-condition-spark"),
+    search: row.querySelector(".ace-condition-search"),
+    stars: row.querySelector(".ace-condition-stars"),
+    scope: row.querySelector(".ace-condition-scope"),
+  };
+}
+
+function fillAceConditionSpark(c) {
+  return fillSparkSelect(c.spark, veteranSparkOptions(c.category), t("opt_condition_none"),
+    c.search ? c.search.value : "");
+}
+
+function populateAceConditions() {
+  aceConditionRows.forEach(row => {
+    const c = aceConditionControls(row);
+    fillAceConditionSpark(c);
+    populateStarsSelect(c.stars, c.scope.value);
+  });
+}
+
+function getAceVeteranIds() {
+  if (aceSuggestMode !== "veterans") return null;
+  const conditions = aceConditionRows.map(aceConditionControls).filter(c => c.spark.value).map(c => ({
+    category: c.category, key: c.spark.value, minStars: Number(c.stars.value) || 1, scope: c.scope.value,
+  }));
+  return veteransCache
+    .filter(veteranPassesGlobalFilter)
+    .filter(v => conditions.every(f => veteranSparkStars(v, f) >= f.minStars))
+    .map(v => v.id);
+}
+
+function setAceSuggestMode(mode) {
+  aceSuggestMode = mode;
+  aceSuggestButtons.forEach(b => {
+    const on = b.dataset.suggest === mode;
+    b.classList.toggle("mode-tab-active", on);
+    b.setAttribute("aria-checked", on ? "true" : "false");
+  });
+  aceVeteranConditions.hidden = mode !== "veterans";
+  aceInputChanged();
+}
+
+aceSuggestButtons.forEach(b => b.addEventListener("click", () => setAceSuggestMode(b.dataset.suggest)));
+aceConditionRows.forEach(row => {
+  const c = aceConditionControls(row);
+  c.scope.addEventListener("change", () => { populateStarsSelect(c.stars, c.scope.value); aceInputChanged(); });
+  [c.spark, c.stars].forEach(sel => sel.addEventListener("change", aceInputChanged));
+  if (c.search) c.search.addEventListener("input", () => { if (fillAceConditionSpark(c)) aceInputChanged(); });
+});
 
 function renderVeteranFilterList() {
   veteranFilterListEl.innerHTML = "";
@@ -4750,6 +4902,7 @@ function renderVeteranImportList() {
 }
 
 veteranFilterCategory.addEventListener("change", populateVeteranFilterSparks);
+veteranFilterSearch.addEventListener("input", populateVeteranFilterSparks);
 veteranFilterScope.addEventListener("change", populateVeteranFilterStars);
 veteranPickerSort.addEventListener("change", renderVeteranImportList);
 veteranFilterAddButton.addEventListener("click", () => {

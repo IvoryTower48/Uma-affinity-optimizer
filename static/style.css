@@ -381,7 +381,7 @@ select, input[type="number"], input[type="text"], input[type="search"] {
   margin-bottom: 0.6rem;
 }
 
-.ace-tab-button {
+.ace-tab-button, .ace-suggest-button {
   background: var(--bg-sunken);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -396,6 +396,66 @@ select, input[type="number"], input[type="text"], input[type="search"] {
 }
 
 .ace-tab-button:hover { color: var(--primary-text); }
+
+/* Interruttore "Suggerisci: Personaggi / Veterani importati" (2026-11-23):
+   stesso aspetto dei tab, condizioni spark sotto solo in modalita' veterani. */
+.ace-suggest-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.ace-suggest-label {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.ace-suggest-toggle {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.ace-veteran-conditions {
+  margin-bottom: 0.6rem;
+}
+
+/* Una riga per condizione, larga quanto serve: i controlli vanno a capo
+   solo se lo schermo e' stretto (cellulare). */
+.ace-condition-row {
+  display: grid;
+  grid-template-columns: 3.2rem minmax(0, 1fr);
+  gap: 0.4rem;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+
+.ace-condition-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.ace-condition-controls select,
+.ace-condition-controls input { width: auto; }
+
+.ace-condition-label {
+  align-self: start;
+  padding-top: 0.35rem;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.ace-condition-spark { flex: 1 1 10rem; max-width: 15rem; min-width: min(10rem, 100%); }
+
+/* Ricerca spark (white: centinaia di voci) che filtra il menu accanto. */
+.spark-search-input { flex: 0 1 11rem; min-width: 7rem; }
+
+.ace-node-tag-fallback { color: var(--warning-text); font-style: italic; }
 
 .ace-slot-block {
   display: flex;
@@ -2438,7 +2498,7 @@ details.collapsible-list summary {
 
 /* Feedback morbido su tutti i controlli cliccabili, non solo sul bottone base. */
 button, .mode-tab-button, .lang-button, .theme-button, .layout-button,
-.ace-slot-spark-chip, .veteran-list-item, .ace-tab-button {
+.ace-slot-spark-chip, .veteran-list-item, .ace-tab-button, .ace-suggest-button {
   transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
 }
 
